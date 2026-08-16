@@ -56,7 +56,7 @@ export default async function PricingPage() {
                 </p>
 
                 <p className="mt-4 flex items-baseline gap-1.5">
-                  <span className="text-5xl font-bold tracking-tight">{formatPrice(plan.price)}</span>
+                  <span className="font-display text-5xl font-bold tracking-tight">{formatPrice(plan.price)}</span>
                   <span className={cn("text-sm", plan.popular ? "text-accent-ink/70" : "text-faint")}>
                     {formatCadence(plan.cadence)}
                   </span>
@@ -102,7 +102,7 @@ export default async function PricingPage() {
               <p className="mt-1.5 max-w-xl text-sm text-muted">{payg.description}</p>
             </div>
             <div className="flex items-center gap-5">
-              <p className="text-3xl font-bold tracking-tight whitespace-nowrap">
+              <p className="font-display text-3xl font-bold tracking-tight whitespace-nowrap">
                 {formatPrice(payg.price)}
                 <span className="ml-1.5 text-sm font-normal text-faint">{formatCadence(payg.cadence)}</span>
               </p>

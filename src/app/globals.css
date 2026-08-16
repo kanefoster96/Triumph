@@ -23,7 +23,16 @@
   --radius-card: 1rem;
   --radius-sheet: 1.5rem;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /*
+   * Body: the platform UI font. On Apple devices this resolves to SF Pro —
+   * nothing to download, and text matches the OS the way a native app does.
+   */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue",
+    ui-sans-serif, system-ui, sans-serif;
+
+  /* Titles: Outfit, a geometric sans that sits comfortably next to SF. */
+  --font-display: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
 
   --ease-out-app: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -69,8 +78,9 @@
   h1,
   h2,
   h3 {
+    font-family: var(--font-display);
     font-weight: 700;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
   }
 }
 

@@ -34,7 +34,7 @@ export function BottomTabBar() {
           const Icon = icons[item.icon];
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           return (
-            <li key={item.href} className="flex-1">
+            <li key={item.href} className="min-w-0 flex-1">
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
@@ -49,8 +49,10 @@ export function BottomTabBar() {
                     active ? "bg-accent opacity-100" : "opacity-0",
                   )}
                 />
-                <Icon className="h-5 w-5" />
-                <span className="text-[11px] font-semibold tracking-tight">{item.short}</span>
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="max-w-full truncate text-[11px] font-semibold tracking-tight">
+                  {item.short}
+                </span>
               </Link>
             </li>
           );

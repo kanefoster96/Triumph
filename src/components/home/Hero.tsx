@@ -57,7 +57,7 @@ export function Hero() {
         <dl className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-8 sm:mt-20 lg:grid-cols-4">
           {headlineStats.map((stat) => (
             <div key={stat.label}>
-              <dd className="text-4xl font-bold tracking-tight sm:text-5xl">
+              <dd className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
                 {stat.value}
                 {stat.suffix ? <span className="text-accent">{stat.suffix}</span> : null}
               </dd>

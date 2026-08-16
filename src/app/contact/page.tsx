@@ -35,8 +35,10 @@ export default async function ContactPage() {
       />
 
       <Container className="pb-20 sm:pb-28">
+        {/* min-w-0 on the items, not the grid: grid items default to
+            min-width:auto, which lets wide content stretch the track. */}
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
-          <Reveal>
+          <Reveal className="min-w-0">
             <Suspense
               fallback={
                 <div className="h-[32rem] animate-pulse rounded-[var(--radius-sheet)] border border-line bg-surface" />
@@ -46,7 +48,7 @@ export default async function ContactPage() {
             </Suspense>
           </Reveal>
 
-          <div className="space-y-10">
+          <div className="min-w-0 space-y-10">
             <Reveal delay={70}>
               <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                 {details.map((detail) => (

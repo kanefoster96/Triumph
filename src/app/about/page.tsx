@@ -68,7 +68,7 @@ export default async function AboutPage() {
 
           <div>
             <Reveal>
-              <p className="text-2xl leading-snug font-bold tracking-tight text-balance sm:text-3xl">
+              <p className="font-display text-2xl leading-snug font-bold tracking-tight text-balance sm:text-3xl">
                 {coach.headline}
               </p>
             </Reveal>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
@@ -7,9 +7,15 @@ import { Footer } from "@/components/layout/Footer";
 import { site } from "@/lib/data/site";
 import { palette } from "@/lib/theme/tokens";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/**
+ * Titles only. Body text uses the platform UI font (SF Pro on Apple devices)
+ * declared in globals.css, so it needs no download and matches the OS.
+ */
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
+  weight: ["600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -36,7 +42,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GB" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en-GB" className={`${outfit.variable} h-full antialiased`}>
       <head>
         {/* Scroll-reveal starts elements at opacity 0 and JS reveals them.
             Without JS there is no observer, so pin them visible. */}

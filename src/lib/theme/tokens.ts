@@ -54,6 +54,20 @@ export const radius = {
   pill: 999,
 } as const;
 
+/**
+ * Font families.
+ *
+ * Body text deliberately uses the platform UI font — SF Pro on iOS, Roboto on
+ * Android — which is also React Native's default, so the app gets this for
+ * free. Only the title face is a downloaded font.
+ */
+export const fonts = {
+  /** Pass to RN as `System`, or omit the fontFamily entirely. */
+  body: "system",
+  display: "Outfit",
+  displayWeights: ["600", "700"],
+} as const;
+
 export const typeScale = {
   display: { size: 48, lineHeight: 52, weight: "800" },
   h1: { size: 36, lineHeight: 42, weight: "800" },

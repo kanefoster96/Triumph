@@ -190,7 +190,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
                 aria-pressed={selected}
                 onClick={() => setExperience(level)}
                 className={cn(
-                  "flex-1 rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-200",
+                  "min-w-0 flex-1 truncate rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-200",
                   selected ? "bg-accent text-accent-ink" : "text-muted hover:text-text",
                 )}
               >

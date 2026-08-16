@@ -14,7 +14,7 @@ export function Logo({ className, href = "/" }: { className?: string; href?: str
         <rect x="9" y="7" width="6" height="17" rx="2" fill="currentColor" className="text-accent/75" />
         <rect x="18" y="0" width="6" height="24" rx="2" fill="currentColor" className="text-accent" />
       </svg>
-      <span className="text-[15px] leading-tight font-bold tracking-tight">
+      <span className="font-display text-[15px] leading-tight font-bold tracking-tight">
         Triumph
         <span className="block text-[15px] font-bold text-muted">Training</span>
       </span>
