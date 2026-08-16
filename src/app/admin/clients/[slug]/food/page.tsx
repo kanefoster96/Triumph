@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
 import {
   commentsFor,
+  getAssignedFoodDates,
   getComments,
+  getDayPlans,
   getFoodLogs,
   getFoodPlan,
   getProfile,
   sumCalories,
   today,
 } from "@/lib/members/service";
-import { saveFoodPlan } from "@/lib/members/actions";
+import { assignDayPlan, saveFoodPlan } from "@/lib/members/actions";
+import { PlanAssigner } from "@/components/members/PlanAssigner";
 import {
   CalorieBar,
   EmptyState,
@@ -29,12 +32,16 @@ export default async function AdminClientFoodPage({
   if (!profile) notFound();
 
   const date = today();
-  const [plan, todaysLogs, allLogs, comments] = await Promise.all([
-    getFoodPlan(profile.id),
+  const [plan, todaysLogs, allLogs, comments, dayPlans, assignedDates] = await Promise.all([
+    getFoodPlan(profile.id, date),
     getFoodLogs(profile.id, date),
     getFoodLogs(profile.id),
     getComments(profile.id),
+    getDayPlans(),
+    getAssignedFoodDates(profile.id),
   ]);
+
+  const upcoming = assignedDates.filter((p) => p.assignedFor > date);
 
   const earlierDays = [...new Set(allLogs.map((l) => l.loggedFor))]
     .filter((d) => d !== date)
@@ -66,9 +73,57 @@ export default async function AdminClientFoodPage({
         )}
       </Panel>
 
-      <Panel title="Their plan">
+      <Panel title="Plan ahead">
+        <PlanAssigner
+          clientId={profile.id}
+          today={date}
+          plans={dayPlans}
+          action={assignDayPlan}
+          noun="food"
+          emptyHint="No food plans yet — build one on the Plans page first."
+        />
+      </Panel>
+
+      <Panel title={`Planned ahead (${upcoming.length})`}>
+        {upcoming.length === 0 ? (
+          <EmptyState>
+            Nothing assigned beyond today. Today&rsquo;s target carries forward until you change it.
+          </EmptyState>
+        ) : (
+          <ul className="space-y-2">
+            {upcoming.map((assigned) => (
+              <li
+                key={assigned.id}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3"
+              >
+                <span className="text-sm text-muted">
+                  {new Date(`${assigned.assignedFor}T12:00:00Z`).toLocaleDateString("en-GB", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+                <span className="text-sm font-semibold">
+                  {assigned.calorieTarget
+                    ? `${assigned.calorieTarget.toLocaleString("en-GB")} kcal`
+                    : "No target"}
+                  {assigned.meals.length > 0 ? (
+                    <span className="font-normal text-faint"> · {assigned.meals.length} meals</span>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel title="Today by hand">
+        <p className="mb-4 text-sm text-muted">
+          Overrides whatever is assigned for today, without touching the other days.
+        </p>
         <form action={saveFoodPlan} className="space-y-4">
           <input type="hidden" name="clientId" value={profile.id} />
+          <input type="hidden" name="date" value={date} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={fieldLabel} htmlFor="f-cal">

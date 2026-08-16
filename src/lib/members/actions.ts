@@ -6,9 +6,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   demoComments,
+  demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
   demoProfiles,
+  demoSessionPlans,
   demoSessions,
   demoWeightEntries,
   demoWorkouts,
@@ -27,6 +29,38 @@ import type { CommentTarget } from "./types";
 function refresh() {
   revalidatePath("/app", "layout");
   revalidatePath("/admin", "layout");
+}
+
+/**
+ * "Back squat — 4 × 5 @ 70kg" becomes a label and a target. One exercise per
+ * line, so a whole session can be typed or pasted in one go.
+ */
+function parseChecklist(input: string) {
+  return input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, position) => {
+      const [label, target] = line.split(/\s+[—–-]\s+/, 2);
+      return { position, label: label.trim(), target: target?.trim() ?? null };
+    });
+}
+
+/** "Breakfast | 200g yoghurt, berries | 420" becomes one meal. */
+function parseMeals(input: string) {
+  return input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, position) => {
+      const [name, ingredients, calories] = line.split("|").map((part) => part.trim());
+      return {
+        position,
+        name: name || "Meal",
+        ingredients: ingredients || null,
+        calories: calories ? Number(calories) : null,
+      };
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -228,18 +262,8 @@ export async function saveWorkout(formData: FormData) {
   const scheduledFor = String(formData.get("date") ?? today());
   const title = String(formData.get("title") ?? "Workout").trim() || "Workout";
   const coachNotes = String(formData.get("coachNotes") ?? "").trim() || null;
-  const labels = String(formData.get("items") ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (!clientId || labels.length === 0) return;
-
-  // "Back squat — 4 x 5 @ 70kg" splits into a label and a target.
-  const parsed = labels.map((line, position) => {
-    const [label, target] = line.split(/\s+[—–-]\s+/, 2);
-    return { position, label: label.trim(), target: target?.trim() ?? null };
-  });
+  const parsed = parseChecklist(String(formData.get("items") ?? ""));
+  if (!clientId || parsed.length === 0) return;
 
   const supabase = await createClient();
 
@@ -306,32 +330,21 @@ export async function saveFoodPlan(formData: FormData) {
   const clientId = String(formData.get("clientId") ?? "");
   if (!clientId) return;
 
+  // Which day this applies from. Later days inherit it until another is set.
+  const forDate = String(formData.get("date") ?? today());
+
   const calorieTargetRaw = String(formData.get("calorieTarget") ?? "").trim();
   const proteinTargetRaw = String(formData.get("proteinTarget") ?? "").trim();
   const calorieTarget = calorieTargetRaw ? Number(calorieTargetRaw) : null;
   const proteinTarget = proteinTargetRaw ? Number(proteinTargetRaw) : null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
-  // One meal per line: "Breakfast | 200g yoghurt, berries | 420"
-  const meals = String(formData.get("meals") ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, position) => {
-      const [name, ingredients, calories] = line.split("|").map((part) => part.trim());
-      return {
-        position,
-        name: name || "Meal",
-        ingredients: ingredients || null,
-        calories: calories ? Number(calories) : null,
-      };
-    });
+  const meals = parseMeals(String(formData.get("meals") ?? ""));
 
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoFoodPlans.find((p) => p.clientId === clientId);
-    const planId = existing?.id ?? crypto.randomUUID();
+    const existing = demoFoodPlans.find((p) => p.clientId === clientId && p.assignedFor === forDate);
     const mapped = meals.map((meal) => ({ id: crypto.randomUUID(), ...meal }));
 
     if (existing) {
@@ -341,9 +354,9 @@ export async function saveFoodPlan(formData: FormData) {
       existing.meals = mapped;
     } else {
       demoFoodPlans.push({
-        id: planId,
+        id: crypto.randomUUID(),
         clientId,
-        effectiveFrom: today(),
+        assignedFor: forDate,
         calorieTarget,
         proteinTarget,
         notes,
@@ -351,24 +364,20 @@ export async function saveFoodPlan(formData: FormData) {
       });
     }
   } else {
-    const { data: existing } = await supabase
+    const { data: plan } = await supabase
       .from("food_plans")
+      .upsert(
+        {
+          client_id: clientId,
+          assigned_for: forDate,
+          calorie_target: calorieTarget,
+          protein_target: proteinTarget,
+          notes,
+        },
+        { onConflict: "client_id,assigned_for" },
+      )
       .select("id")
-      .eq("client_id", clientId)
-      .order("effective_from", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const payload = {
-      client_id: clientId,
-      calorie_target: calorieTarget,
-      protein_target: proteinTarget,
-      notes,
-    };
-
-    const { data: plan } = existing
-      ? await supabase.from("food_plans").update(payload).eq("id", existing.id).select("id").single()
-      : await supabase.from("food_plans").insert(payload).select("id").single();
+      .single();
 
     if (plan) {
       await supabase.from("food_plan_meals").delete().eq("food_plan_id", plan.id);
@@ -480,4 +489,342 @@ export async function exitDemo() {
 
 export async function getDemoClients() {
   return demoProfiles.filter((p) => p.role === "client");
+}
+
+// ---------------------------------------------------------------------------
+// Reusable plans, and assigning them across days
+// ---------------------------------------------------------------------------
+
+/** Create or update a reusable session (workout) plan. */
+export async function saveSessionPlan(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const items = parseChecklist(String(formData.get("items") ?? ""));
+  if (!name || items.length === 0) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = demoSessionPlans.find((p) => p.id === id);
+    const mapped = items.map((item) => ({ id: crypto.randomUUID(), ...item }));
+    if (existing) {
+      existing.name = name;
+      existing.notes = notes;
+      existing.items = mapped;
+    } else {
+      demoSessionPlans.push({ id: crypto.randomUUID(), name, notes, items: mapped });
+    }
+  } else {
+    const { data: plan } = id
+      ? await supabase.from("session_plans").update({ name, notes }).eq("id", id).select("id").single()
+      : await supabase.from("session_plans").insert({ name, notes }).select("id").single();
+
+    if (plan) {
+      await supabase.from("session_plan_items").delete().eq("session_plan_id", plan.id);
+      await supabase
+        .from("session_plan_items")
+        .insert(items.map((item) => ({ session_plan_id: plan.id, ...item })));
+    }
+  }
+
+  revalidatePath("/admin", "layout");
+}
+
+/** Create or update a reusable day (food) plan. */
+export async function saveDayPlan(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  const calorieTargetRaw = String(formData.get("calorieTarget") ?? "").trim();
+  const proteinTargetRaw = String(formData.get("proteinTarget") ?? "").trim();
+  const calorieTarget = calorieTargetRaw ? Number(calorieTargetRaw) : null;
+  const proteinTarget = proteinTargetRaw ? Number(proteinTargetRaw) : null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const meals = parseMeals(String(formData.get("meals") ?? ""));
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = demoDayPlans.find((p) => p.id === id);
+    const mapped = meals.map((meal) => ({ id: crypto.randomUUID(), ...meal }));
+    if (existing) {
+      Object.assign(existing, { name, calorieTarget, proteinTarget, notes, meals: mapped });
+    } else {
+      demoDayPlans.push({
+        id: crypto.randomUUID(),
+        name,
+        calorieTarget,
+        proteinTarget,
+        notes,
+        meals: mapped,
+      });
+    }
+  } else {
+    const payload = {
+      name,
+      calorie_target: calorieTarget,
+      protein_target: proteinTarget,
+      notes,
+    };
+    const { data: plan } = id
+      ? await supabase.from("day_plans").update(payload).eq("id", id).select("id").single()
+      : await supabase.from("day_plans").insert(payload).select("id").single();
+
+    if (plan) {
+      await supabase.from("day_plan_meals").delete().eq("day_plan_id", plan.id);
+      if (meals.length > 0) {
+        await supabase
+          .from("day_plan_meals")
+          .insert(meals.map((meal) => ({ day_plan_id: plan.id, ...meal })));
+      }
+    }
+  }
+
+  revalidatePath("/admin", "layout");
+}
+
+export async function deleteSessionPlan(id: string) {
+  const supabase = await createClient();
+  if (!supabase) {
+    const index = demoSessionPlans.findIndex((p) => p.id === id);
+    if (index >= 0) demoSessionPlans.splice(index, 1);
+  } else {
+    await supabase.from("session_plans").delete().eq("id", id);
+  }
+  revalidatePath("/admin", "layout");
+}
+
+export async function deleteDayPlan(id: string) {
+  const supabase = await createClient();
+  if (!supabase) {
+    const index = demoDayPlans.findIndex((p) => p.id === id);
+    if (index >= 0) demoDayPlans.splice(index, 1);
+  } else {
+    await supabase.from("day_plans").delete().eq("id", id);
+  }
+  revalidatePath("/admin", "layout");
+}
+
+/**
+ * The dates a plan lands on: every day between `from` and `to` whose weekday
+ * was ticked. Capped at 30 days, which is the longest range worth planning in
+ * one go.
+ */
+function datesInRange(from: string, to: string, weekdays: number[]): string[] {
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [];
+
+  const dates: string[] = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end && dates.length < 30) {
+    if (weekdays.length === 0 || weekdays.includes(cursor.getUTCDay())) {
+      dates.push(cursor.toISOString().slice(0, 10));
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return dates;
+}
+
+function readAssignment(formData: FormData) {
+  const clientId = String(formData.get("clientId") ?? "");
+  const planId = String(formData.get("planId") ?? "");
+  const from = String(formData.get("from") ?? today());
+  const to = String(formData.get("to") ?? from);
+  const weekdays = formData.getAll("weekdays").map((v) => Number(v));
+  const overwrite = formData.get("overwrite") === "on";
+  return { clientId, planId, dates: datesInRange(from, to, weekdays), overwrite };
+}
+
+/** Paint a session plan across every selected day. */
+export async function assignSessionPlan(formData: FormData) {
+  const { clientId, planId, dates, overwrite } = readAssignment(formData);
+  if (!clientId || !planId || dates.length === 0) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const plan = demoSessionPlans.find((p) => p.id === planId);
+    if (!plan) return;
+
+    for (const date of dates) {
+      const existing = demoWorkouts.find((w) => w.clientId === clientId && w.scheduledFor === date);
+      // Never silently wipe a day the client has already worked through.
+      if (existing && !overwrite) continue;
+
+      const workoutId = existing?.id ?? crypto.randomUUID();
+      const items = plan.items.map((item) => ({
+        id: crypto.randomUUID(),
+        workoutId,
+        position: item.position,
+        label: item.label,
+        target: item.target,
+        done: false,
+        doneAt: null,
+      }));
+
+      if (existing) {
+        existing.title = plan.name;
+        existing.coachNotes = plan.notes;
+        existing.items = items;
+        existing.completedAt = null;
+      } else {
+        demoWorkouts.push({
+          id: workoutId,
+          clientId,
+          scheduledFor: date,
+          title: plan.name,
+          coachNotes: plan.notes,
+          clientNote: null,
+          completedAt: null,
+          items,
+        });
+      }
+    }
+  } else {
+    const { data: plan } = await supabase
+      .from("session_plans")
+      .select("*, session_plan_items(*)")
+      .eq("id", planId)
+      .single();
+    if (!plan) return;
+
+    const { data: existing } = await supabase
+      .from("workouts")
+      .select("scheduled_for")
+      .eq("client_id", clientId)
+      .in("scheduled_for", dates);
+    const taken = new Set((existing ?? []).map((row) => row.scheduled_for));
+    const targets = overwrite ? dates : dates.filter((d) => !taken.has(d));
+
+    for (const date of targets) {
+      const { data: workout } = await supabase
+        .from("workouts")
+        .upsert(
+          {
+            client_id: clientId,
+            scheduled_for: date,
+            title: plan.name,
+            coach_notes: plan.notes,
+            source_plan_id: plan.id,
+            completed_at: null,
+          },
+          { onConflict: "client_id,scheduled_for" },
+        )
+        .select("id")
+        .single();
+
+      if (workout) {
+        await supabase.from("workout_items").delete().eq("workout_id", workout.id);
+        await supabase.from("workout_items").insert(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped row
+          (plan.session_plan_items ?? []).map((item: any) => ({
+            workout_id: workout.id,
+            position: item.position,
+            label: item.label,
+            target: item.target,
+          })),
+        );
+      }
+    }
+  }
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/app", "layout");
+}
+
+/** Paint a day plan across every selected day. */
+export async function assignDayPlan(formData: FormData) {
+  const { clientId, planId, dates, overwrite } = readAssignment(formData);
+  if (!clientId || !planId || dates.length === 0) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const plan = demoDayPlans.find((p) => p.id === planId);
+    if (!plan) return;
+
+    for (const date of dates) {
+      const existing = demoFoodPlans.find((p) => p.clientId === clientId && p.assignedFor === date);
+      if (existing && !overwrite) continue;
+
+      const meals = plan.meals.map((meal) => ({ ...meal, id: crypto.randomUUID() }));
+
+      if (existing) {
+        Object.assign(existing, {
+          calorieTarget: plan.calorieTarget,
+          proteinTarget: plan.proteinTarget,
+          notes: plan.notes,
+          meals,
+        });
+      } else {
+        demoFoodPlans.push({
+          id: crypto.randomUUID(),
+          clientId,
+          assignedFor: date,
+          calorieTarget: plan.calorieTarget,
+          proteinTarget: plan.proteinTarget,
+          notes: plan.notes,
+          meals,
+        });
+      }
+    }
+  } else {
+    const { data: plan } = await supabase
+      .from("day_plans")
+      .select("*, day_plan_meals(*)")
+      .eq("id", planId)
+      .single();
+    if (!plan) return;
+
+    const { data: existing } = await supabase
+      .from("food_plans")
+      .select("assigned_for")
+      .eq("client_id", clientId)
+      .in("assigned_for", dates);
+    const taken = new Set((existing ?? []).map((row) => row.assigned_for));
+    const targets = overwrite ? dates : dates.filter((d) => !taken.has(d));
+
+    for (const date of targets) {
+      const { data: assigned } = await supabase
+        .from("food_plans")
+        .upsert(
+          {
+            client_id: clientId,
+            assigned_for: date,
+            calorie_target: plan.calorie_target,
+            protein_target: plan.protein_target,
+            notes: plan.notes,
+            source_plan_id: plan.id,
+          },
+          { onConflict: "client_id,assigned_for" },
+        )
+        .select("id")
+        .single();
+
+      if (assigned) {
+        await supabase.from("food_plan_meals").delete().eq("food_plan_id", assigned.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped row
+        const meals = (plan.day_plan_meals ?? []) as any[];
+        if (meals.length > 0) {
+          await supabase.from("food_plan_meals").insert(
+            meals.map((meal) => ({
+              food_plan_id: assigned.id,
+              position: meal.position,
+              name: meal.name,
+              ingredients: meal.ingredients,
+              calories: meal.calories,
+            })),
+          );
+        }
+      }
+    }
+  }
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/app", "layout");
 }

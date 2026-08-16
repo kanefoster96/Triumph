@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarDays, ClipboardList, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/admin", label: "Clients", icon: Users },
+  { href: "/admin/plans", label: "Plans", icon: ClipboardList },
   { href: "/admin/schedule", label: "Schedule", icon: CalendarDays },
 ];
 

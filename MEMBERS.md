@@ -47,10 +47,26 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | --- | --- |
 | **Clients** `/admin` | Every client with last activity, on/off track, and today's workout, calories and weight at a glance. |
 | **Client** `/admin/clients/[id]` | The same five tabs the client sees, but editable. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts assigns the checklist and shows what they ticked; Food sets targets and meals; Weight shows the trend and allows corrections. Dean can reply to any note from its tab. |
+| **Plans** `/admin/plans` | Reusable workout plans and food plans, built once and assigned to as many days as needed. Independent of any client. |
 | **Schedule** `/admin/schedule` | Every session across all clients, grouped by day. Anything added shows up in that client's Sessions tab. |
 
-Everything Dean sets stays editable after the fact — adjust a workout mid-week,
-change a calorie target, reschedule a session.
+## Planning ahead
+
+The daily job is not writing a plan per day. It is: build the plan once on
+**Plans**, then on a client's Workouts or Food tab use **Plan ahead** — pick the
+plan, pick a date range, tick the weekdays it lands on. Ticking Mon/Wed/Fri
+over four weeks fills twelve days in one action. Ranges are capped at 30 days.
+
+Days that already have something assigned are skipped unless "replace" is
+ticked, so a bulk assignment never wipes a day a client has already worked
+through. **Planned ahead** on each tab lists what is queued.
+
+Food is assigned per date, and a date with no plan of its own inherits the most
+recent earlier one — so a target set once carries forward until it is changed.
+
+Everything Dean sets stays editable after the fact — adjust one day's workout
+without touching the rest of the week, change a calorie target, reschedule a
+session.
 
 ## How privacy is enforced
 
@@ -85,5 +101,6 @@ section disappears once the environment variables are set.
   for now).
 - Realtime push. Client actions appear on Dean's next page load, not by
   live subscription.
-- The trainer planning tools — libraries, templates, range assignment,
-  progression memory, shopping list. Spec in ROADMAP.md.
+- The rest of the planning tools — meal and exercise libraries, calorie
+  auto-fill, progression memory and shopping lists. Spec in ROADMAP.md.
+  Templates and range assignment are done.

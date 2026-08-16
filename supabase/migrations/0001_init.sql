@@ -117,10 +117,12 @@ create index workout_items_workout_idx on public.workout_items (workout_id, posi
 -- Food — Dean assigns meals and/or a calorie target; the client logs against it
 -- ---------------------------------------------------------------------------
 
+-- One row per date the plan applies to. A date with no row of its own falls
+-- back to the most recent earlier one, so a target set once carries forward.
 create table public.food_plans (
   id             uuid primary key default gen_random_uuid(),
   client_id      uuid not null references public.profiles(id) on delete cascade,
-  effective_from date not null default current_date,
+  assigned_for   date not null default current_date,
   calorie_target int,
   protein_target int,
   notes          text,
@@ -128,7 +130,7 @@ create table public.food_plans (
   updated_at     timestamptz not null default now()
 );
 
-create index food_plans_client_idx on public.food_plans (client_id, effective_from desc);
+create unique index food_plans_client_date_idx on public.food_plans (client_id, assigned_for);
 
 create table public.food_plan_meals (
   id           uuid primary key default gen_random_uuid(),
@@ -153,6 +155,52 @@ create table public.food_logs (
 );
 
 create index food_logs_client_date_idx on public.food_logs (client_id, logged_for desc);
+
+-- ---------------------------------------------------------------------------
+-- Reusable plans — built once by Dean, assigned to many days
+-- ---------------------------------------------------------------------------
+
+create table public.session_plans (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  notes      text,
+  created_at timestamptz not null default now()
+);
+
+create table public.session_plan_items (
+  id              uuid primary key default gen_random_uuid(),
+  session_plan_id uuid not null references public.session_plans(id) on delete cascade,
+  position        int not null default 0,
+  label           text not null,
+  target          text
+);
+
+create index session_plan_items_plan_idx on public.session_plan_items (session_plan_id, position);
+
+create table public.day_plans (
+  id             uuid primary key default gen_random_uuid(),
+  name           text not null,
+  calorie_target int,
+  protein_target int,
+  notes          text,
+  created_at     timestamptz not null default now()
+);
+
+create table public.day_plan_meals (
+  id          uuid primary key default gen_random_uuid(),
+  day_plan_id uuid not null references public.day_plans(id) on delete cascade,
+  position    int not null default 0,
+  name        text not null,
+  ingredients text,
+  calories    int
+);
+
+create index day_plan_meals_plan_idx on public.day_plan_meals (day_plan_id, position);
+
+-- Which template a given assigned day came from. Null when Dean wrote the day
+-- by hand; kept nullable so editing one day never breaks the link for others.
+alter table public.workouts   add column source_plan_id uuid references public.session_plans(id) on delete set null;
+alter table public.food_plans add column source_plan_id uuid references public.day_plans(id)     on delete set null;
 
 -- ---------------------------------------------------------------------------
 -- Weight
@@ -227,6 +275,10 @@ alter table public.food_plan_meals enable row level security;
 alter table public.food_logs       enable row level security;
 alter table public.weight_entries  enable row level security;
 alter table public.comments        enable row level security;
+alter table public.session_plans      enable row level security;
+alter table public.session_plan_items enable row level security;
+alter table public.day_plans          enable row level security;
+alter table public.day_plan_meals     enable row level security;
 
 -- Profiles
 create policy "read own profile" on public.profiles
@@ -326,6 +378,17 @@ create policy "update own comments" on public.comments
   with check (client_id = auth.uid() or public.is_admin());
 create policy "admin deletes comments" on public.comments
   for delete using (public.is_admin());
+
+-- Plan templates are Dean's own tools. Clients never read them directly —
+-- they see the days those plans were used to create.
+create policy "admin manages session plans" on public.session_plans
+  for all using (public.is_admin()) with check (public.is_admin());
+create policy "admin manages session plan items" on public.session_plan_items
+  for all using (public.is_admin()) with check (public.is_admin());
+create policy "admin manages day plans" on public.day_plans
+  for all using (public.is_admin()) with check (public.is_admin());
+create policy "admin manages day plan meals" on public.day_plan_meals
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- ---------------------------------------------------------------------------
 -- Promoting Dean to admin

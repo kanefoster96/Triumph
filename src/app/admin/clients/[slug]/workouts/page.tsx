@@ -3,10 +3,12 @@ import {
   commentsFor,
   getComments,
   getProfile,
+  getSessionPlans,
   getWorkouts,
   today,
 } from "@/lib/members/service";
-import { saveWorkout } from "@/lib/members/actions";
+import { assignSessionPlan, saveWorkout } from "@/lib/members/actions";
+import { PlanAssigner } from "@/components/members/PlanAssigner";
 import { EmptyState, Panel, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
 import { CommentThread } from "@/components/members/Comments";
@@ -23,9 +25,16 @@ export default async function AdminClientWorkoutsPage({
   if (!profile) notFound();
 
   const date = today();
-  const [workouts, comments] = await Promise.all([getWorkouts(profile.id), getComments(profile.id)]);
+  const [workouts, comments, sessionPlans] = await Promise.all([
+    getWorkouts(profile.id),
+    getComments(profile.id),
+    getSessionPlans(),
+  ]);
   const todaysWorkout = workouts.find((w) => w.scheduledFor === date) ?? null;
-  const past = workouts.filter((w) => w.scheduledFor !== date);
+  const upcoming = workouts
+    .filter((w) => w.scheduledFor > date)
+    .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+  const past = workouts.filter((w) => w.scheduledFor < date);
 
   return (
     <div className="space-y-5">
@@ -46,7 +55,45 @@ export default async function AdminClientWorkoutsPage({
         )}
       </Panel>
 
-      <Panel title={todaysWorkout ? "Edit this workout" : "Assign a workout"}>
+      <Panel title="Plan ahead">
+        <PlanAssigner
+          clientId={profile.id}
+          today={date}
+          plans={sessionPlans}
+          action={assignSessionPlan}
+          noun="workout"
+          emptyHint="No workout plans yet — build one on the Plans page first."
+        />
+      </Panel>
+
+      <Panel title={`Planned ahead (${upcoming.length})`}>
+        {upcoming.length === 0 ? (
+          <EmptyState>Nothing scheduled beyond today.</EmptyState>
+        ) : (
+          <ul className="space-y-2">
+            {upcoming.map((workout) => (
+              <li
+                key={workout.id}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{workout.title}</span>
+                  <span className="text-xs text-faint">
+                    {new Date(`${workout.scheduledFor}T12:00:00Z`).toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-faint">{workout.items.length} exercises</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel title={todaysWorkout ? "Edit today by hand" : "Write a one-off workout"}>
         <form action={saveWorkout} className="space-y-4">
           <input type="hidden" name="clientId" value={profile.id} />
           <div className="grid gap-4 sm:grid-cols-2">

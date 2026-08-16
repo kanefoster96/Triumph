@@ -5,9 +5,11 @@ import {
   DEMO_ADMIN_ID,
   DEMO_CLIENT_ID,
   demoComments,
+  demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
   demoProfiles,
+  demoSessionPlans,
   demoSessions,
   demoWeightEntries,
   demoWorkouts,
@@ -18,9 +20,11 @@ import type {
   Comment,
   CommentTarget,
   DashboardSummary,
+  DayPlan,
   FoodLog,
   FoodPlan,
   Profile,
+  SessionPlan,
   SessionStatus,
   WeightEntry,
   Workout,
@@ -99,7 +103,7 @@ function toFoodPlan(row: any): FoodPlan {
   return {
     id: row.id,
     clientId: row.client_id,
-    effectiveFrom: row.effective_from,
+    assignedFor: row.assigned_for,
     calorieTarget: row.calorie_target ?? null,
     proteinTarget: row.protein_target ?? null,
     notes: row.notes ?? null,
@@ -283,13 +287,20 @@ export async function getWorkoutFor(clientId: string, date: string): Promise<Wor
 // Food
 // ---------------------------------------------------------------------------
 
-export async function getFoodPlan(clientId: string): Promise<FoodPlan | null> {
+/**
+ * The food plan in force on a date: the row for that exact day if there is
+ * one, otherwise the most recent earlier one, so a target set once carries
+ * forward until Dean changes it.
+ */
+export async function getFoodPlan(clientId: string, date?: string): Promise<FoodPlan | null> {
+  const on = date ?? today();
   const supabase = await createClient();
+
   if (!supabase) {
     return (
       demoFoodPlans
-        .filter((p) => p.clientId === clientId)
-        .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] ?? null
+        .filter((p) => p.clientId === clientId && p.assignedFor <= on)
+        .sort((a, b) => b.assignedFor.localeCompare(a.assignedFor))[0] ?? null
     );
   }
 
@@ -297,10 +308,84 @@ export async function getFoodPlan(clientId: string): Promise<FoodPlan | null> {
     .from("food_plans")
     .select("*, food_plan_meals(*)")
     .eq("client_id", clientId)
-    .order("effective_from", { ascending: false })
+    .lte("assigned_for", on)
+    .order("assigned_for", { ascending: false })
     .limit(1)
     .maybeSingle();
   return data ? toFoodPlan(data) : null;
+}
+
+/** Every date this client has a food plan explicitly assigned to. */
+export async function getAssignedFoodDates(clientId: string): Promise<FoodPlan[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoFoodPlans
+      .filter((p) => p.clientId === clientId)
+      .sort((a, b) => a.assignedFor.localeCompare(b.assignedFor));
+  }
+
+  const { data } = await supabase
+    .from("food_plans")
+    .select("*, food_plan_meals(*)")
+    .eq("client_id", clientId)
+    .order("assigned_for", { ascending: true });
+  return (data ?? []).map(toFoodPlan);
+}
+
+// ---------------------------------------------------------------------------
+// Reusable plans
+// ---------------------------------------------------------------------------
+
+export async function getSessionPlans(): Promise<SessionPlan[]> {
+  const supabase = await createClient();
+  if (!supabase) return demoSessionPlans;
+
+  const { data } = await supabase
+    .from("session_plans")
+    .select("*, session_plan_items(*)")
+    .order("name");
+
+  /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    notes: row.notes ?? null,
+    items: (row.session_plan_items ?? [])
+      .map((item: any) => ({
+        id: item.id,
+        position: item.position,
+        label: item.label,
+        target: item.target ?? null,
+      }))
+      .sort((a: any, b: any) => a.position - b.position),
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+export async function getDayPlans(): Promise<DayPlan[]> {
+  const supabase = await createClient();
+  if (!supabase) return demoDayPlans;
+
+  const { data } = await supabase.from("day_plans").select("*, day_plan_meals(*)").order("name");
+
+  /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    calorieTarget: row.calorie_target ?? null,
+    proteinTarget: row.protein_target ?? null,
+    notes: row.notes ?? null,
+    meals: (row.day_plan_meals ?? [])
+      .map((meal: any) => ({
+        id: meal.id,
+        position: meal.position,
+        name: meal.name,
+        ingredients: meal.ingredients ?? null,
+        calories: meal.calories ?? null,
+      }))
+      .sort((a: any, b: any) => a.position - b.position),
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 export async function getFoodLogs(clientId: string, date?: string): Promise<FoodLog[]> {

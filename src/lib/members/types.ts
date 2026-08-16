@@ -66,12 +66,39 @@ export interface FoodPlanMeal {
 export interface FoodPlan {
   id: string;
   clientId: string;
-  effectiveFrom: string;
+  /** The date this plan applies to. */
+  assignedFor: string;
   /** Either of these may be null — Dean can set meals, a target, or both. */
   calorieTarget: number | null;
   proteinTarget: number | null;
   notes: string | null;
   meals: FoodPlanMeal[];
+}
+
+/** A reusable workout Dean builds once and assigns to many days. */
+export interface SessionPlan {
+  id: string;
+  name: string;
+  notes: string | null;
+  items: Array<{ id: string; position: number; label: string; target: string | null }>;
+}
+
+/** A reusable day of food — a calorie target, meals, or both. */
+export interface DayPlan {
+  id: string;
+  name: string;
+  calorieTarget: number | null;
+  proteinTarget: number | null;
+  notes: string | null;
+  meals: FoodPlanMeal[];
+}
+
+/** Result of painting a plan across a date range. */
+export interface AssignmentResult {
+  assigned: number;
+  skipped: number;
+  from: string;
+  to: string;
 }
 
 export interface FoodLog {
