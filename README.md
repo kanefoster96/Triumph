@@ -1,4 +1,4 @@
-# Triumph
+# Triumph Training
 
 Marketing website for a personal trainer, built to feel like an app rather than a
 brochure — and structured so its features port cleanly to a React Native app later.
@@ -46,10 +46,11 @@ option in the enquiry form.
 
 ### Photography
 
-There are no image assets. Each programme and result carries a `visual` key that
-`MediaFrame` renders as a generated gradient, so the site looks finished with nothing
-to upload. To use real photos, drop them in `public/` and pass `src` to `MediaFrame`
-(or add a `photo` path to `coach.ts`) — the fallback disappears on its own.
+There are no image assets. Each programme and result carries a `visual` key that maps
+to an icon in `IconTile`, so cards are complete with nothing to upload. The one real
+photo slot — the coach portrait — uses `MediaFrame`, which shows a labelled placeholder
+until you give it a `src`. To use real photos, drop them in `public/` and pass `src` to
+`MediaFrame` (or add a `photo` path to `coach.ts`); the placeholder disappears on its own.
 
 ## How this maps to the React Native app
 
@@ -86,7 +87,9 @@ Tokens are defined twice on purpose and must be kept in step:
 - `src/app/globals.css` — the same values as Tailwind v4 `@theme` variables
 
 Colours are semantic (`bg-surface`, `text-muted`, `border-line`, `text-accent`), so
-changing the accent is a two-line edit.
+changing the accent is a two-line edit — one in each file. The current accent is cyan
+`#22D3EE`; `--color-accent-ink` is the dark tone that sits *on* the accent and must be
+changed with it.
 
 ### App-like behaviour
 

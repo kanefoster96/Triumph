@@ -2,29 +2,28 @@
 
 /* Mirrors src/lib/theme/tokens.ts — keep the two in step. */
 @theme {
-  --color-ink: #08090b;
-  --color-surface: #101217;
-  --color-raised: #171a21;
-  --color-overlay: #1e222b;
-  --color-line: #262a34;
+  --color-ink: #0a0e13;
+  --color-surface: #111820;
+  --color-raised: #16202b;
+  --color-overlay: #1c2733;
+  --color-line: #22303d;
 
-  --color-text: #f5f6f8;
-  --color-muted: #9aa1ad;
-  --color-faint: #6a7180;
+  --color-text: #f2f6f9;
+  --color-muted: #94a3b2;
+  --color-faint: #7a8a9a;
 
-  --color-accent: #d3ff4e;
-  --color-accent-strong: #b8e62c;
-  --color-accent-ink: #0b1002;
+  --color-accent: #22d3ee;
+  --color-accent-strong: #06b6d4;
+  --color-accent-ink: #04212a;
 
-  --color-heat: #ff6a3d;
-  --color-cool: #4ea8ff;
-  --color-success: #3ddc97;
+  --color-amber: #f5b23d;
+  --color-success: #34d399;
+  --color-danger: #f87171;
 
-  --radius-card: 1.25rem;
-  --radius-sheet: 1.75rem;
+  --radius-card: 1rem;
+  --radius-sheet: 1.5rem;
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display), var(--font-geist-sans), sans-serif;
 
   --ease-out-app: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -70,9 +69,8 @@
   h1,
   h2,
   h3 {
-    font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    letter-spacing: -0.025em;
   }
 }
 
@@ -117,33 +115,19 @@
     margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
   }
 
-  .glass {
-    background-color: color-mix(in srgb, var(--color-ink) 92%, transparent);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-  }
-
   .text-balance {
     text-wrap: balance;
   }
-
-  .grain {
-    background-image: radial-gradient(
-      color-mix(in srgb, var(--color-white, #fff) 6%, transparent) 0.5px,
-      transparent 0.5px
-    );
-    background-size: 4px 4px;
-  }
 }
 
-/* Scroll-reveal: visible by default so no-JS and pre-hydration render fine. */
+/* Scroll-reveal: pinned visible without JS via a <noscript> rule in layout. */
 @media (prefers-reduced-motion: no-preference) {
   [data-reveal] {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(12px);
     transition:
-      opacity 520ms var(--ease-out-app),
-      transform 520ms var(--ease-out-app);
+      opacity 500ms var(--ease-out-app),
+      transform 500ms var(--ease-out-app);
     transition-delay: var(--reveal-delay, 0ms);
   }
 
@@ -153,24 +137,7 @@
   }
 }
 
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.animate-marquee {
-  animation: marquee 32s linear infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
-    animation: none;
-  }
-
   html {
     scroll-behavior: auto;
   }

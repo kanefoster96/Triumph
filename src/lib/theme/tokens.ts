@@ -7,29 +7,29 @@
  */
 
 export const palette = {
-  // Surfaces, darkest to lightest.
-  ink: "#08090B",
-  surface: "#101217",
-  raised: "#171A21",
-  overlay: "#1E222B",
-  line: "#262A34",
+  // Surfaces, darkest to lightest. Cool near-black rather than pure black —
+  // it sits better under a cyan accent.
+  ink: "#0A0E13",
+  surface: "#111820",
+  raised: "#16202B",
+  overlay: "#1C2733",
+  line: "#22303D",
 
   // Text.
-  text: "#F5F6F8",
-  muted: "#9AA1AD",
-  faint: "#6A7180",
+  text: "#F2F6F9",
+  muted: "#94A3B2",
+  faint: "#7A8A9A",
 
-  // Brand accent — "volt".
-  accent: "#D3FF4E",
-  accentStrong: "#B8E62C",
-  accentInk: "#0B1002",
-  accentSoft: "rgba(211, 255, 78, 0.12)",
+  // Brand accent — cyan.
+  accent: "#22D3EE",
+  accentStrong: "#06B6D4",
+  accentInk: "#04212A",
+  accentSoft: "rgba(34, 211, 238, 0.12)",
 
   // Supporting signal colours.
-  heat: "#FF6A3D",
-  cool: "#4EA8FF",
-  success: "#3DDC97",
-  danger: "#FF4D4D",
+  amber: "#F5B23D",
+  success: "#34D399",
+  danger: "#F87171",
   white: "#FFFFFF",
 } as const;
 
@@ -48,19 +48,19 @@ export const spacing = {
 
 export const radius = {
   sm: 8,
-  md: 14,
-  lg: 20,
-  xl: 28,
+  md: 12,
+  lg: 16,
+  xl: 24,
   pill: 999,
 } as const;
 
 export const typeScale = {
-  display: { size: 56, lineHeight: 56, weight: "800" },
-  h1: { size: 40, lineHeight: 44, weight: "800" },
-  h2: { size: 28, lineHeight: 32, weight: "700" },
-  h3: { size: 20, lineHeight: 26, weight: "700" },
+  display: { size: 48, lineHeight: 52, weight: "800" },
+  h1: { size: 36, lineHeight: 42, weight: "800" },
+  h2: { size: 28, lineHeight: 34, weight: "700" },
+  h3: { size: 20, lineHeight: 28, weight: "700" },
   body: { size: 16, lineHeight: 26, weight: "400" },
-  small: { size: 14, lineHeight: 20, weight: "400" },
+  small: { size: 14, lineHeight: 22, weight: "400" },
   label: { size: 12, lineHeight: 16, weight: "600" },
 } as const;
 

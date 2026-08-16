@@ -8,10 +8,13 @@ import { cn } from "@/lib/utils";
  */
 export function Faq({ items, className }: { items: FaqItem[]; className?: string }) {
   return (
-    <div className={cn("divide-y divide-line overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface", className)}>
+    <div className={cn("space-y-3", className)}>
       {items.map((item) => (
-        <details key={item.id} className="group">
-          <summary className="flex cursor-pointer list-none items-center gap-4 p-5 text-left transition-colors hover:bg-raised/60 [&::-webkit-details-marker]:hidden">
+        <details
+          key={item.id}
+          className="group rounded-[var(--radius-sheet)] border border-line bg-surface open:border-accent/30"
+        >
+          <summary className="flex cursor-pointer list-none items-center gap-4 p-5 text-left [&::-webkit-details-marker]:hidden">
             <h3 className="flex-1 text-base leading-snug font-semibold">{item.question}</h3>
             <Plus className="h-5 w-5 shrink-0 text-faint transition-transform duration-300 ease-[var(--ease-out-app)] group-open:rotate-45 group-open:text-accent" />
           </summary>

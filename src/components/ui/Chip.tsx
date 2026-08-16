@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface ChipProps {
   children: ReactNode;
-  tone?: "default" | "accent" | "heat" | "success" | "cool";
+  tone?: "default" | "accent" | "amber" | "success";
   className?: string;
   size?: "sm" | "md";
 }
@@ -11,9 +11,8 @@ interface ChipProps {
 const tones = {
   default: "bg-raised text-muted border-line",
   accent: "bg-accent/10 text-accent border-accent/25",
-  heat: "bg-heat/10 text-heat border-heat/25",
+  amber: "bg-amber/10 text-amber border-amber/25",
   success: "bg-success/10 text-success border-success/25",
-  cool: "bg-cool/10 text-cool border-cool/25",
 } as const;
 
 export function Chip({ children, tone = "default", className, size = "sm" }: ChipProps) {

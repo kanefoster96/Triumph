@@ -33,7 +33,7 @@ export function ProgrammeFilter({ programmes }: { programmes: Programme[] }) {
       <div
         role="tablist"
         aria-label="Filter programmes by format"
-        className="no-scrollbar -mx-1 mb-6 flex gap-1 overflow-x-auto rounded-full border border-line bg-surface p-1 sm:mx-0 sm:w-fit"
+        className="no-scrollbar mx-auto mb-6 flex w-full gap-1 overflow-x-auto rounded-full border border-line bg-surface p-1 sm:w-fit"
       >
         {available.map((filter) => {
           const selected = filter === active;
@@ -55,7 +55,7 @@ export function ProgrammeFilter({ programmes }: { programmes: Programme[] }) {
         })}
       </div>
 
-      <p className="mb-5 text-sm text-faint">
+      <p className="mb-8 text-center text-sm text-faint">
         {visible.length} {visible.length === 1 ? "programme" : "programmes"}
         {active === "All" ? "" : ` · ${active}`}
       </p>

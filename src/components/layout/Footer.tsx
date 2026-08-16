@@ -2,22 +2,18 @@ import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { secondaryNav, site } from "@/lib/data/site";
 import { Container } from "@/components/ui/Section";
+import { Logo } from "./Logo";
 
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mb-tabbar border-t border-line bg-surface/60 pt-14 md:mb-0">
+    <footer className="mb-tabbar border-t border-line bg-surface/40 pt-16 md:mb-0">
       <Container>
         <div className="grid gap-10 pb-12 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5">
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent font-display text-lg font-extrabold text-accent-ink">
-                T
-              </span>
-              <span className="font-display text-lg font-extrabold tracking-tight">{site.name}</span>
-            </Link>
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">{site.description}</p>
+            <Logo />
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted">{site.description}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               {site.social.map((s) => (
                 <a
@@ -34,8 +30,8 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-xs font-semibold tracking-[0.18em] text-faint uppercase">Explore</h3>
-            <ul className="space-y-2.5">
+            <h3 className="mb-4 text-sm font-semibold">Explore</h3>
+            <ul className="space-y-3">
               {secondaryNav.map((item) => (
                 <li key={item.href + item.label}>
                   <Link href={item.href} className="text-sm text-muted transition-colors hover:text-text">
@@ -47,7 +43,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-xs font-semibold tracking-[0.18em] text-faint uppercase">Studio</h3>
+            <h3 className="mb-4 text-sm font-semibold">Studio</h3>
             <ul className="space-y-3 text-sm text-muted">
               <li className="flex gap-2.5">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-faint" />

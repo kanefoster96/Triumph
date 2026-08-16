@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { nav, site } from "@/lib/data/site";
+import { nav } from "@/lib/data/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "./Logo";
 
 /**
- * Sits above the content and turns to glass once you scroll — the same
- * behaviour a native header has when the scroll view moves under it.
+ * Sits above the content and gains a border once you scroll — the same cue a
+ * native header gives when the scroll view moves under it.
  */
 export function TopBar() {
   const pathname = usePathname();
@@ -25,17 +26,12 @@ export function TopBar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter] duration-300",
-        scrolled ? "glass border-b border-line" : "border-b border-transparent",
+        "sticky top-0 z-40 bg-ink transition-colors duration-300",
+        scrolled ? "border-b border-line" : "border-b border-transparent",
       )}
     >
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5" aria-label={`${site.name} home`}>
-          <span className="grid h-8 w-8 place-items-center rounded-xl bg-accent font-display text-lg font-extrabold text-accent-ink">
-            T
-          </span>
-          <span className="font-display text-lg font-extrabold tracking-tight">{site.name}</span>
-        </Link>
+        <Logo />
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
           {nav.map((item) => {
@@ -47,7 +43,7 @@ export function TopBar() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200",
-                  active ? "bg-raised text-text" : "text-muted hover:text-text",
+                  active ? "text-accent" : "text-muted hover:text-text",
                 )}
               >
                 {item.label}

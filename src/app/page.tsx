@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getFaqs } from "@/lib/services/content";
 import { Hero } from "@/components/home/Hero";
-import { Marquee } from "@/components/home/Marquee";
 import { ProgrammeRail } from "@/components/home/ProgrammeRail";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { CoachIntro } from "@/components/home/CoachIntro";
@@ -18,7 +17,6 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <Marquee />
       <ProgrammeRail />
       <HowItWorks />
       <CoachIntro />
@@ -27,13 +25,9 @@ export default async function HomePage() {
       <TestimonialWall />
 
       <Section>
-        <SectionHeader
-          eyebrow="Questions"
-          title="The things everyone asks first"
-          align="center"
-        />
+        <SectionHeader eyebrow="Questions" title="The things everyone asks first" />
         <Faq items={faqs} className="mx-auto max-w-3xl" />
-        <p className="mt-6 text-center text-sm text-muted">
+        <p className="mt-8 text-center text-sm text-muted">
           Still unsure?{" "}
           <Link href="/contact" className="font-semibold text-accent hover:underline">
             Ask me directly

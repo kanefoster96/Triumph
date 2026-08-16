@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { getFaqs, getPayAsYouGo, getPlans } from "@/lib/services/content";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Chip } from "@/components/ui/Chip";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 import { Faq } from "@/components/ui/Faq";
@@ -23,45 +22,61 @@ export default async function PricingPage() {
     <>
       <PageHeader
         eyebrow="Pricing"
-        title="One price, everything included"
+        title="Simple, honest pricing"
         description="No joining fee, no gym membership on top, no minimum term. Pause any time with a week's notice."
       />
 
-      <Section>
-        <div className="grid items-start gap-5 lg:grid-cols-3">
+      <Section className="pt-0 sm:pt-0">
+        <div className="grid items-start gap-6 lg:grid-cols-3">
           {plans.map((plan, i) => (
-            <Reveal key={plan.id} delay={i * 80} className="h-full">
+            <Reveal key={plan.id} delay={i * 70} className="h-full">
               <div
                 className={cn(
-                  "relative flex h-full flex-col rounded-[var(--radius-card)] border p-6 sm:p-7",
+                  "relative flex h-full flex-col rounded-[var(--radius-sheet)] p-7",
                   plan.popular
-                    ? "border-accent/50 bg-gradient-to-b from-accent/[0.07] to-surface shadow-[0_30px_60px_-40px_rgba(211,255,78,0.5)]"
-                    : "border-line bg-surface",
+                    ? "bg-accent text-accent-ink"
+                    : "border border-line bg-surface text-text",
                 )}
               >
                 {plan.popular ? (
-                  <div className="absolute -top-3 left-6">
-                    <Chip tone="accent">
-                      <Sparkles className="h-3 w-3" />
-                      Most chosen
-                    </Chip>
-                  </div>
+                  <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-ink px-4 py-1.5 text-xs font-semibold whitespace-nowrap text-accent">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Most popular
+                  </span>
                 ) : null}
 
-                <h2 className="text-2xl">{plan.name}</h2>
-                <p className="mt-2 min-h-[3.5rem] text-sm leading-relaxed text-muted">{plan.description}</p>
-
-                <p className="mt-5 flex items-baseline gap-1.5">
-                  <span className="font-display text-5xl leading-none font-extrabold">
-                    {formatPrice(plan.price)}
-                  </span>
-                  <span className="text-sm text-faint">{formatCadence(plan.cadence)}</span>
+                <h2 className="text-xl">{plan.name}</h2>
+                <p
+                  className={cn(
+                    "mt-2 min-h-[4rem] text-sm leading-relaxed",
+                    plan.popular ? "text-accent-ink/75" : "text-muted",
+                  )}
+                >
+                  {plan.description}
                 </p>
 
-                <ul className="mt-6 flex-1 space-y-3">
+                <p className="mt-4 flex items-baseline gap-1.5">
+                  <span className="text-5xl font-bold tracking-tight">{formatPrice(plan.price)}</span>
+                  <span className={cn("text-sm", plan.popular ? "text-accent-ink/70" : "text-faint")}>
+                    {formatCadence(plan.cadence)}
+                  </span>
+                </p>
+
+                <ul className="mt-7 flex-1 space-y-3.5">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm text-muted">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <li
+                      key={feature}
+                      className={cn(
+                        "flex items-start gap-3 text-sm",
+                        plan.popular ? "text-accent-ink/90" : "text-muted",
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "mt-0.5 h-4 w-4 shrink-0",
+                          plan.popular ? "text-accent-ink" : "text-accent",
+                        )}
+                      />
                       {feature}
                     </li>
                   ))}
@@ -69,43 +84,42 @@ export default async function PricingPage() {
 
                 <Button
                   href="/contact"
-                  variant={plan.popular ? "primary" : "secondary"}
+                  variant={plan.popular ? "onAccent" : "secondary"}
                   fullWidth
-                  className="mt-7"
+                  className="mt-8"
                 >
                   {plan.ctaLabel}
-                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </Reveal>
           ))}
         </div>
 
-        <Reveal delay={120}>
-          <div className="mt-5 flex flex-col gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-6 sm:flex-row sm:items-center sm:justify-between">
+        <Reveal delay={100}>
+          <div className="mt-6 flex flex-col gap-5 rounded-[var(--radius-sheet)] border border-line bg-surface p-7 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-lg">{payg.name}</h3>
-              <p className="mt-1 max-w-xl text-sm text-muted">{payg.description}</p>
+              <p className="mt-1.5 max-w-xl text-sm text-muted">{payg.description}</p>
             </div>
             <div className="flex items-center gap-5">
-              <p className="font-display text-3xl leading-none font-extrabold whitespace-nowrap">
+              <p className="text-3xl font-bold tracking-tight whitespace-nowrap">
                 {formatPrice(payg.price)}
-                <span className="ml-1 text-sm font-normal text-faint">{formatCadence(payg.cadence)}</span>
+                <span className="ml-1.5 text-sm font-normal text-faint">{formatCadence(payg.cadence)}</span>
               </p>
-              <Button href="/contact" variant="outline" size="sm">
+              <Button href="/contact" variant="secondary" size="sm">
                 {payg.ctaLabel}
               </Button>
             </div>
           </div>
         </Reveal>
 
-        <p className="mt-6 text-center text-sm text-faint">
+        <p className="mt-8 text-center text-sm text-faint">
           Corporate and small-group rates on request. Student and NHS discount available — just ask.
         </p>
       </Section>
 
       <Section tone="raised">
-        <SectionHeader eyebrow="Questions" title="Before you commit" align="center" />
+        <SectionHeader eyebrow="Questions" title="Before you commit" />
         <Faq items={faqs} className="mx-auto max-w-3xl" />
       </Section>
 

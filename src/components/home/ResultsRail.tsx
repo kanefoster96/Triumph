@@ -9,18 +9,12 @@ export async function ResultsRail() {
   const transformations = await getTransformations(4);
 
   return (
-    <section className="bg-surface/60 py-16 sm:py-24">
+    <section className="border-y border-line bg-surface/40 py-20 sm:py-28">
       <Container>
         <SectionHeader
           eyebrow="Results"
           title="Real numbers from real clients"
           description="No dramatic lighting, no before-and-after taken an hour apart. Just what changed, over how long."
-          action={
-            <Button href="/results" variant="outline" size="sm">
-              All results
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          }
         />
       </Container>
 
@@ -42,6 +36,13 @@ export async function ResultsRail() {
             </Reveal>
           ))}
         </div>
+      </Container>
+
+      <Container className="mt-12 text-center">
+        <Button href="/results" variant="secondary">
+          All client results
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       </Container>
     </section>
   );

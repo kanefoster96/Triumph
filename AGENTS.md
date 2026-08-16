@@ -8,7 +8,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Triumph — project notes
+# Triumph Training — project notes
 
 Marketing website for a personal trainer. Next.js 16 App Router, React 19,
 Tailwind v4, TypeScript. Fully static; no backend.
@@ -26,6 +26,12 @@ Tailwind v4, TypeScript. Fully static; no backend.
   (`@theme`). Change both together.
 - Prefer semantic colour utilities (`bg-surface`, `text-muted`, `border-line`)
   over raw hex.
+- The look is minimal and dark: flat surfaces, hairline borders, generous
+  whitespace, one cyan accent. No gradients, texture overlays, glows, or
+  condensed/uppercase display type. The only saturated block on a page is the
+  accent CTA band.
+- Cards use `border border-line bg-surface` and `rounded-[var(--radius-sheet)]`;
+  a card's visual identity comes from an `IconTile`, not from imagery.
 
 ## Gotchas
 

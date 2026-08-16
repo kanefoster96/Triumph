@@ -6,11 +6,13 @@ import type { Stat } from "@/lib/types";
  * and is shaped to drop into a React Navigation tab navigator.
  */
 export const site = {
-  name: "Triumph",
+  name: "Triumph Training",
+  /** Used in the logo lockup where the full name is too wide. */
+  shortName: "Triumph",
   tagline: "Personal training that actually sticks",
   description:
     "Strength, conditioning and habit coaching in Manchester and online. Structured programmes, weekly check-ins, and a coach who answers.",
-  email: "hello@triumph.fit",
+  email: "hello@triumphtraining.fit",
   phone: "+44 7700 900412",
   location: "Ancoats, Manchester",
   studio: "Unit 4, Bengal Works, Manchester M4",

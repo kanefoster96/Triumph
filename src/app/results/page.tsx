@@ -10,7 +10,7 @@ import { CtaBanner } from "@/components/home/CtaBanner";
 export const metadata: Metadata = {
   title: "Results",
   description:
-    "Client results from Triumph personal training — strength gains, fat loss and returns from injury, with the numbers and the timeframes.",
+    "Client results from Triumph Training — strength gains, fat loss and returns from injury, with the numbers and the timeframes.",
 };
 
 const summary = [
@@ -31,17 +31,17 @@ export default async function ResultsPage() {
         description="Every result below is a real client on a named programme, with the timeframe attached. Numbers are self-reported at testing weeks and rounded to something honest."
       />
 
-      <Container className="py-10">
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line lg:grid-cols-4">
-          {summary.map((item) => (
-            <div key={item.label} className="bg-surface px-5 py-6">
-              <dt className="text-[11px] tracking-[0.14em] text-faint uppercase">{item.label}</dt>
-              <dd className="mt-2 font-display text-3xl leading-none font-extrabold text-accent">
-                {item.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+      <Container className="pb-8">
+        <Reveal>
+          <dl className="grid grid-cols-2 gap-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-8 text-center lg:grid-cols-4">
+            {summary.map((item) => (
+              <div key={item.label}>
+                <dd className="text-3xl font-bold tracking-tight text-accent sm:text-4xl">{item.value}</dd>
+                <dt className="mt-2 text-sm text-muted">{item.label}</dt>
+              </div>
+            ))}
+          </dl>
+        </Reveal>
       </Container>
 
       <Section>
@@ -60,8 +60,8 @@ export default async function ResultsPage() {
       </Section>
 
       <Section tone="raised">
-        <SectionHeader eyebrow="In their words" title="What clients say afterwards" align="center" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <SectionHeader eyebrow="In their words" title="What clients say afterwards" />
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((testimonial, i) => (
             <Reveal key={testimonial.id} delay={(i % 3) * 70} className="h-full">
               <TestimonialCard testimonial={testimonial} className="h-full" />

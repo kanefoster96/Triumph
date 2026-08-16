@@ -4,7 +4,7 @@ import { Chip } from "@/components/ui/Chip";
 
 function Availability({ slot }: { slot: ScheduleSlot }) {
   if (slot.spots === 0) return <Chip>Full</Chip>;
-  if (slot.spots <= 2) return <Chip tone="heat">{slot.spots} left</Chip>;
+  if (slot.spots <= 2) return <Chip tone="amber">{slot.spots} left</Chip>;
   return <Chip tone="success">{slot.spots} spaces</Chip>;
 }
 
@@ -17,14 +17,14 @@ export function ScheduleList({ slots }: { slots: ScheduleSlot[] }) {
       {days.map((day) => (
         <div key={day}>
           <h3 className="mb-2 text-xs font-semibold tracking-[0.18em] text-faint uppercase">{day}</h3>
-          <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+          <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-surface">
             {slots
               .filter((slot) => slot.day === day)
               .map((slot) => (
                 <li key={slot.id} className="flex items-center gap-4 px-4 py-3.5">
                   <span
                     className={cn(
-                      "font-display text-lg font-bold tabular-nums",
+                      "text-lg font-bold tabular-nums",
                       slot.spots === 0 ? "text-faint" : "text-accent",
                     )}
                   >

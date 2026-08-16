@@ -2,15 +2,15 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline";
+type Variant = "primary" | "secondary" | "ghost" | "onAccent";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-accent text-accent-ink hover:bg-accent-strong active:bg-accent-strong shadow-[0_10px_30px_-12px_rgba(211,255,78,0.6)]",
-  secondary: "bg-raised text-text hover:bg-overlay border border-line",
+  primary: "bg-accent text-accent-ink hover:bg-accent-strong active:bg-accent-strong",
+  secondary: "border border-line text-text hover:border-accent hover:text-accent",
   ghost: "text-muted hover:text-text hover:bg-raised",
-  outline: "border border-line text-text hover:border-accent hover:text-accent",
+  /** For use inside a solid accent panel. */
+  onAccent: "bg-accent-ink text-accent hover:bg-ink",
 };
 
 const sizes: Record<Size, string> = {
@@ -22,7 +22,7 @@ const sizes: Record<Size, string> = {
 const base =
   "inline-flex items-center justify-center gap-2 rounded-full font-semibold whitespace-nowrap " +
   "transition-[background-color,color,border-color,transform] duration-200 ease-[var(--ease-out-app)] " +
-  "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
+  "active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 
 interface CommonProps {
   variant?: Variant;

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Barlow_Condensed } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
 import { BottomTabBar } from "@/components/layout/BottomTabBar";
@@ -10,12 +10,6 @@ import { palette } from "@/lib/theme/tokens";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
-
-const display = Barlow_Condensed({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GB" className={`${geistSans.variable} ${display.variable} h-full antialiased`}>
+    <html lang="en-GB" className={`${geistSans.variable} h-full antialiased`}>
       <head>
         {/* Scroll-reveal starts elements at opacity 0 and JS reveals them.
             Without JS there is no observer, so pin them visible. */}

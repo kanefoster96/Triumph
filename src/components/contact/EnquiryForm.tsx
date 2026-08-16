@@ -34,7 +34,7 @@ function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNo
 /**
  * Enquiry form.
  *
- * Validation and submission both live in `lib/services/content`, so the React
+ * Validation and submission both live in `lib/services/enquiry`, so the React
  * Native version of this screen reuses the exact same logic and only swaps the
  * inputs for native ones.
  */
@@ -87,7 +87,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
         ref={successRef}
         role="status"
         aria-live="polite"
-        className="rounded-[var(--radius-card)] border border-accent/40 bg-accent/[0.06] p-8 text-center"
+        className="rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-8 text-center"
       >
         <CheckCircle2 className="mx-auto h-12 w-12 text-accent" />
         <h2 className="mt-4 text-2xl">Enquiry sent</h2>
@@ -100,12 +100,12 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="rounded-[var(--radius-card)] border border-line bg-surface p-6 sm:p-8">
+    <form onSubmit={onSubmit} noValidate className="rounded-[var(--radius-sheet)] border border-line bg-surface p-6 sm:p-8">
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Label htmlFor="name">Name</Label>
           <input id="name" name="name" autoComplete="name" placeholder="Alex Boateng" className={fieldClass} />
-          {errors.name ? <p className="mt-1.5 text-xs text-heat">{errors.name}</p> : null}
+          {errors.name ? <p className="mt-1.5 text-xs text-danger">{errors.name}</p> : null}
         </div>
         <div>
           <Label htmlFor="email">Email</Label>
@@ -118,7 +118,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
             placeholder="you@email.com"
             className={fieldClass}
           />
-          {errors.email ? <p className="mt-1.5 text-xs text-heat">{errors.email}</p> : null}
+          {errors.email ? <p className="mt-1.5 text-xs text-danger">{errors.email}</p> : null}
         </div>
       </div>
 
@@ -173,7 +173,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
             );
           })}
         </div>
-        {errors.goal ? <p className="mt-2 text-xs text-heat">{errors.goal}</p> : null}
+        {errors.goal ? <p className="mt-2 text-xs text-danger">{errors.goal}</p> : null}
       </fieldset>
 
       <fieldset className="mt-6">

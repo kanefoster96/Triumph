@@ -1,44 +1,38 @@
-import { ArrowRight, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 import { site } from "@/lib/data/site";
 
+/** Full-bleed accent band — the one saturated moment on the page. */
 export function CtaBanner() {
   return (
-    <section className="py-16 sm:py-24">
-      <Container>
+    <section className="bg-accent text-accent-ink">
+      <Container className="py-20 text-center sm:py-24">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-gradient-to-br from-raised via-surface to-ink p-8 sm:p-14">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-accent/15 blur-[100px]"
-            />
-            <div className="grain absolute inset-0 opacity-30" aria-hidden />
+          <h2 className="mx-auto max-w-2xl text-3xl text-balance sm:text-4xl">
+            Start with a conversation, not a contract
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-accent-ink/75 sm:text-lg">
+            Twenty minutes, no cost, no pressure. If I am not the right coach for what you want, I will tell
+            you and point you at someone who is.
+          </p>
 
-            <div className="relative max-w-2xl">
-              <h2 className="font-display text-4xl leading-[0.95] text-balance uppercase sm:text-6xl">
-                Start with a conversation,
-                <br />
-                <span className="text-accent">not a contract</span>
-              </h2>
-              <p className="mt-5 text-base leading-relaxed text-muted sm:text-lg">
-                Twenty minutes, no cost, no pressure. If I am not the right coach for what you want, I will
-                tell you and point you at someone who is.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button href="/contact" size="lg">
-                  Book a free consult
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button href={`mailto:${site.email}`} size="lg" variant="secondary">
-                  <MessageSquare className="h-4 w-4" />
-                  Email me directly
-                </Button>
-              </div>
-            </div>
+          <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+            <Button href="/contact" size="lg" variant="onAccent">
+              Book a free consult
+            </Button>
+            <Button
+              href={`mailto:${site.email}`}
+              size="lg"
+              className="border border-accent-ink/25 bg-transparent text-accent-ink hover:bg-accent-ink/10"
+            >
+              Email me directly
+            </Button>
           </div>
+
+          <p className="mt-7 text-sm text-accent-ink/70">
+            No credit card required · Cancel anytime · Keep your programme forever
+          </p>
         </Reveal>
       </Container>
     </section>

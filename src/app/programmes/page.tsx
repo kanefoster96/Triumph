@@ -23,16 +23,12 @@ export default async function ProgrammesPage() {
         description="Each programme is a complete plan rather than an open-ended membership. Pick the one that matches your goal — or book a consult and I will tell you which fits."
       />
 
-      <div className="py-10 sm:py-16">
-        <Container>
-          <ProgrammeFilter programmes={programmes} />
-        </Container>
-      </div>
+      <Container className="pb-16 sm:pb-20">
+        <ProgrammeFilter programmes={programmes} />
 
-      <Container className="pb-8">
-        <Reveal className="rounded-[var(--radius-card)] border border-line bg-surface p-6 sm:p-8">
+        <Reveal className="mt-12 rounded-[var(--radius-sheet)] border border-line bg-surface p-7 text-center">
           <h2 className="text-xl">Not sure which one?</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted">
             Most people land on Foundation or Lean &amp; Strong. If you already train three times a week and
             your lifts have stopped moving, it is the Strength Block. If something hurts, start with Rebuild —
             we can always switch once you are loading pain-free.
