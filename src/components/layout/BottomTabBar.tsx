@@ -16,8 +16,13 @@ const icons: Record<NavItem["icon"], ComponentType<{ className?: string }>> = {
 };
 
 /**
- * Mobile tab bar. Mirrors `nav` exactly, so the React Native app can build its
- * tab navigator from the same array and land on matching routes.
+ * Mobile tab bar — the app's navigation, kept here as the working reference.
+ *
+ * NOT mounted on the website: the site uses the hamburger menu in `TopBar`
+ * instead. This stays because it mirrors `nav` exactly, so the React Native
+ * app can build its tab navigator from the same array and land on matching
+ * routes — including the active-state and safe-area behaviour already
+ * worked out here.
  */
 export function BottomTabBar() {
   const pathname = usePathname();

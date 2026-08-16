@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { TopBar } from "@/components/layout/TopBar";
-import { BottomTabBar } from "@/components/layout/BottomTabBar";
 import { Footer } from "@/components/layout/Footer";
 import { site } from "@/lib/data/site";
 import { palette } from "@/lib/theme/tokens";
@@ -54,7 +53,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <TopBar />
         <main className="flex-1">{children}</main>
         <Footer />
-        <BottomTabBar />
       </body>
     </html>
   );

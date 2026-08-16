@@ -8,7 +8,7 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mb-tabbar border-t border-line bg-surface/40 pt-16 md:mb-0">
+    <footer className="border-t border-line bg-surface/40 pt-16">
       <Container>
         <div className="grid gap-10 pb-12 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">

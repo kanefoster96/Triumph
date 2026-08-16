@@ -7,10 +7,11 @@ import { nav } from "@/lib/data/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "./Logo";
+import { MobileMenu } from "./MobileMenu";
 
 /**
- * Sits above the content and gains a border once you scroll — the same cue a
- * native header gives when the scroll view moves under it.
+ * Sticky header. Transparent over the top of the page, then turns to frosted
+ * glass once content scrolls beneath it.
  */
 export function TopBar() {
   const pathname = usePathname();
@@ -26,8 +27,12 @@ export function TopBar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 bg-ink transition-colors duration-300",
-        scrolled ? "border-b border-line" : "border-b border-transparent",
+        "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter] duration-300",
+        // Mostly opaque by default; browsers that can blur get a lighter tint
+        // so the frosted effect is actually visible.
+        scrolled
+          ? "border-b border-line bg-ink/90 supports-[backdrop-filter]:bg-ink/60 supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150"
+          : "border-b border-transparent bg-ink",
       )}
     >
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
@@ -52,15 +57,16 @@ export function TopBar() {
           })}
         </nav>
 
-        {/*
-          One button with a responsive label rather than two that toggle — the
-          `hidden` utility cannot reliably override the button's own
-          `inline-flex`, and this ships less DOM either way.
-        */}
-        <Button href="/contact" size="sm">
-          <span className="sm:hidden">Book</span>
-          <span className="hidden sm:inline">Book a consult</span>
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {/* Wrapped rather than given `hidden` directly: the Button sets its
+              own `inline-flex`, which wins over a `hidden` passed in. */}
+          <span className="hidden md:inline-flex">
+            <Button href="/contact" size="sm">
+              Book a consult
+            </Button>
+          </span>
+          <MobileMenu />
+        </div>
       </div>
     </header>
   );

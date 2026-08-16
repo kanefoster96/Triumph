@@ -33,6 +33,13 @@ Tailwind v4, TypeScript. Fully static; no backend.
 - Cards use `border border-line bg-surface` and `rounded-[var(--radius-sheet)]`;
   a card's visual identity comes from an `IconTile`, not from imagery.
 
+## Navigation
+
+The website navigates with the hamburger menu in `MobileMenu` (mobile) and the
+inline links in `TopBar` (desktop). `BottomTabBar` is the **app's** navigation,
+kept as a working reference and deliberately not mounted on the site — both it
+and the header read the same `nav` array from `site.ts`.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,
@@ -42,6 +49,11 @@ Tailwind v4, TypeScript. Fully static; no backend.
   `inline-flex`; toggle a child `<span>` instead.
 - `Reveal` starts elements at `opacity: 0`. A `<noscript>` rule in `layout.tsx`
   pins them visible — keep it if you touch the reveal CSS.
+- Do not leave a fixed overlay parked off-screen (e.g. a drawer held at
+  `translate-x-full`) in the DOM: it interferes with the page's
+  scroll-into-view behaviour, and `visibility: hidden` does not help. Mount it
+  only while in use. For the same reason, never leave a full-viewport
+  `backdrop-filter` applied while the overlay is closed.
 
 ## Checks
 
