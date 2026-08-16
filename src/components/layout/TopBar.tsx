@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { nav } from "@/lib/data/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +13,7 @@ import { MobileMenu } from "./MobileMenu";
  * Sticky header. Transparent over the top of the page, then turns to frosted
  * glass once content scrolls beneath it.
  */
-export function TopBar() {
+export function TopBar({ demoSlot }: { demoSlot?: ReactNode }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
 
@@ -58,6 +58,12 @@ export function TopBar() {
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <Link
+            href="/login"
+            className="hidden rounded-full px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-text md:inline-flex"
+          >
+            Members
+          </Link>
           {/* Wrapped rather than given `hidden` directly: the Button sets its
               own `inline-flex`, which wins over a `hidden` passed in. */}
           <span className="hidden md:inline-flex">
@@ -65,7 +71,7 @@ export function TopBar() {
               Book a consult
             </Button>
           </span>
-          <MobileMenu />
+          <MobileMenu demoSlot={demoSlot} />
         </div>
       </div>
     </header>

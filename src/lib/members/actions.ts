@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   demoComments,
@@ -456,6 +457,25 @@ export async function setDemoRole(role: "client" | "admin") {
   const store = await cookies();
   store.set(DEMO_ROLE_COOKIE, role, { path: "/", httpOnly: false, sameSite: "lax" });
   refresh();
+}
+
+/** "Signs in" as a demo client or coach and lands on the right home screen. */
+export async function enterDemoAs(role: "client" | "admin") {
+  const supabase = await createClient();
+  if (supabase) redirect("/login"); // Real auth once connected.
+
+  const store = await cookies();
+  store.set(DEMO_ROLE_COOKIE, role, { path: "/", httpOnly: false, sameSite: "lax" });
+  refresh();
+  redirect(role === "admin" ? "/admin" : "/app");
+}
+
+/** Clears the demo session. Paired with the real sign-out in /logout. */
+export async function exitDemo() {
+  const store = await cookies();
+  store.delete(DEMO_ROLE_COOKIE);
+  refresh();
+  redirect("/login");
 }
 
 export async function getDemoClients() {

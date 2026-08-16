@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu, X } from "lucide-react";
 import { nav, secondaryNav, site } from "@/lib/data/site";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/Button";
  * panel enters the DOM closed, flips open on the next frame, and unmounts once
  * the slide-out has played.
  */
-export function MobileMenu() {
+export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
   const pathname = usePathname();
   /** Whether the panel is in the DOM at all. */
   const [mounted, setMounted] = useState(false);
@@ -197,9 +197,34 @@ export function MobileMenu() {
                     </li>
                   ))}
               </ul>
+
+              {!demoSlot ? (
+                <>
+                  <p className="mt-8 mb-3 px-4 text-xs font-semibold tracking-[0.16em] text-faint uppercase">
+                    Members
+                  </p>
+                  <Link
+                    href="/login"
+                    className="block rounded-2xl px-4 py-2.5 text-sm text-muted transition-colors hover:bg-raised hover:text-text"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              ) : null}
             </nav>
 
             <div className="border-t border-line px-5 py-5">
+              {/* In the fixed footer rather than the scrolling list: this is a
+                  build-time tool, and it should never be below the fold. */}
+              {demoSlot ? (
+                <div className="mb-5 border-b border-line pb-5">
+                  <p className="mb-2 px-4 text-xs font-semibold tracking-[0.16em] text-faint uppercase">
+                    Demo logins
+                  </p>
+                  {demoSlot}
+                </div>
+              ) : null}
+
               <Button href="/contact" fullWidth>
                 Book a free consult
               </Button>

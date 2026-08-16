@@ -162,9 +162,11 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   const supabase = await createClient();
 
   if (!supabase) {
-    // Demo mode: a cookie chooses which side of the product you are looking at.
+    // Demo mode: the cookie stands in for a session. No cookie means signed
+    // out, so the real sign-in/sign-out loop can be exercised without auth.
     const store = await cookies();
     const role = store.get(DEMO_ROLE_COOKIE)?.value;
+    if (role !== "client" && role !== "admin") return null;
     const id = role === "admin" ? DEMO_ADMIN_ID : DEMO_CLIENT_ID;
     return demoProfiles.find((p) => p.id === id) ?? null;
   }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile, isDemoMode } from "@/lib/members/service";
 import { Logo } from "@/components/layout/Logo";
 import { LoginForm } from "@/components/members/LoginForm";
+import { DemoSignIn } from "@/components/members/DemoSignIn";
 
 export const dynamic = "force-dynamic";
 
@@ -27,31 +28,24 @@ export default async function LoginPage() {
         </p>
 
         {demo ? (
-          <p className="mt-5 rounded-2xl border border-amber/25 bg-amber/10 p-4 text-sm text-amber">
-            No database is connected yet, so sign-in is disabled. The members&rsquo; area is running on
-            demo data — open it directly to look around.
-          </p>
+          <>
+            <p className="mt-5 rounded-2xl border border-amber/25 bg-amber/10 p-4 text-sm text-amber">
+              No database connected yet, so real sign-in is disabled. Pick a demo account to look
+              around — either side of the product works.
+            </p>
+            <div className="mt-4">
+              <DemoSignIn />
+            </div>
+          </>
         ) : (
           <LoginForm />
         )}
       </div>
 
-      <p className="mt-6 text-center text-sm text-muted">
-        {demo ? (
-          <>
-            <Link href="/app" className="font-semibold text-accent hover:underline">
-              Open the client view
-            </Link>
-            <span className="text-faint"> · </span>
-            <Link href="/admin" className="font-semibold text-accent hover:underline">
-              Open Dean&rsquo;s view
-            </Link>
-          </>
-        ) : (
-          <Link href="/" className="text-muted hover:text-text">
-            Back to the website
-          </Link>
-        )}
+      <p className="mt-6 text-center text-sm">
+        <Link href="/" className="text-muted hover:text-text">
+          Back to the website
+        </Link>
       </p>
     </main>
   );

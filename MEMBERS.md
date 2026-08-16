@@ -70,6 +70,14 @@ policies at the bottom of the migration.
 `memberTabs` in `MemberTabBar.tsx` is the app's navigation too — a React
 Navigation tab navigator can be built from that array directly.
 
+## Demo logins
+
+While Supabase is unconnected the site's menu carries a **Demo logins** section
+(and `/login` shows the same buttons): enter as the client demo or the coach
+demo, switch between them, or sign out. No cookie means signed out, so `/app`
+and `/admin` bounce to `/login` exactly as they will with real auth. The whole
+section disappears once the environment variables are set.
+
 ## Not built yet
 
 - Payments. Nothing checks that a member is actually paying £120/month.
@@ -77,3 +85,5 @@ Navigation tab navigator can be built from that array directly.
   for now).
 - Realtime push. Client actions appear on Dean's next page load, not by
   live subscription.
+- The trainer planning tools — libraries, templates, range assignment,
+  progression memory, shopping list. Spec in ROADMAP.md.
