@@ -1,0 +1,69 @@
+import { MessageCircle } from "lucide-react";
+import { addComment } from "@/lib/members/actions";
+import type { Comment, CommentTarget } from "@/lib/members/types";
+import { relativeDate } from "@/lib/utils";
+
+/**
+ * Dean's comments on a client's note. Rendered under whatever they relate to —
+ * a workout, a food log or a weight entry.
+ */
+export function CommentThread({
+  comments,
+  clientId,
+  targetType,
+  targetId,
+  canReply = false,
+}: {
+  comments: Comment[];
+  clientId: string;
+  targetType: CommentTarget;
+  targetId: string;
+  canReply?: boolean;
+}) {
+  if (comments.length === 0 && !canReply) return null;
+
+  return (
+    <div className="mt-4 border-t border-line pt-4">
+      {comments.length > 0 ? (
+        <ul className="space-y-3">
+          {comments.map((comment) => (
+            <li key={comment.id} className="flex gap-3 rounded-2xl bg-raised p-4">
+              <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              <div className="min-w-0">
+                <p className="text-xs text-faint">
+                  <span className="font-semibold text-text">{comment.authorName}</span> ·{" "}
+                  {relativeDate(comment.createdAt.slice(0, 10))}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{comment.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {canReply ? (
+        <form
+          action={async (formData: FormData) => {
+            "use server";
+            await addComment(clientId, targetType, targetId, String(formData.get("body") ?? ""));
+          }}
+          className="mt-3 flex gap-2"
+        >
+          <input
+            name="body"
+            required
+            placeholder="Reply to this note…"
+            aria-label="Reply to this note"
+            className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2.5 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="shrink-0 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+          >
+            Send
+          </button>
+        </form>
+      ) : null}
+    </div>
+  );
+}

@@ -40,6 +40,18 @@ inline links in `TopBar` (desktop). `BottomTabBar` is the **app's** navigation,
 kept as a working reference and deliberately not mounted on the site — both it
 and the header read the same `nav` array from `site.ts`.
 
+## Members' area
+
+`/app` (client) and `/admin` (Dean) are the logged-in product — see MEMBERS.md.
+Reads go through `lib/members/service.ts`, writes through
+`lib/members/actions.ts`, and both fall back to `lib/members/demo.ts` when
+Supabase is not configured. Privacy is enforced by row level security in
+`supabase/migrations/0001_init.sql`, not by UI checks: add a policy for every
+new table.
+
+Marketing pages live in the `(marketing)` route group with their own layout;
+the root layout is only the document shell.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,
@@ -49,6 +61,9 @@ and the header read the same `nav` array from `site.ts`.
   `inline-flex`; toggle a child `<span>` instead.
 - `Reveal` starts elements at `opacity: 0`. A `<noscript>` rule in `layout.tsx`
   pins them visible — keep it if you touch the reveal CSS.
+- Reading the clock (`Date.now()`, `new Date()`) during a component render
+  trips `react-hooks/purity`. Do it inside an async function in the service
+  layer instead — see `partitionSessions`.
 - Do not leave a fixed overlay parked off-screen (e.g. a drawer held at
   `translate-x-full`) in the DOM: it interferes with the page's
   scroll-into-view behaviour, and `visibility: hidden` does not help. Mount it

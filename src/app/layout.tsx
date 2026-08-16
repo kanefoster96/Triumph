@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import { TopBar } from "@/components/layout/TopBar";
-import { Footer } from "@/components/layout/Footer";
 import { site } from "@/lib/data/site";
 import { palette } from "@/lib/theme/tokens";
 
@@ -39,6 +37,10 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * Only the document shell. The marketing site and the members' area each
+ * bring their own chrome from their own layout.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-GB" className={`${outfit.variable} h-full antialiased`}>
@@ -49,11 +51,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
         </noscript>
       </head>
-      <body className="flex min-h-full flex-col bg-ink text-text">
-        <TopBar />
-        <main className="flex-1">{children}</main>
-        <Footer />
-      </body>
+      <body className="flex min-h-full flex-col bg-ink text-text">{children}</body>
     </html>
   );
 }

@@ -14,7 +14,10 @@ export function formatCadence(cadence: "week" | "month" | "session"): string {
 /** "3 days ago" — kept relative so the feed reads like an app timeline. */
 export function relativeDate(iso: string, now: Date = new Date()): string {
   const then = new Date(`${iso}T00:00:00Z`);
-  const days = Math.round((now.getTime() - then.getTime()) / 86_400_000);
+  // Compare whole days from midnight. Measuring from the current time made
+  // anything logged more than 12 hours ago today round up to "Yesterday".
+  const startOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const days = Math.round((startOfToday - then.getTime()) / 86_400_000);
   if (days <= 0) return "Today";
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days} days ago`;

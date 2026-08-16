@@ -1,0 +1,93 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { listClients } from "@/lib/members/service";
+import { EmptyState, ScreenTitle } from "@/components/members/ui";
+import { Chip } from "@/components/ui/Chip";
+import { relativeDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminClientsPage() {
+  const clients = await listClients();
+
+  return (
+    <>
+      <ScreenTitle
+        title="Clients"
+        subtitle={`${clients.filter((c) => c.profile.status === "active").length} active`}
+      />
+
+      {clients.length === 0 ? (
+        <EmptyState>No clients yet.</EmptyState>
+      ) : (
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {clients.map((client) => (
+            <li key={client.profile.id}>
+              <Link
+                href={`/admin/clients/${client.profile.id}`}
+                className="group flex h-full flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-5 transition-colors hover:border-accent/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{client.profile.fullName}</p>
+                    {client.profile.goal ? (
+                      <p className="mt-1 truncate text-sm text-muted">{client.profile.goal}</p>
+                    ) : null}
+                  </div>
+                  {client.profile.status === "paused" ? (
+                    <Chip>Paused</Chip>
+                  ) : (
+                    <Chip tone={client.onTrack ? "success" : "amber"}>
+                      {client.onTrack ? "On track" : "Quiet"}
+                    </Chip>
+                  )}
+                </div>
+
+                <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-center">
+                  <div>
+                    <dt className="text-[11px] tracking-wide text-faint uppercase">Workout</dt>
+                    <dd className="mt-1 text-sm font-semibold">
+                      {client.todaysWorkoutDone ? (
+                        <span className="text-accent">Done</span>
+                      ) : client.todaysWorkoutProgress ? (
+                        <span className="text-muted">
+                          {client.todaysWorkoutProgress.done}/{client.todaysWorkoutProgress.total}
+                        </span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] tracking-wide text-faint uppercase">Calories</dt>
+                    <dd className="mt-1 text-sm font-semibold">
+                      {client.todaysCalories > 0 ? client.todaysCalories.toLocaleString("en-GB") : "—"}
+                      {client.calorieTarget ? (
+                        <span className="font-normal text-faint">/{client.calorieTarget}</span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] tracking-wide text-faint uppercase">Weight</dt>
+                    <dd className="mt-1 text-sm font-semibold">
+                      {client.latestWeight ? `${client.latestWeight.weightKg.toFixed(1)}kg` : "—"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <p className="mt-4 flex items-center justify-between text-xs text-faint">
+                  <span>
+                    {client.lastActivityAt
+                      ? `Last active ${relativeDate(client.lastActivityAt.slice(0, 10))}`
+                      : "No activity yet"}
+                  </span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
