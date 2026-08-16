@@ -2,54 +2,54 @@ import type { Stat } from "@/lib/types";
 
 /**
  * Brand + navigation. Edit this file to rebrand the whole site.
- * `nav` is consumed by the desktop header, the mobile tab bar and the footer,
+ * `nav` is consumed by the desktop header, the mobile menu and the footer,
  * and is shaped to drop into a React Navigation tab navigator.
  */
 export const site = {
   name: "Triumph Training",
-  /** Used in the logo lockup where the full name is too wide. */
+  /** Used where the full name is too wide. */
   shortName: "Triumph",
-  tagline: "Personal training that actually sticks",
+  tagline: "Online coaching that actually adapts to you",
   description:
-    "Strength, conditioning and habit coaching in Manchester and online. Structured programmes, weekly check-ins, and a coach who answers.",
+    "Online personal training with Dean Foster. A meal plan and training plan built around your life, regular check-ins, and real adjustments — never a copy-and-paste PDF. In-person sessions available in Newcastle upon Tyne.",
   email: "hello@triumphtraining.fit",
   phone: "+44 7700 900412",
-  location: "Ancoats, Manchester",
-  studio: "Unit 4, Bengal Works, Manchester M4",
+  location: "Newcastle upon Tyne",
+  /** Where in-person sessions run. */
+  inPersonArea: "Newcastle upon Tyne",
   social: [
-    { label: "Instagram", handle: "@triumph.fit", href: "https://instagram.com" },
-    { label: "TikTok", handle: "@triumph.fit", href: "https://tiktok.com" },
-    { label: "Strava", handle: "Triumph Club", href: "https://strava.com" },
+    { label: "Instagram", handle: "@triumph.training", href: "https://instagram.com" },
+    { label: "TikTok", handle: "@triumph.training", href: "https://tiktok.com" },
   ],
 } as const;
 
 export interface NavItem {
   href: string;
   label: string;
-  /** Short label for the mobile tab bar. */
+  /** Short label for the app's tab bar. */
   short: string;
   icon: "home" | "dumbbell" | "chart" | "tag" | "message";
 }
 
 export const nav: NavItem[] = [
   { href: "/", label: "Home", short: "Home", icon: "home" },
-  { href: "/programmes", label: "Programmes", short: "Train", icon: "dumbbell" },
+  { href: "/coaching", label: "Coaching", short: "Coaching", icon: "dumbbell" },
   { href: "/results", label: "Results", short: "Results", icon: "chart" },
   { href: "/pricing", label: "Pricing", short: "Pricing", icon: "tag" },
-  { href: "/contact", label: "Contact", short: "Book", icon: "message" },
+  { href: "/contact", label: "Contact", short: "Contact", icon: "message" },
 ];
 
 export const secondaryNav = [
-  { href: "/about", label: "About the coach" },
-  { href: "/programmes", label: "Programmes" },
+  { href: "/about", label: "About Dean" },
+  { href: "/coaching", label: "Online coaching" },
   { href: "/results", label: "Client results" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Book a consult" },
+  { href: "/contact", label: "Book a free consult" },
 ];
 
 export const headlineStats: Stat[] = [
-  { label: "Clients coached", value: "240", suffix: "+" },
-  { label: "Years coaching", value: "9" },
+  { label: "Clients coached", value: "80", suffix: "+" },
+  { label: "Coaching since", value: "2021" },
   { label: "Avg. client rating", value: "4.9", suffix: "/5" },
-  { label: "Sessions delivered", value: "11k", suffix: "+" },
+  { label: "Plan turnaround", value: "48", suffix: "h" },
 ];

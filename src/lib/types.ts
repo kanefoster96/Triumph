@@ -25,31 +25,57 @@ export interface Coach {
   location: string;
   headline: string;
   bio: string[];
-  credentials: string[];
+  /** How he works — deliberately not professional certifications. */
+  highlights: string[];
+  /**
+   * Real qualifications. Left empty until Dean supplies them: inventing
+   * certifications for a named person would be a false claim.
+   */
+  qualifications: string[];
   specialties: string[];
   /** Optional photo path under /public. Falls back to a generated visual. */
   photo?: string;
   since: number;
 }
 
+/**
+ * A goal a client's programme gets built around. These are not separate
+ * products — every one is delivered through the same monthly coaching.
+ */
 export interface Programme {
   id: string;
   slug: string;
   name: string;
   tagline: string;
   summary: string;
-  format: TrainingFormat;
   level: Level;
-  durationWeeks: number;
-  sessionsPerWeek: number;
-  /** Pence/cents-free display price, in GBP, per week. */
-  priceFromPerWeek: number;
-  focus: string[];
-  includes: string[];
+  whoFor: string[];
+  typicalWeek: string[];
   outcomes: string[];
   visual: VisualKey;
   popular?: boolean;
 }
+
+/** Something the monthly coaching includes, or a members' area feature. */
+export interface Feature {
+  id: string;
+  icon: FeatureIcon;
+  title: string;
+  body: string;
+  /** Marks a feature that is planned rather than live. */
+  comingSoon?: boolean;
+}
+
+export type FeatureIcon =
+  | "meal"
+  | "workout"
+  | "checkin"
+  | "adjust"
+  | "community"
+  | "chat"
+  | "plan"
+  | "log"
+  | "person";
 
 export interface Plan {
   id: string;
@@ -134,6 +160,8 @@ export interface EnquiryDraft {
   goal: string;
   programmeSlug?: string;
   experience: Level;
+  /** Online, in person, or both. */
+  coachingType?: string;
   message?: string;
 }
 

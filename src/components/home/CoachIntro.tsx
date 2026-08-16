@@ -10,14 +10,14 @@ export async function CoachIntro() {
   const coach = await getCoach();
 
   return (
-    <Section id="coach">
+    <Section id="coach" tone="raised">
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <Reveal>
           <MediaFrame
             visual="strength"
             src={coach.photo}
             alt={coach.name}
-            caption="Coach photo goes here"
+            caption="Photo of Dean goes here"
             className="aspect-[4/5] w-full max-w-md"
           />
         </Reveal>
@@ -38,10 +38,10 @@ export async function CoachIntro() {
 
           <Reveal delay={140}>
             <ul className="mt-8 grid gap-2.5 sm:grid-cols-2">
-              {coach.credentials.map((credential) => (
-                <li key={credential} className="flex items-start gap-2.5 text-sm text-muted">
+              {coach.highlights.map((highlight) => (
+                <li key={highlight} className="flex items-start gap-2.5 text-sm text-muted">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                  {credential}
+                  {highlight}
                 </li>
               ))}
             </ul>

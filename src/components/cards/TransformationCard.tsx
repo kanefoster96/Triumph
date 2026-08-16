@@ -54,7 +54,7 @@ export function TransformationCard({
       </blockquote>
 
       <Link
-        href={`/programmes/${transformation.programmeSlug}`}
+        href={`/coaching/${transformation.programmeSlug}`}
         className="mt-5 inline-flex items-center gap-1.5 border-t border-line pt-4 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
       >
         See the programme

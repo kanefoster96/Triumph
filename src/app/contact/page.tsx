@@ -1,42 +1,39 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
-import { getProgrammes, getSchedule } from "@/lib/services/content";
+import { getProcess, getProgrammes } from "@/lib/services/content";
 import { site } from "@/lib/data/site";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 import { IconTile } from "@/components/ui/IconTile";
 import { EnquiryForm } from "@/components/contact/EnquiryForm";
-import { ScheduleList } from "@/components/contact/ScheduleList";
 
 export const metadata: Metadata = {
-  title: "Book a consult",
+  title: "Book a free consult",
   description:
-    "Book a free twenty-minute consult with Triumph Training in Manchester, or enquire about online coaching.",
+    "Book a free consult with Dean Foster — online coaching anywhere in the UK, or in-person sessions in Newcastle upon Tyne.",
 };
 
 const details = [
-  { icon: MapPin, label: "Studio", value: site.studio },
   { icon: Mail, label: "Email", value: site.email, href: `mailto:${site.email}` },
   { icon: Phone, label: "Phone", value: site.phone, href: `tel:${site.phone.replace(/\s/g, "")}` },
+  { icon: MapPin, label: "In person", value: `${site.inPersonArea} only` },
   { icon: Clock, label: "Reply time", value: "Within one working day" },
 ];
 
 export default async function ContactPage() {
-  const [programmes, schedule] = await Promise.all([getProgrammes(), getSchedule()]);
+  const [programmes, process] = await Promise.all([getProgrammes(), getProcess()]);
 
   return (
     <>
       <PageHeader
         eyebrow="Get started"
         title="Book a free consult"
-        description="Twenty minutes to talk through where you are, where you want to be, and whether I am the right coach to get you there. No cost, no obligation."
+        description="A short conversation about where you are, what you want, and whether I am the right coach to get you there. No cost, no obligation."
       />
 
       <Container className="pb-20 sm:pb-28">
-        {/* min-w-0 on the items, not the grid: grid items default to
-            min-width:auto, which lets wide content stretch the track. */}
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <Reveal className="min-w-0">
             <Suspense
@@ -76,11 +73,21 @@ export default async function ContactPage() {
             </Reveal>
 
             <Reveal delay={140}>
-              <h2 className="mb-5 text-xl">This week at the studio</h2>
-              <ScheduleList slots={schedule} />
-              <p className="mt-5 text-xs text-faint">
-                Availability updates weekly. Online coaching has no fixed times — you train when it suits.
-              </p>
+              <h2 className="mb-5 text-xl">What happens next</h2>
+              <ol className="space-y-3">
+                {process.map((step, i) => (
+                  <li
+                    key={step.title}
+                    className="flex gap-4 rounded-[var(--radius-sheet)] border border-line bg-surface p-5"
+                  >
+                    <span className="text-sm font-bold text-accent">0{i + 1}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{step.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted">{step.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </Reveal>
           </div>
         </div>

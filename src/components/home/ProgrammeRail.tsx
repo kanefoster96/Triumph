@@ -13,12 +13,12 @@ export async function ProgrammeRail() {
   const programmes = await getProgrammes();
 
   return (
-    <section id="programmes" className="py-20 sm:py-28">
+    <section id="goals" className="py-20 sm:py-28">
       <Container>
         <SectionHeader
-          eyebrow="Programmes"
-          title="Pick the block that matches the goal"
-          description="Every programme is a complete plan with a start, a finish and a test at the end. Not a rolling membership that never goes anywhere."
+          eyebrow="What we build around"
+          title="One coaching package, built for your goal"
+          description="These are not separate products with separate prices. They are the goals I most often build plans around — all delivered through the same monthly coaching."
         />
       </Container>
 
@@ -40,8 +40,8 @@ export async function ProgrammeRail() {
       </Container>
 
       <Container className="mt-12 text-center">
-        <Button href="/programmes" variant="secondary">
-          All programmes
+        <Button href="/coaching" variant="secondary">
+          How coaching works
           <ArrowRight className="h-4 w-4" />
         </Button>
       </Container>

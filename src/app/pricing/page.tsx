@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Check, Sparkles } from "lucide-react";
-import { getFaqs, getPayAsYouGo, getPlans } from "@/lib/services/content";
+import { Check, MapPin, Sparkles } from "lucide-react";
+import { getFaqs, getPlans } from "@/lib/services/content";
+import { site } from "@/lib/data/site";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Section, SectionHeader } from "@/components/ui/Section";
@@ -12,43 +13,41 @@ import { cn, formatCadence, formatPrice } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Transparent personal training pricing — online, hybrid and private coaching. Month to month, no lock-in contracts.",
+    "Online coaching with Dean Foster is £120 a month — meal plan, training plan, check-ins and adjustments included. In-person sessions available in Newcastle upon Tyne.",
 };
 
 export default async function PricingPage() {
-  const [plans, payg, faqs] = await Promise.all([getPlans(), getPayAsYouGo(), getFaqs()]);
+  const [plans, faqs] = await Promise.all([getPlans(), getFaqs()]);
 
   return (
     <>
       <PageHeader
         eyebrow="Pricing"
-        title="Simple, honest pricing"
-        description="No joining fee, no gym membership on top, no minimum term. Pause any time with a week's notice."
+        title="One price, everything included"
+        description="No joining fee, no tiers, no minimum term. Cancel any time with a week's notice."
       />
 
       <Section className="pt-0 sm:pt-0">
-        <div className="grid items-start gap-6 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-4xl items-start gap-6 md:grid-cols-2">
           {plans.map((plan, i) => (
             <Reveal key={plan.id} delay={i * 70} className="h-full">
               <div
                 className={cn(
                   "relative flex h-full flex-col rounded-[var(--radius-sheet)] p-7",
-                  plan.popular
-                    ? "bg-accent text-accent-ink"
-                    : "border border-line bg-surface text-text",
+                  plan.popular ? "bg-accent text-accent-ink" : "border border-line bg-surface text-text",
                 )}
               >
                 {plan.popular ? (
                   <span className="absolute -top-3.5 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-ink px-4 py-1.5 text-xs font-semibold whitespace-nowrap text-accent">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Most popular
+                    The main thing
                   </span>
                 ) : null}
 
                 <h2 className="text-xl">{plan.name}</h2>
                 <p
                   className={cn(
-                    "mt-2 min-h-[4rem] text-sm leading-relaxed",
+                    "mt-2 min-h-[4.5rem] text-sm leading-relaxed",
                     plan.popular ? "text-accent-ink/75" : "text-muted",
                   )}
                 >
@@ -56,7 +55,14 @@ export default async function PricingPage() {
                 </p>
 
                 <p className="mt-4 flex items-baseline gap-1.5">
-                  <span className="font-display text-5xl font-bold tracking-tight">{formatPrice(plan.price)}</span>
+                  {plan.cadence === "session" ? (
+                    <span className={cn("text-sm", plan.popular ? "text-accent-ink/70" : "text-faint")}>
+                      from
+                    </span>
+                  ) : null}
+                  <span className="font-display text-5xl font-bold tracking-tight">
+                    {formatPrice(plan.price)}
+                  </span>
                   <span className={cn("text-sm", plan.popular ? "text-accent-ink/70" : "text-faint")}>
                     {formatCadence(plan.cadence)}
                   </span>
@@ -82,11 +88,18 @@ export default async function PricingPage() {
                   ))}
                 </ul>
 
+                {!plan.popular ? (
+                  <p className="mt-6 inline-flex items-center gap-2 text-xs text-faint">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {site.inPersonArea} only
+                  </p>
+                ) : null}
+
                 <Button
                   href="/contact"
                   variant={plan.popular ? "onAccent" : "secondary"}
                   fullWidth
-                  className="mt-8"
+                  className="mt-6"
                 >
                   {plan.ctaLabel}
                 </Button>
@@ -95,26 +108,8 @@ export default async function PricingPage() {
           ))}
         </div>
 
-        <Reveal delay={100}>
-          <div className="mt-6 flex flex-col gap-5 rounded-[var(--radius-sheet)] border border-line bg-surface p-7 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-lg">{payg.name}</h3>
-              <p className="mt-1.5 max-w-xl text-sm text-muted">{payg.description}</p>
-            </div>
-            <div className="flex items-center gap-5">
-              <p className="font-display text-3xl font-bold tracking-tight whitespace-nowrap">
-                {formatPrice(payg.price)}
-                <span className="ml-1.5 text-sm font-normal text-faint">{formatCadence(payg.cadence)}</span>
-              </p>
-              <Button href="/contact" variant="secondary" size="sm">
-                {payg.ctaLabel}
-              </Button>
-            </div>
-          </div>
-        </Reveal>
-
-        <p className="mt-8 text-center text-sm text-faint">
-          Corporate and small-group rates on request. Student and NHS discount available — just ask.
+        <p className="mt-10 text-center text-sm text-faint">
+          Not sure it is right for you? The consult is free and there is no obligation afterwards.
         </p>
       </Section>
 

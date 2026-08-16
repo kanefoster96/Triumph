@@ -3,44 +3,50 @@ import type { FaqItem } from "@/lib/types";
 export const faqs: FaqItem[] = [
   {
     id: "f-1",
-    question: "I have never trained before. Am I too far behind to start?",
+    question: "How does online coaching actually work?",
     answer:
-      "No — roughly half of new clients have never touched a barbell. The Foundation programme exists precisely for that, and the first two weeks are deliberately easy so we can see how you move and how you recover before we load anything.",
+      "We start with a free consult and a detailed picture of where you are — training history, injuries, what your week really looks like, and the food you like. Within about 48 hours you get calorie and protein targets plus a full training plan. From there you log your days, we check in regularly, and I adjust the plan based on what actually happened.",
   },
   {
     id: "f-2",
-    question: "What actually happens in the first session?",
+    question: "How is this different from a plan I could buy for £20?",
     answer:
-      "A conversation about your goals and history, a movement screen, and some light baseline testing. You will train, but the priority is gathering enough information to write your plan properly. You leave with the first four weeks mapped out.",
+      "A plan is a document. Coaching is the adjusting. A downloadable plan cannot know that you stalled for two weeks, tweaked your shoulder, or have a holiday coming up. Everything I write is built for you from the start, and it changes as you do.",
   },
   {
     id: "f-3",
-    question: "Do I need to be a member of your gym?",
+    question: "Do I have to eat specific foods?",
     answer:
-      "For in-person coaching you train at the Ancoats studio and there is no separate membership — it is included in your plan. Online clients train wherever they already train, and the programme is written around that gym's equipment.",
+      "No. Your plan is built around what you already eat and cook. You get targets and a structure that fits your life — including takeaways, eating out and family meals. Meal plans full of food you would never buy have terrible adherence, so I do not write them.",
   },
   {
     id: "f-4",
-    question: "Will you put me on a meal plan?",
+    question: "What gym do I need?",
     answer:
-      "Not unless you specifically want one. Meal plans have poor adherence past week three. Instead you get targets, a short list of habits to build in order, and weekly adjustments based on what actually happened rather than what was supposed to happen.",
+      "Whichever one you already use. Your training plan is written for the equipment you actually have access to — a full commercial gym, a small hotel gym, or a couple of dumbbells at home. Tell me what you have and I will build around it.",
   },
   {
     id: "f-5",
-    question: "How long until I see results?",
+    question: "How often will we speak?",
     answer:
-      "Strength numbers usually move within three to four weeks. Visible body composition change typically takes eight to twelve weeks depending on your starting point and how consistent you are. Anyone promising faster is selling water loss.",
+      "You get a regular structured check-in where we review the week and I send back adjustments. On top of that you can message me directly whenever something comes up — a niggle, a menu, a session you are unsure about.",
   },
   {
     id: "f-6",
-    question: "Can I pause or cancel?",
+    question: "Can I train with you in person?",
     answer:
-      "Plans are month to month with no lock-in. Pause any time with a week's notice — holidays, injuries, and busy work periods are normal and I would rather keep you long term than hold you to a contract.",
+      "Yes, if you can get to Newcastle upon Tyne. Some people book a few sessions at the start to get technique sorted and then continue online; others keep a regular weekly slot alongside their coaching. It is an add-on to the online coaching rather than a separate thing.",
   },
   {
     id: "f-7",
-    question: "I have an injury. Can I still train?",
+    question: "Am I tied into a contract?",
     answer:
-      "Almost always, yes. The Rebuild programme is built for this and I will happily work alongside your physio or consultant. What I will not do is train through pain that is getting worse — if you need referring on, I will tell you.",
+      "No. Coaching is £120 a month, month to month. Cancel any time — I would rather keep you because it is working than because you are locked in.",
+  },
+  {
+    id: "f-8",
+    question: "I have never trained before. Is this for me?",
+    answer:
+      "Yes. The Foundations approach exists for exactly that, and plenty of clients start having never followed a real plan. The first few weeks are deliberately manageable so we can see how you move and recover before anything gets hard.",
   },
 ];

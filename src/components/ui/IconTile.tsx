@@ -1,6 +1,20 @@
-import { Activity, Dumbbell, Heart, Laptop, Salad, Timer } from "lucide-react";
+import {
+  Activity,
+  CalendarCheck,
+  ClipboardList,
+  Dumbbell,
+  Heart,
+  Laptop,
+  MessageCircle,
+  NotebookPen,
+  Salad,
+  SlidersHorizontal,
+  Timer,
+  UserRound,
+  Users,
+} from "lucide-react";
 import type { ComponentType } from "react";
-import type { VisualKey } from "@/lib/types";
+import type { FeatureIcon, VisualKey } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,6 +32,19 @@ const visualIcons: Record<VisualKey, ComponentType<{ className?: string }>> = {
   nutrition: Salad,
 };
 
+/** Icons for coaching inclusions and members' area features. */
+const featureIcons: Record<FeatureIcon, ComponentType<{ className?: string }>> = {
+  meal: Salad,
+  workout: Dumbbell,
+  checkin: CalendarCheck,
+  adjust: SlidersHorizontal,
+  community: Users,
+  chat: MessageCircle,
+  plan: ClipboardList,
+  log: NotebookPen,
+  person: UserRound,
+};
+
 const sizes = {
   sm: { box: "h-10 w-10 rounded-xl", icon: "h-4.5 w-4.5" },
   md: { box: "h-12 w-12 rounded-xl", icon: "h-5 w-5" },
@@ -27,12 +54,14 @@ const sizes = {
 interface IconTileProps {
   icon?: ComponentType<{ className?: string }>;
   visual?: VisualKey;
+  feature?: FeatureIcon;
   size?: keyof typeof sizes;
   className?: string;
 }
 
-export function IconTile({ icon, visual, size = "md", className }: IconTileProps) {
-  const Icon = icon ?? (visual ? visualIcons[visual] : Dumbbell);
+export function IconTile({ icon, visual, feature, size = "md", className }: IconTileProps) {
+  const Icon =
+    icon ?? (feature ? featureIcons[feature] : visual ? visualIcons[visual] : Dumbbell);
   const s = sizes[size];
 
   return (

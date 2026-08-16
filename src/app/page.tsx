@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getFaqs } from "@/lib/services/content";
 import { Hero } from "@/components/home/Hero";
-import { ProgrammeRail } from "@/components/home/ProgrammeRail";
+import { WhatsIncluded } from "@/components/home/WhatsIncluded";
 import { HowItWorks } from "@/components/home/HowItWorks";
+import { ProgrammeRail } from "@/components/home/ProgrammeRail";
+import { MembersArea } from "@/components/home/MembersArea";
 import { CoachIntro } from "@/components/home/CoachIntro";
 import { ResultsRail } from "@/components/home/ResultsRail";
-import { Feed } from "@/components/home/Feed";
 import { TestimonialWall } from "@/components/home/TestimonialWall";
 import { CtaBanner } from "@/components/home/CtaBanner";
 import { Section, SectionHeader } from "@/components/ui/Section";
@@ -17,11 +18,12 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <ProgrammeRail />
+      <WhatsIncluded />
       <HowItWorks />
+      <ProgrammeRail />
+      <MembersArea />
       <CoachIntro />
       <ResultsRail />
-      <Feed />
       <TestimonialWall />
 
       <Section>
@@ -30,7 +32,7 @@ export default async function HomePage() {
         <p className="mt-8 text-center text-sm text-muted">
           Still unsure?{" "}
           <Link href="/contact" className="font-semibold text-accent hover:underline">
-            Ask me directly
+            Ask Dean directly
           </Link>
           .
         </p>

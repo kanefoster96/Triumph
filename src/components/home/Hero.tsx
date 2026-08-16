@@ -1,33 +1,38 @@
 import { Check, Sparkles } from "lucide-react";
 import { headlineStats, site } from "@/lib/data/site";
+import { getCoachingPrice } from "@/lib/services/content";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
+import { formatPrice } from "@/lib/utils";
 
-const proofPoints = ["No lock-in contracts", "Studio & online", "Free consult first"];
+const proofPoints = ["Built for you, not downloaded", "Adjusted every week", "No contract"];
 
-export function Hero() {
+export async function Hero() {
+  const price = await getCoachingPrice();
+
   return (
     <Container className="pt-14 pb-20 text-center sm:pt-24 sm:pb-28">
       <Reveal>
         <span className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-2 text-sm font-medium text-accent">
           <Sparkles className="h-4 w-4" />
-          Taking 3 new clients for September
+          Online coaching · {formatPrice(price.amount)}/month
         </span>
       </Reveal>
 
       <Reveal delay={60}>
         <h1 className="mx-auto mt-8 max-w-3xl text-4xl leading-[1.05] text-balance sm:text-6xl">
-          You can&rsquo;t progress
+          A plan built around
           <br />
-          <span className="text-accent">what you don&rsquo;t track.</span>
+          <span className="text-accent">your life, not a template.</span>
         </h1>
       </Reveal>
 
       <Reveal delay={120}>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-          Personal training in {site.location} and online. Structured programmes, weekly check-ins, and a
-          coach who watches every rep — built for people who are done starting over.
+          Online coaching with Dean Foster. Your meal plan, your training plan, regular check-ins and real
+          adjustments as you go — never a copy-and-paste PDF. In-person sessions available in{" "}
+          {site.inPersonArea}.
         </p>
       </Reveal>
 
@@ -36,8 +41,8 @@ export function Hero() {
           <Button href="/contact" size="lg">
             Book a free consult
           </Button>
-          <Button href="/programmes" size="lg" variant="secondary">
-            View programmes
+          <Button href="/coaching" size="lg" variant="secondary">
+            What&rsquo;s included
           </Button>
         </div>
       </Reveal>

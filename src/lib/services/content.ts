@@ -1,18 +1,18 @@
 import { coach } from "@/lib/data/coach";
+import { coachingPrice, included, memberArea, process } from "@/lib/data/coaching";
 import { faqs } from "@/lib/data/faqs";
-import { payAsYouGo, plans } from "@/lib/data/plans";
+import { plans } from "@/lib/data/plans";
 import { posts } from "@/lib/data/posts";
 import { programmes } from "@/lib/data/programmes";
-import { schedule } from "@/lib/data/schedule";
 import { testimonials } from "@/lib/data/testimonials";
 import { transformations } from "@/lib/data/transformations";
 import type {
   Coach,
   FaqItem,
+  Feature,
   Plan,
   Post,
   Programme,
-  ScheduleSlot,
   Testimonial,
   Transformation,
 } from "@/lib/types";
@@ -45,8 +45,23 @@ export async function getPlans(): Promise<Plan[]> {
   return plans;
 }
 
-export async function getPayAsYouGo(): Promise<Plan> {
-  return payAsYouGo;
+/** The headline monthly price for the online coaching. */
+export async function getCoachingPrice(): Promise<typeof coachingPrice> {
+  return coachingPrice;
+}
+
+/** What the monthly coaching includes. */
+export async function getIncluded(): Promise<Feature[]> {
+  return included;
+}
+
+/** Members' area surfaces, some of which are still to be built. */
+export async function getMemberArea(): Promise<Feature[]> {
+  return memberArea;
+}
+
+export async function getProcess(): Promise<typeof process> {
+  return process;
 }
 
 export async function getTestimonials(limit?: number): Promise<Testimonial[]> {
@@ -65,10 +80,6 @@ export async function getTransformationsByProgramme(slug: string): Promise<Trans
 export async function getPosts(limit?: number): Promise<Post[]> {
   const sorted = [...posts].sort((a, b) => b.date.localeCompare(a.date));
   return typeof limit === "number" ? sorted.slice(0, limit) : sorted;
-}
-
-export async function getSchedule(): Promise<ScheduleSlot[]> {
-  return schedule;
 }
 
 export async function getFaqs(limit?: number): Promise<FaqItem[]> {

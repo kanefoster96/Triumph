@@ -43,11 +43,11 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold">Studio</h3>
+            <h3 className="mb-4 text-sm font-semibold">Get in touch</h3>
             <ul className="space-y-3 text-sm text-muted">
               <li className="flex gap-2.5">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
-                <span>{site.studio}</span>
+                <span>Online UK-wide · in person in {site.inPersonArea}</span>
               </li>
               <li className="flex gap-2.5">
                 <Mail className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
@@ -67,7 +67,7 @@ export function Footer() {
 
         <div className="flex flex-col gap-2 border-t border-line py-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} {site.name}. Personal training in {site.location}.
+            © {year} {site.name}. Online coaching UK-wide.
           </p>
           <p>Built to move — website today, app next.</p>
         </div>

@@ -6,7 +6,7 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://triumph.fit";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const slugs = await getProgrammeSlugs();
-  const staticRoutes = ["", "/programmes", "/results", "/pricing", "/about", "/contact"];
+  const staticRoutes = ["", "/coaching", "/results", "/pricing", "/about", "/contact"];
 
   return [
     ...staticRoutes.map((route) => ({
@@ -15,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: route === "" ? 1 : 0.8,
     })),
     ...slugs.map((slug) => ({
-      url: `${baseUrl}/programmes/${slug}`,
+      url: `${baseUrl}/coaching/${slug}`,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),

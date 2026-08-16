@@ -9,13 +9,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
 const goals = [
-  "Get stronger",
   "Lose fat",
+  "Get stronger",
   "Build muscle",
-  "Return from injury",
+  "Get fit for family life",
   "Run faster",
   "Feel better day to day",
 ];
+
+const coachingTypes = ["Online coaching", "In person (Newcastle)", "Both"];
 
 const levels: Level[] = ["Beginner", "Intermediate", "Advanced"];
 
@@ -43,6 +45,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
   const preselected = searchParams.get("programme") ?? "";
 
   const [goal, setGoal] = useState("");
+  const [coachingType, setCoachingType] = useState(coachingTypes[0]);
   const [experience, setExperience] = useState<Level>("Beginner");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
@@ -66,6 +69,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
       goal,
       programmeSlug: String(form.get("programme") ?? "") || undefined,
       experience,
+      coachingType,
       message: String(form.get("message") ?? "") || undefined,
     };
 
@@ -136,7 +140,7 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
           />
         </div>
         <div>
-          <Label htmlFor="programme">Programme of interest</Label>
+          <Label htmlFor="programme">Goal you most relate to</Label>
           <select id="programme" name="programme" defaultValue={preselected} className={cn(fieldClass, "appearance-none")}>
             <option value="">Not sure yet</option>
             {programmes.map((programme) => (
@@ -147,6 +151,33 @@ export function EnquiryForm({ programmes }: { programmes: Programme[] }) {
           </select>
         </div>
       </div>
+
+      <fieldset className="mt-6">
+        <legend className="mb-3 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+          What are you after?
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {coachingTypes.map((option) => {
+            const selected = coachingType === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setCoachingType(option)}
+                className={cn(
+                  "rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,transform] duration-200 active:scale-95",
+                  selected
+                    ? "border-accent bg-accent text-accent-ink"
+                    : "border-line bg-ink text-muted hover:border-accent/50 hover:text-text",
+                )}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <fieldset className="mt-6">
         <legend className="mb-3 text-xs font-semibold tracking-[0.14em] text-faint uppercase">

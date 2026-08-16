@@ -31,7 +31,7 @@ export function CtaBanner() {
           </div>
 
           <p className="mt-7 text-sm text-accent-ink/70">
-            No credit card required · Cancel anytime · Keep your programme forever
+            Free consult · No contract · Cancel any time
           </p>
         </Reveal>
       </Container>

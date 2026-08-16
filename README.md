@@ -1,7 +1,9 @@
 # Triumph Training
 
-Marketing website for a personal trainer, built to feel like an app rather than a
-brochure — and structured so its features port cleanly to a React Native app later.
+Marketing website for **Dean Foster's** online coaching business — £120 a month for a
+personalised meal plan, training plan, regular check-ins and real adjustments, with
+in-person sessions available in Newcastle upon Tyne. Built to feel like an app rather
+than a brochure, and structured so its features port cleanly to a React Native app.
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4. Every route is
 statically generated; there is no backend yet.
@@ -17,15 +19,15 @@ npm run lint
 
 ## Routes
 
-| Route                 | What it is                                                       |
-| --------------------- | ---------------------------------------------------------------- |
-| `/`                   | Hero, programmes rail, process, coach, results, feed, reviews, FAQ |
-| `/programmes`         | All programmes with a client-side format filter                   |
-| `/programmes/[slug]`  | Programme detail — inclusions, outcomes, matching client results  |
-| `/results`            | Transformations with metrics, plus the full review wall           |
-| `/pricing`            | Three plans, pay-as-you-go, pricing FAQ                           |
-| `/about`              | Coach bio, credentials, philosophy, studio                        |
-| `/contact`            | Enquiry form and the weekly studio timetable                      |
+| Route                | What it is                                                          |
+| -------------------- | ------------------------------------------------------------------- |
+| `/`                  | Hero, what's included, process, goals, members' area, Dean, results  |
+| `/coaching`          | The offer in depth, the "not a £20 plan" comparison, in-person       |
+| `/coaching/[slug]`   | A goal a plan gets built around — who it's for, typical week         |
+| `/results`           | Transformations and the full review wall                             |
+| `/pricing`           | £120/month online, in-person Newcastle, pricing FAQ                  |
+| `/about`             | Dean's story and coaching principles                                 |
+| `/contact`           | Enquiry form and what happens next                                   |
 
 ## Editing the content
 
@@ -33,11 +35,11 @@ All copy and data lives in `src/lib/data/` — no content is hard-coded in compo
 
 - `site.ts` — brand name, contact details, navigation, headline stats
 - `coach.ts` — bio, credentials, specialties
-- `programmes.ts` — the training blocks (drives `/programmes` and every detail page)
-- `plans.ts` — pricing tiers
+- `coaching.ts` — the monthly price, what's included, members' area, the process
+- `programmes.ts` — the goals plans get built around (drives `/coaching/[slug]`)
+- `plans.ts` — the £120 online plan and the in-person add-on
 - `transformations.ts` / `testimonials.ts` — client results and reviews
 - `posts.ts` — the coach feed
-- `schedule.ts` — weekly timetable
 - `faqs.ts` — questions
 
 Renaming the business, changing the phone number, or adding a programme is a one-file
@@ -105,8 +107,22 @@ changed with it.
 Static output, so any host works. Set `NEXT_PUBLIC_SITE_URL` so `sitemap.xml` and
 `robots.txt` emit absolute URLs for the live domain.
 
-## Placeholder content
+## Placeholder content — read before promoting the site
 
-The coach name, client stories, reviews, statistics, prices, and studio address are
-realistic placeholders, not real claims. Replace them in `src/lib/data/` before the
-site goes live — particularly the results and review numbers.
+Confirmed real: Dean Foster's name, the origin story, Newcastle upon Tyne, and the
+£120/month online coaching price.
+
+**Still placeholder, and currently published:**
+
+- **`testimonials.ts` and `transformations.ts`** — every client, quote and number is
+  invented. They are attributed to a real, named trainer, so publishing them as
+  genuine would be a false advertising claim. Replace with real feedback, or delete
+  the `TestimonialWall` and `ResultsRail` sections until you have some.
+- **`headlineStats` in `site.ts`** — "80+ clients coached", the 4.9 rating and the 48h
+  turnaround are guesses. Correct them.
+- **In-person price** (`plans.ts`, £45/session) — a placeholder. Dean set the £120
+  monthly price; this one was never specified.
+- **Email, phone and social handles** in `site.ts`.
+
+`coach.qualifications` is deliberately an empty array. Nothing was invented on Dean's
+behalf; add real certifications and they render automatically on `/about`.

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, Target } from "lucide-react";
+import { ArrowLeft, Check, Target, UserRound } from "lucide-react";
 import {
+  getCoachingPrice,
   getProgramme,
   getProgrammeSlugs,
   getTransformationsByProgramme,
@@ -21,42 +22,29 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: PageProps<"/programmes/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<"/coaching/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const programme = await getProgramme(slug);
-  if (!programme) return { title: "Programme not found" };
-  return {
-    title: programme.name,
-    description: programme.summary,
-  };
+  if (!programme) return { title: "Not found" };
+  return { title: programme.name, description: programme.summary };
 }
 
-export default async function ProgrammePage({ params }: PageProps<"/programmes/[slug]">) {
+export default async function ProgrammePage({ params }: PageProps<"/coaching/[slug]">) {
   const { slug } = await params;
-  const programme = await getProgramme(slug);
+  const [programme, price] = await Promise.all([getProgramme(slug), getCoachingPrice()]);
   if (!programme) notFound();
 
   const results = await getTransformationsByProgramme(slug);
-  const totalSessions = programme.durationWeeks * programme.sessionsPerWeek;
-
-  const facts = [
-    { label: "Format", value: programme.format },
-    { label: "Level", value: programme.level },
-    { label: "Length", value: `${programme.durationWeeks} weeks` },
-    { label: "Sessions", value: `${programme.sessionsPerWeek} per week` },
-    { label: "Total sessions", value: `${totalSessions}` },
-    { label: "From", value: `${formatPrice(programme.priceFromPerWeek)}/week` },
-  ];
 
   return (
     <>
       <Container className="pt-8 pb-12 sm:pt-10 sm:pb-16">
         <Link
-          href="/programmes"
+          href="/coaching"
           className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-text"
         >
           <ArrowLeft className="h-4 w-4" />
-          All programmes
+          All of it
         </Link>
 
         <Reveal className="mt-10 text-center">
@@ -65,9 +53,9 @@ export default async function ProgrammePage({ params }: PageProps<"/programmes/[
           </div>
 
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Chip tone="accent">{programme.format}</Chip>
+            <Chip tone="accent">Online coaching</Chip>
             <Chip>{programme.level}</Chip>
-            {programme.popular ? <Chip tone="amber">Most popular</Chip> : null}
+            {programme.popular ? <Chip tone="amber">Most common</Chip> : null}
           </div>
 
           <h1 className="mx-auto mt-6 max-w-3xl text-4xl leading-[1.08] text-balance sm:text-5xl">
@@ -77,33 +65,37 @@ export default async function ProgrammePage({ params }: PageProps<"/programmes/[
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted">{programme.summary}</p>
 
           <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-            <Button href={`/contact?programme=${programme.slug}`} size="lg">
-              Enquire about {programme.name}
+            <Button href="/contact" size="lg">
+              Book a free consult
             </Button>
             <Button href="/pricing" size="lg" variant="secondary">
-              See pricing
+              {formatPrice(price.amount)}/month — what&rsquo;s included
             </Button>
           </div>
-        </Reveal>
-
-        <Reveal delay={80}>
-          <dl className="mt-14 grid grid-cols-2 gap-x-6 gap-y-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-7 sm:grid-cols-3 lg:grid-cols-6">
-            {facts.map((fact) => (
-              <div key={fact.label}>
-                <dt className="text-[11px] tracking-[0.12em] text-faint uppercase">{fact.label}</dt>
-                <dd className="mt-1.5 text-base font-semibold">{fact.value}</dd>
-              </div>
-            ))}
-          </dl>
         </Reveal>
       </Container>
 
       <Section tone="raised">
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-3 lg:gap-10">
           <Reveal>
-            <h2 className="text-2xl sm:text-3xl">What is included</h2>
-            <ul className="mt-6 space-y-3">
-              {programme.includes.map((item) => (
+            <h2 className="text-xl sm:text-2xl">Who it&rsquo;s for</h2>
+            <ul className="mt-5 space-y-3">
+              {programme.whoFor.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted"
+                >
+                  <UserRound className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
+          <Reveal delay={70}>
+            <h2 className="text-xl sm:text-2xl">A typical week</h2>
+            <ul className="mt-5 space-y-3">
+              {programme.typicalWeek.map((item) => (
                 <li
                   key={item}
                   className="flex items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted"
@@ -113,11 +105,14 @@ export default async function ProgrammePage({ params }: PageProps<"/programmes/[
                 </li>
               ))}
             </ul>
+            <p className="mt-4 text-xs text-faint">
+              Yours will differ — this is written around your days, not a fixed template.
+            </p>
           </Reveal>
 
-          <Reveal delay={70}>
-            <h2 className="text-2xl sm:text-3xl">What you walk away with</h2>
-            <ul className="mt-6 space-y-3">
+          <Reveal delay={140}>
+            <h2 className="text-xl sm:text-2xl">What you get out of it</h2>
+            <ul className="mt-5 space-y-3">
               {programme.outcomes.map((item) => (
                 <li
                   key={item}
@@ -128,14 +123,6 @@ export default async function ProgrammePage({ params }: PageProps<"/programmes/[
                 </li>
               ))}
             </ul>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {programme.focus.map((focus) => (
-                <Chip key={focus} tone="accent">
-                  {focus}
-                </Chip>
-              ))}
-            </div>
           </Reveal>
         </div>
       </Section>
@@ -144,8 +131,8 @@ export default async function ProgrammePage({ params }: PageProps<"/programmes/[
         <Section>
           <SectionHeader
             eyebrow="Results"
-            title={`People who ran ${programme.name}`}
-            description="Same programme, different starting points."
+            title={`Clients working on ${programme.name.toLowerCase()}`}
+            description="Same coaching, different starting points."
           />
           <div className="grid gap-5 md:grid-cols-2">
             {results.map((transformation, i) => (
