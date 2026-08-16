@@ -1,0 +1,57 @@
+import { ClipboardList, LineChart, MessagesSquare, Target } from "lucide-react";
+import { Section, SectionHeader } from "@/components/ui/Section";
+import { Reveal } from "@/components/ui/Reveal";
+
+const steps = [
+  {
+    icon: MessagesSquare,
+    title: "Free consult",
+    body: "Twenty minutes, in person or on a call. Your history, your goal, and an honest answer about what it will take.",
+  },
+  {
+    icon: ClipboardList,
+    title: "Assessment",
+    body: "Movement screen and baseline numbers. This is what your plan is built from — no templates, no guessing.",
+  },
+  {
+    icon: Target,
+    title: "Train the plan",
+    body: "Coached sessions plus a written programme for the days you train alone. Every session logged.",
+  },
+  {
+    icon: LineChart,
+    title: "Review weekly",
+    body: "We look at what actually happened and adjust. Small corrections every week beat a rewrite every quarter.",
+  },
+];
+
+export function HowItWorks() {
+  return (
+    <Section id="how-it-works" tone="raised">
+      <SectionHeader
+        eyebrow="How it works"
+        title="Four steps, no mystery"
+        description="The same process for every client, whether you train in the studio or on the other side of the world."
+      />
+
+      <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map((step, i) => (
+          <Reveal as="li" key={step.title} delay={i * 80}>
+            <div className="h-full rounded-[var(--radius-card)] border border-line bg-ink p-5">
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent/10 text-accent">
+                  <step.icon className="h-5 w-5" />
+                </span>
+                <span className="font-display text-4xl leading-none font-extrabold text-line">
+                  0{i + 1}
+                </span>
+              </div>
+              <h3 className="mt-4 text-lg">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
+            </div>
+          </Reveal>
+        ))}
+      </ol>
+    </Section>
+  );
+}

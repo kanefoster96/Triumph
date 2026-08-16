@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+/* Mirrors src/lib/theme/tokens.ts — keep the two in step. */
+@theme {
+  --color-ink: #08090b;
+  --color-surface: #101217;
+  --color-raised: #171a21;
+  --color-overlay: #1e222b;
+  --color-line: #262a34;
+
+  --color-text: #f5f6f8;
+  --color-muted: #9aa1ad;
+  --color-faint: #6a7180;
+
+  --color-accent: #d3ff4e;
+  --color-accent-strong: #b8e62c;
+  --color-accent-ink: #0b1002;
+
+  --color-heat: #ff6a3d;
+  --color-cool: #4ea8ff;
+  --color-success: #3ddc97;
+
+  --radius-card: 1.25rem;
+  --radius-sheet: 1.75rem;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-geist-sans), sans-serif;
+
+  --ease-out-app: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    background-color: var(--color-ink);
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    /* Header offset for in-page anchors. */
+    scroll-padding-top: 5.5rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    /* App-like: no rubber-band chaining past the page. */
+    overscroll-behavior-y: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Chrome (nav, buttons, labels) should not feel like selectable text. */
+  nav,
+  button,
+  [role="tab"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  /*
+   * Horizontal rails that snap like a native carousel.
+   * Deliberately does NOT set `display` — pair it with Tailwind's `flex` so
+   * responsive utilities like `lg:hidden` still win.
+   */
+  .rail {
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rail > * {
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Respects the iOS home indicator; harmless elsewhere. */
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+  }
+
+  .mb-tabbar {
+    margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.75rem);
+  }
+
+  .glass {
+    background-color: color-mix(in srgb, var(--color-ink) 92%, transparent);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .grain {
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--color-white, #fff) 6%, transparent) 0.5px,
+      transparent 0.5px
+    );
+    background-size: 4px 4px;
+  }
+}
+
+/* Scroll-reveal: visible by default so no-JS and pre-hydration render fine. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 520ms var(--ease-out-app),
+      transform 520ms var(--ease-out-app);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  [data-reveal="shown"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
