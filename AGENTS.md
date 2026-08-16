@@ -52,6 +52,10 @@ new table.
 Marketing pages live in the `(marketing)` route group with their own layout;
 the root layout is only the document shell.
 
+`/admin/clients/[slug]` is tabbed with the same five sections as the client's
+own app, one route each, sharing a layout. Keep the two in step: what Dean
+edits should map onto what the client is looking at.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,

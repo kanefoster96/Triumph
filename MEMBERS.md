@@ -46,7 +46,7 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | Screen | What it does |
 | --- | --- |
 | **Clients** `/admin` | Every client with last activity, on/off track, and today's workout, calories and weight at a glance. |
-| **Client** `/admin/clients/[id]` | Everything for one client, and the place Dean edits it: assign or rewrite a workout, set calorie/protein targets and meals, schedule sessions, add session notes, reply to any client note. |
+| **Client** `/admin/clients/[id]` | The same five tabs the client sees, but editable. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts assigns the checklist and shows what they ticked; Food sets targets and meals; Weight shows the trend and allows corrections. Dean can reply to any note from its tab. |
 | **Schedule** `/admin/schedule` | Every session across all clients, grouped by day. Anything added shows up in that client's Sessions tab. |
 
 Everything Dean sets stays editable after the fact — adjust a workout mid-week,

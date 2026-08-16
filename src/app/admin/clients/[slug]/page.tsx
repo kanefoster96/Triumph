@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { CalendarDays, Dumbbell, LineChart, MessageCircle } from "lucide-react";
 import {
-  commentsFor,
   getComments,
   getFoodLogs,
   getFoodPlan,
@@ -14,26 +13,16 @@ import {
   sumCalories,
   today,
 } from "@/lib/members/service";
-import { saveFoodPlan, saveSession, saveWorkout } from "@/lib/members/actions";
-import { CalorieBar, EmptyState, Panel, ScreenTitle, WeightTrend } from "@/components/members/ui";
-import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
-import { CommentThread } from "@/components/members/Comments";
+import { CalorieBar, EmptyState, Panel } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
 import { relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const field =
-  "w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
-const label = "mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase";
-const submit =
-  "rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong";
-
-function localDateTime(iso: string) {
-  return new Date(iso).toISOString().slice(0, 16);
-}
-
-export default async function AdminClientPage({ params }: PageProps<"/admin/clients/[slug]">) {
+/** Mirrors the client's own dashboard, so Dean sees what they see. */
+export default async function AdminClientOverviewPage({
+  params,
+}: PageProps<"/admin/clients/[slug]">) {
   const { slug } = await params;
   const profile = await getProfile(slug);
   if (!profile) notFound();
@@ -49,302 +38,176 @@ export default async function AdminClientPage({ params }: PageProps<"/admin/clie
   ]);
 
   const todaysWorkout = workouts.find((w) => w.scheduledFor === date) ?? null;
-  const { upcoming, past: pastSessions } = await partitionSessions(sessions);
+  const { upcoming } = await partitionSessions(sessions);
+  const nextSession = upcoming[0] ?? null;
+  const base = `/admin/clients/${profile.id}`;
+
+  // Client notes are where Dean most often needs to respond.
+  const recentNotes = [
+    ...workouts
+      .filter((w) => w.clientNote)
+      .map((w) => ({
+        id: w.id,
+        kind: "Workout" as const,
+        date: w.scheduledFor,
+        body: w.clientNote as string,
+        href: `${base}/workouts`,
+      })),
+    ...todaysLogs
+      .filter((l) => l.note)
+      .map((l) => ({
+        id: l.id,
+        kind: "Food" as const,
+        date: l.loggedFor,
+        body: l.note as string,
+        href: `${base}/food`,
+      })),
+    ...weights
+      .filter((w) => w.note)
+      .map((w) => ({
+        id: w.id,
+        kind: "Weight" as const,
+        date: w.loggedFor,
+        body: w.note as string,
+        href: `${base}/weight`,
+      })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 5);
 
   return (
-    <>
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-text"
+    <div className="grid gap-5 md:grid-cols-2">
+      <Panel
+        title="Next session"
+        action={
+          <Link href={`${base}/sessions`} className="text-xs font-semibold text-accent">
+            Manage
+          </Link>
+        }
       >
-        <ArrowLeft className="h-4 w-4" />
-        All clients
-      </Link>
+        {nextSession ? (
+          <div className="flex items-start gap-4">
+            <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+            <div>
+              <p className="text-base font-semibold">
+                {new Date(nextSession.startsAt).toLocaleString("en-GB", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                {nextSession.location} · {nextSession.durationMinutes} minutes
+              </p>
+            </div>
+          </div>
+        ) : (
+          <EmptyState>Nothing scheduled.</EmptyState>
+        )}
+      </Panel>
 
-      <div className="mt-6">
-        <ScreenTitle
-          title={profile.fullName}
-          subtitle={`${profile.goal ?? "No goal set"} · with Dean since ${relativeDate(profile.startedOn)}`}
-          action={<Chip tone={profile.status === "active" ? "success" : "default"}>{profile.status}</Chip>}
-        />
-      </div>
+      <Panel
+        title="Today's workout"
+        action={
+          <Link href={`${base}/workouts`} className="text-xs font-semibold text-accent">
+            Edit
+          </Link>
+        }
+      >
+        {todaysWorkout ? (
+          <div className="flex items-start gap-4">
+            <Dumbbell className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+            <div className="min-w-0">
+              <p className="text-base font-semibold">{todaysWorkout.title}</p>
+              <p className="mt-1 text-sm text-muted">
+                {todaysWorkout.items.filter((i) => i.done).length} of {todaysWorkout.items.length}{" "}
+                ticked off
+              </p>
+              <div className="mt-3">
+                {todaysWorkout.completedAt ? (
+                  <Chip tone="accent">Completed</Chip>
+                ) : (
+                  <Chip tone="amber">Not finished</Chip>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <EmptyState>Nothing assigned for today.</EmptyState>
+        )}
+      </Panel>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* ------------------------------------------------ Workout */}
-        <Panel title="Today's workout">
-          {todaysWorkout ? (
-            <>
-              <WorkoutChecklist workout={todaysWorkout} readOnly />
-              <CommentThread
-                comments={commentsFor(comments, "workout", todaysWorkout.id)}
-                clientId={profile.id}
-                targetType="workout"
-                targetId={todaysWorkout.id}
-                canReply
-              />
-            </>
+      <Panel
+        title="Today's calories"
+        action={
+          <Link href={`${base}/food`} className="text-xs font-semibold text-accent">
+            Set plan
+          </Link>
+        }
+      >
+        <CalorieBar total={sumCalories(todaysLogs)} target={plan?.calorieTarget ?? null} />
+        {!plan?.calorieTarget ? (
+          <p className="mt-3 text-xs text-faint">No target set for this client yet.</p>
+        ) : null}
+      </Panel>
+
+      <Panel
+        title="Latest weight"
+        action={
+          <Link href={`${base}/weight`} className="text-xs font-semibold text-accent">
+            History
+          </Link>
+        }
+      >
+        {weights[0] ? (
+          <div className="flex items-start gap-4">
+            <LineChart className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+            <div>
+              <p className="font-display text-3xl font-bold tracking-tight">
+                {weights[0].weightKg.toFixed(1)}
+                <span className="text-base font-normal text-faint">kg</span>
+              </p>
+              <p className="mt-1 text-sm text-muted">{relativeDate(weights[0].loggedFor)}</p>
+            </div>
+          </div>
+        ) : (
+          <EmptyState>Nothing logged yet.</EmptyState>
+        )}
+      </Panel>
+
+      <div className="md:col-span-2">
+        <Panel title="Recent notes from this client">
+          {recentNotes.length === 0 ? (
+            <EmptyState>No notes yet.</EmptyState>
           ) : (
-            <EmptyState>Nothing assigned for today.</EmptyState>
-          )}
-
-          <form action={saveWorkout} className="mt-6 space-y-4 border-t border-line pt-5">
-            <input type="hidden" name="clientId" value={profile.id} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={label} htmlFor="w-date">
-                  Date
-                </label>
-                <input id="w-date" className={field} type="date" name="date" defaultValue={date} />
-              </div>
-              <div>
-                <label className={label} htmlFor="w-title">
-                  Title
-                </label>
-                <input
-                  id="w-title"
-                  className={field}
-                  name="title"
-                  defaultValue={todaysWorkout?.title ?? ""}
-                  placeholder="Lower body — strength"
-                />
-              </div>
-            </div>
-            <div>
-              <label className={label} htmlFor="w-items">
-                Checklist — one per line, &ldquo;Exercise — target&rdquo;
-              </label>
-              <textarea
-                id="w-items"
-                className={field}
-                name="items"
-                rows={5}
-                defaultValue={todaysWorkout?.items
-                  .map((i) => (i.target ? `${i.label} — ${i.target}` : i.label))
-                  .join("\n")}
-                placeholder={"Back squat — 4 × 5 @ 70kg\nRomanian deadlift — 3 × 8"}
-              />
-            </div>
-            <div>
-              <label className={label} htmlFor="w-notes">
-                Note to client
-              </label>
-              <textarea
-                id="w-notes"
-                className={field}
-                name="coachNotes"
-                rows={2}
-                defaultValue={todaysWorkout?.coachNotes ?? ""}
-              />
-            </div>
-            <button type="submit" className={submit}>
-              {todaysWorkout ? "Update workout" : "Assign workout"}
-            </button>
-          </form>
-        </Panel>
-
-        {/* ------------------------------------------------ Food */}
-        <Panel title="Food">
-          <CalorieBar total={sumCalories(todaysLogs)} target={plan?.calorieTarget ?? null} />
-
-          {todaysLogs.length > 0 ? (
-            <ul className="mt-5 space-y-2">
-              {todaysLogs.map((log) => (
-                <li key={log.id} className="rounded-2xl border border-line bg-ink p-4">
-                  <p className="text-sm font-semibold">{log.calories.toLocaleString("en-GB")} kcal</p>
-                  {log.note ? <p className="mt-1 text-sm text-muted">{log.note}</p> : null}
-                  <CommentThread
-                    comments={commentsFor(comments, "food_log", log.id)}
-                    clientId={profile.id}
-                    targetType="food_log"
-                    targetId={log.id}
-                    canReply
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState>Nothing logged today.</EmptyState>
-          )}
-
-          <form action={saveFoodPlan} className="mt-6 space-y-4 border-t border-line pt-5">
-            <input type="hidden" name="clientId" value={profile.id} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={label} htmlFor="f-cal">
-                  Calorie target
-                </label>
-                <input
-                  id="f-cal"
-                  className={field}
-                  type="number"
-                  name="calorieTarget"
-                  defaultValue={plan?.calorieTarget ?? ""}
-                  placeholder="1950"
-                />
-              </div>
-              <div>
-                <label className={label} htmlFor="f-pro">
-                  Protein target (g)
-                </label>
-                <input
-                  id="f-pro"
-                  className={field}
-                  type="number"
-                  name="proteinTarget"
-                  defaultValue={plan?.proteinTarget ?? ""}
-                  placeholder="130"
-                />
-              </div>
-            </div>
-            <div>
-              <label className={label} htmlFor="f-meals">
-                Meals — one per line, &ldquo;Name | ingredients | kcal&rdquo;
-              </label>
-              <textarea
-                id="f-meals"
-                className={field}
-                name="meals"
-                rows={4}
-                defaultValue={plan?.meals
-                  .map((m) => [m.name, m.ingredients ?? "", m.calories ?? ""].join(" | "))
-                  .join("\n")}
-                placeholder="Breakfast | 200g yoghurt, berries | 420"
-              />
-            </div>
-            <div>
-              <label className={label} htmlFor="f-notes">
-                Note
-              </label>
-              <input id="f-notes" className={field} name="notes" defaultValue={plan?.notes ?? ""} />
-            </div>
-            <button type="submit" className={submit}>
-              Save food plan
-            </button>
-          </form>
-        </Panel>
-
-        {/* ------------------------------------------------ Weight */}
-        <Panel title="Weight">
-          <WeightTrend entries={weights} />
-          {weights.length > 0 ? (
-            <ul className="mt-5 space-y-2">
-              {weights.slice(0, 5).map((entry) => (
-                <li key={entry.id} className="rounded-2xl border border-line bg-ink p-4">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-sm text-muted">{relativeDate(entry.loggedFor)}</span>
-                    <span className="font-semibold">{entry.weightKg.toFixed(1)}kg</span>
-                  </div>
-                  {entry.note ? <p className="mt-2 text-sm text-muted">{entry.note}</p> : null}
-                  <CommentThread
-                    comments={commentsFor(comments, "weight_entry", entry.id)}
-                    clientId={profile.id}
-                    targetType="weight_entry"
-                    targetId={entry.id}
-                    canReply
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </Panel>
-
-        {/* ------------------------------------------------ Sessions */}
-        <Panel title="Sessions">
-          {upcoming.length > 0 ? (
             <ul className="space-y-2">
-              {upcoming.map((session) => (
-                <li key={session.id} className="rounded-2xl border border-line bg-ink p-4">
-                  <p className="text-sm font-semibold">
-                    {new Date(session.startsAt).toLocaleString("en-GB", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                  <p className="mt-1 text-sm text-muted">
-                    {session.location} · {session.durationMinutes} min
-                  </p>
+              {recentNotes.map((note) => (
+                <li key={`${note.kind}-${note.id}`}>
+                  <Link
+                    href={note.href}
+                    className="flex items-start gap-4 rounded-2xl border border-line bg-ink p-4 transition-colors hover:border-accent/40"
+                  >
+                    <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-faint">
+                        {note.kind} · {relativeDate(note.date)}
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted">{note.body}</p>
+                    </div>
+                  </Link>
                 </li>
               ))}
             </ul>
-          ) : (
-            <EmptyState>Nothing scheduled.</EmptyState>
           )}
-
-          <form action={saveSession} className="mt-6 space-y-4 border-t border-line pt-5">
-            <input type="hidden" name="clientId" value={profile.id} />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className={label} htmlFor="s-when">
-                  Date and time
-                </label>
-                <input
-                  id="s-when"
-                  className={field}
-                  type="datetime-local"
-                  name="startsAt"
-                  required
-                  defaultValue={localDateTime(new Date().toISOString())}
-                />
-              </div>
-              <div>
-                <label className={label} htmlFor="s-loc">
-                  Location
-                </label>
-                <input
-                  id="s-loc"
-                  className={field}
-                  name="location"
-                  defaultValue="Online"
-                  placeholder="Online or Newcastle"
-                />
-              </div>
-            </div>
-            <button type="submit" className={submit}>
-              Schedule session
-            </button>
-          </form>
-
-          {pastSessions.length > 0 ? (
-            <div className="mt-6 border-t border-line pt-5">
-              <p className={label}>Past sessions</p>
-              <ul className="space-y-2">
-                {pastSessions.map((session) => (
-                    <li key={session.id} className="rounded-2xl border border-line bg-ink p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-muted">
-                          {new Date(session.startsAt).toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </span>
-                        <Chip>{session.status}</Chip>
-                      </div>
-                      <form action={saveSession} className="mt-3 flex gap-2">
-                        <input type="hidden" name="id" value={session.id} />
-                        <input type="hidden" name="clientId" value={profile.id} />
-                        <input type="hidden" name="startsAt" value={localDateTime(session.startsAt)} />
-                        <input type="hidden" name="location" value={session.location} />
-                        <input type="hidden" name="status" value={session.status} />
-                        <input
-                          name="coachNotes"
-                          defaultValue={session.coachNotes ?? ""}
-                          placeholder="Session notes for the client…"
-                          className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2 text-sm placeholder:text-faint focus:border-accent focus:outline-none"
-                        />
-                        <button type="submit" className="shrink-0 text-sm font-semibold text-accent">
-                          Save
-                        </button>
-                      </form>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ) : null}
+          <p className="mt-4 text-xs text-faint">
+            {comments.length > 0
+              ? `${comments.length} comment${comments.length === 1 ? "" : "s"} on this client's entries. Reply from the relevant tab.`
+              : "Reply to any note from its tab."}
+          </p>
         </Panel>
       </div>
-    </>
+    </div>
   );
 }

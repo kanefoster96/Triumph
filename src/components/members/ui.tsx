@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/** Shared form styling for the admin editors. */
+export const field =
+  "w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
+export const fieldLabel =
+  "mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase";
+export const submitButton =
+  "rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong";
+
 /** Page heading for a member or admin screen. */
 export function ScreenTitle({
   title,

@@ -85,7 +85,7 @@ export function WorkoutChecklist({ workout, readOnly = false }: { workout: Worko
 
       <div className="mt-5">
         <label htmlFor={`note-${workout.id}`} className="mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-          Your note
+          {readOnly ? "Their note" : "Your note"}
         </label>
         <textarea
           id={`note-${workout.id}`}
@@ -93,7 +93,9 @@ export function WorkoutChecklist({ workout, readOnly = false }: { workout: Worko
           onChange={(e) => setNote(e.target.value)}
           readOnly={readOnly}
           rows={3}
-          placeholder="How did it feel? What weights did you use?"
+          placeholder={
+            readOnly ? "They have not left a note yet." : "How did it feel? What weights did you use?"
+          }
           className="w-full resize-y rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
         />
         {!readOnly ? (
