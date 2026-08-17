@@ -17,21 +17,26 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       {demo ? <DemoBanner role={profile.role} /> : null}
 
       <header className="sticky top-0 z-40 border-b border-line bg-ink/90 supports-[backdrop-filter]:bg-ink/60 supports-[backdrop-filter]:backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
+        {/* Five sections, a logo and a sign-out will not sit on one line at
+            phone width, so the nav drops to its own row rather than pushing
+            the page sideways. */}
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3 sm:h-16 sm:flex-nowrap sm:py-0 sm:px-8">
           <div className="flex items-center gap-5">
             <Logo href="/admin" />
             <span className="hidden rounded-full bg-accent/10 px-3 py-1 text-xs font-semibold text-accent sm:inline">
               Coach
             </span>
           </div>
-          <AdminNav />
           <Link
             href="/logout"
-            className="text-sm text-muted transition-colors hover:text-text"
+            className="order-1 text-sm text-muted transition-colors hover:text-text sm:order-none"
             prefetch={false}
           >
             Sign out
           </Link>
+          <div className="order-2 -mx-5 w-[calc(100%+2.5rem)] px-5 sm:order-none sm:mx-0 sm:w-auto sm:px-0">
+            <AdminNav />
+          </div>
         </div>
       </header>
 

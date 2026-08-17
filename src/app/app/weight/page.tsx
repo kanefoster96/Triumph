@@ -30,7 +30,9 @@ export default async function WeightPage() {
 
       <div className="space-y-5">
         <Panel title={loggedToday ? "Today — logged" : "Log today"}>
-          <form action={logWeight} className="flex flex-wrap gap-3">
+          {/* The note gets its own line on a phone: sharing one with the
+              weight and the button left it about ninety pixels wide. */}
+          <form action={logWeight} className="grid gap-3 sm:flex sm:flex-wrap">
             <input type="hidden" name="date" value={date} />
             <input
               name="weight"
@@ -43,18 +45,18 @@ export default async function WeightPage() {
               defaultValue={loggedToday?.weightKg ?? ""}
               placeholder="kg"
               aria-label="Weight in kilograms"
-              className="w-28 rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+              className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none sm:w-28"
             />
             <input
               name="note"
               defaultValue={loggedToday?.note ?? ""}
               placeholder="Note (optional)"
               aria-label="Note"
-              className="min-w-0 flex-1 rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+              className="w-full min-w-0 rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none sm:flex-1"
             />
             <button
               type="submit"
-              className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+              className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong sm:w-auto"
             >
               {loggedToday ? "Update" : "Save"}
             </button>

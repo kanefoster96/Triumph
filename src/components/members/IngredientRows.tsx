@@ -52,8 +52,20 @@ export function IngredientRows({ ingredients }: { ingredients: Ingredient[] }) {
           const missing = unitRequired && row.unit === "";
 
           return (
-            <li key={row.key} className="flex flex-wrap items-end gap-2">
-              <div className="min-w-0 flex-1">
+            /*
+             * Two lines on a phone, one on a desktop.
+             *
+             * Side by side, the unit picker and the quantity took most of a
+             * 390px screen and left the ingredient name in about 60px — you
+             * could see "Beef" but not "Black beans". The name gets the full
+             * width instead, with the numbers underneath it, and the row is
+             * boxed so it still reads as one ingredient.
+             */
+            <li
+              key={row.key}
+              className="rounded-2xl border border-line bg-ink p-3 sm:flex sm:items-end sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+            >
+              <div className="min-w-0 sm:flex-1">
                 <label className="sr-only" htmlFor={`${listId}-name-${index}`}>
                   Ingredient {index + 1} name
                 </label>
@@ -67,52 +79,55 @@ export function IngredientRows({ ingredients }: { ingredients: Ingredient[] }) {
                 />
               </div>
 
-              <div className="w-24">
-                <label className="sr-only" htmlFor={`${listId}-qty-${index}`}>
-                  Ingredient {index + 1} quantity
-                </label>
-                <input
-                  id={`${listId}-qty-${index}`}
-                  className={field}
-                  type="number"
-                  step="any"
-                  min="0"
-                  name="ingQuantity"
-                  value={row.quantity}
-                  onChange={(event) => update(row.key, { quantity: event.target.value })}
-                  placeholder="150"
-                />
-              </div>
+              <div className="mt-2 flex items-end gap-2 sm:mt-0">
+                <div className="w-20 shrink-0 sm:w-24">
+                  <label className="sr-only" htmlFor={`${listId}-qty-${index}`}>
+                    Ingredient {index + 1} quantity
+                  </label>
+                  <input
+                    id={`${listId}-qty-${index}`}
+                    className={field}
+                    type="number"
+                    step="any"
+                    min="0"
+                    inputMode="decimal"
+                    name="ingQuantity"
+                    value={row.quantity}
+                    onChange={(event) => update(row.key, { quantity: event.target.value })}
+                    placeholder="150"
+                  />
+                </div>
 
-              <div className="w-32">
-                <label className="sr-only" htmlFor={`${listId}-unit-${index}`}>
-                  Ingredient {index + 1} unit
-                </label>
-                <select
-                  id={`${listId}-unit-${index}`}
-                  className={cn(field, missing && "border-amber")}
-                  name="ingUnit"
-                  required={unitRequired}
-                  value={row.unit}
-                  onChange={(event) => update(row.key, { unit: event.target.value })}
+                <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
+                  <label className="sr-only" htmlFor={`${listId}-unit-${index}`}>
+                    Ingredient {index + 1} unit
+                  </label>
+                  <select
+                    id={`${listId}-unit-${index}`}
+                    className={cn(field, missing && "border-amber")}
+                    name="ingUnit"
+                    required={unitRequired}
+                    value={row.unit}
+                    onChange={(event) => update(row.key, { unit: event.target.value })}
+                  >
+                    <option value="">{unitRequired ? "Unit" : "No unit"}</option>
+                    {UNITS.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
+                  aria-label={`Remove ingredient ${index + 1}`}
+                  className="shrink-0 rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger"
                 >
-                  <option value="">{unitRequired ? "Pick a unit" : "No unit"}</option>
-                  {UNITS.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
-                aria-label={`Remove ingredient ${index + 1}`}
-                className="rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </li>
           );
         })}

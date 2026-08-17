@@ -56,8 +56,10 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
         subtitle="Exercises and meals, built once and shared across every client. Correcting one here fixes every future day that uses it."
       />
 
-      <form className="mb-6 flex flex-wrap items-end gap-3" action="/admin/library">
-        <div className="min-w-0 flex-1">
+      {/* Stacked on a phone: side by side, the search box shrank to about
+          twenty pixels and the row ran off the screen. */}
+      <form className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-end" action="/admin/library">
+        <div className="min-w-0 sm:flex-1">
           <label className={fieldLabel} htmlFor="lib-q">
             Search
           </label>
@@ -66,42 +68,50 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
             className={field}
             name="q"
             defaultValue={query}
-            placeholder="Exercise, muscle group, meal or ingredient"
+            placeholder="Name, muscle group or ingredient"
           />
         </div>
-        <div>
-          <label className={fieldLabel} htmlFor="lib-tag">
-            Meal tag
-          </label>
-          <select id="lib-tag" className={field} name="tag" defaultValue={tag ?? ""}>
-            <option value="">Any</option>
-            {TAGS.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
+
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:items-end">
+          <div className="min-w-0">
+            <label className={fieldLabel} htmlFor="lib-tag">
+              Meal tag
+            </label>
+            <select id="lib-tag" className={field} name="tag" defaultValue={tag ?? ""}>
+              <option value="">Any</option>
+              {TAGS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="min-w-0">
+            <label className={fieldLabel} htmlFor="lib-kcal">
+              Up to kcal
+            </label>
+            <input
+              id="lib-kcal"
+              className={cn(field, "sm:w-32")}
+              type="number"
+              inputMode="numeric"
+              name="kcal"
+              defaultValue={maxCalories ?? ""}
+            />
+          </div>
         </div>
-        <div>
-          <label className={fieldLabel} htmlFor="lib-kcal">
-            Up to kcal
-          </label>
-          <input
-            id="lib-kcal"
-            className={cn(field, "w-32")}
-            type="number"
-            name="kcal"
-            defaultValue={maxCalories ?? ""}
-          />
-        </div>
-        <button type="submit" className={submitButton}>
+
+        <button type="submit" className={cn(submitButton, "w-full sm:w-auto")}>
           Filter
         </button>
       </form>
 
+      {/* min-w-0 on the columns: a grid track will not shrink below its
+          content's min-width without it, which pushed the whole page sideways
+          on a phone. */}
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         {/* ------------------------------------------------------ exercises */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <div className="flex items-center gap-3">
             <IconTile icon={Dumbbell} size="sm" />
             <h2 className="text-lg font-semibold">Exercises</h2>
@@ -218,7 +228,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
         </div>
 
         {/* ---------------------------------------------------------- meals */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <div className="flex items-center gap-3">
             <IconTile icon={Salad} size="sm" />
             <h2 className="text-lg font-semibold">Meals</h2>
@@ -280,7 +290,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                 ))}
               </div>
               <p className="text-xs text-faint">
-                Per single serving. A client&rsquo;s multiplier scales these.
+                Per single serving. A client&rsquo;s portion scales these.
               </p>
 
               <IngredientRows ingredients={meal?.ingredients ?? []} />

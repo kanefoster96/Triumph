@@ -253,7 +253,7 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
               id={`skip-${item.id}`}
               className={field}
               name="reason"
-              placeholder="Rack was taken / shoulder sore"
+              placeholder="Rack was taken"
             />
           </div>
           <button

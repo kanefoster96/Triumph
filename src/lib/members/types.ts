@@ -137,11 +137,22 @@ export interface AssignmentResult {
   to: string;
 }
 
+/**
+ * Something eaten that was not on the plan.
+ *
+ * Macros are optional: a client who knows them can put them in and keep the
+ * ring honest, and one who does not should still be able to log the calories
+ * rather than log nothing. What is unaccounted for is shown as such instead of
+ * being silently left out of the breakdown.
+ */
 export interface FoodLog {
   id: string;
   clientId: string;
   loggedFor: string;
   calories: number;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
   note: string | null;
   createdAt: string;
 }

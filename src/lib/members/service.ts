@@ -169,6 +169,9 @@ function toFoodLog(row: any): FoodLog {
     clientId: row.client_id,
     loggedFor: row.logged_for,
     calories: row.calories,
+    proteinG: row.protein_g ?? null,
+    carbsG: row.carbs_g ?? null,
+    fatG: row.fat_g ?? null,
     note: row.note ?? null,
     createdAt: row.created_at,
   };
@@ -701,8 +704,14 @@ export async function getDayPlans(): Promise<DayPlan[]> {
 export async function getFoodLogs(clientId: string, date?: string): Promise<FoodLog[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoFoodLogs
-      .filter((l) => l.clientId === clientId && (!date || l.loggedFor === date))
+    const { foodLogs, deletedFoodLogs } = await demoData();
+    return [...demoFoodLogs, ...foodLogs]
+      .filter(
+        (l) =>
+          l.clientId === clientId &&
+          (!date || l.loggedFor === date) &&
+          !deletedFoodLogs.includes(l.id),
+      )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 

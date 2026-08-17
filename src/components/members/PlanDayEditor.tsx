@@ -143,7 +143,7 @@ export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: E
             {row.sets.map((set, setIndex) => (
               <li key={set.key} className="flex flex-wrap items-end gap-2">
                 <span className="w-12 shrink-0 text-xs font-semibold text-faint">Set {setIndex + 1}</span>
-                <div className="w-32">
+                <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
                   <label className="sr-only" htmlFor={`${domId}-w-${index}-${setIndex}`}>
                     Set {setIndex + 1} weight in kg
                   </label>
@@ -159,7 +159,7 @@ export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: E
                     placeholder="kg"
                   />
                 </div>
-                <div className="w-24">
+                <div className="min-w-0 flex-1 sm:w-24 sm:flex-none">
                   <label className="sr-only" htmlFor={`${domId}-r-${index}-${setIndex}`}>
                     Set {setIndex + 1} reps
                   </label>
@@ -386,80 +386,93 @@ export function MealPlanner({
         {rows.map((row, index) => {
           const meal = byId.get(row.mealId);
           return (
-            <li key={row.key} className="flex flex-wrap items-end gap-2">
+            /*
+             * The meal is the thing being chosen, so it gets the width. Side
+             * by side with the slot, the portion and the calories it was down
+             * to about 34px on a phone — a picker showing none of the names it
+             * is picking between.
+             */
+            <li
+              key={row.key}
+              className="rounded-2xl border border-line bg-ink p-3 sm:flex sm:flex-wrap sm:items-end sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+            >
               <input type="hidden" name="mealSlot" value={row.slot} />
 
-              <div className="w-32">
-                <label className="sr-only" htmlFor={`${domId}-slot-${index}`}>
-                  Slot for meal {index + 1}
-                </label>
-                <select
-                  id={`${domId}-slot-${index}`}
-                  className={field}
-                  value={row.slot}
-                  onChange={(event) => update(row.key, { slot: event.target.value as MealTag })}
+              <div className="flex items-end gap-2 sm:order-2 sm:min-w-0 sm:flex-1">
+                <div className="min-w-0 flex-1">
+                  <label className="sr-only" htmlFor={`${domId}-meal-${index}`}>
+                    Meal {index + 1}
+                  </label>
+                  <select
+                    id={`${domId}-meal-${index}`}
+                    className={field}
+                    name="mealId"
+                    required
+                    value={row.mealId}
+                    onChange={(event) => update(row.key, { mealId: event.target.value })}
+                  >
+                    {/* Name only — the calories for the chosen portion are
+                        shown beside the row, so repeating them here just cost
+                        the name the width it needed. */}
+                    {meals.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <span className="w-16 shrink-0 pb-3 text-right text-xs text-faint tabular-nums sm:order-4 sm:w-20">
+                  {meal?.calories ? `${Math.round(meal.calories * row.multiplier)} kcal` : "—"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
+                  aria-label={`Remove meal ${index + 1}`}
+                  className="shrink-0 rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger sm:order-5"
                 >
-                  {SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
+                  <X className="h-4 w-4" />
+                </button>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <label className="sr-only" htmlFor={`${domId}-meal-${index}`}>
-                  Meal {index + 1}
-                </label>
-                <select
-                  id={`${domId}-meal-${index}`}
-                  className={field}
-                  name="mealId"
-                  required
-                  value={row.mealId}
-                  onChange={(event) => update(row.key, { mealId: event.target.value })}
-                >
-                  {meals.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      {entry.name}
-                      {entry.calories ? ` — ${entry.calories} kcal` : ""}
-                    </option>
-                  ))}
-                </select>
+              <div className="mt-2 flex items-end gap-2 sm:order-1 sm:mt-0">
+                <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
+                  <label className="sr-only" htmlFor={`${domId}-slot-${index}`}>
+                    Slot for meal {index + 1}
+                  </label>
+                  <select
+                    id={`${domId}-slot-${index}`}
+                    className={field}
+                    value={row.slot}
+                    onChange={(event) => update(row.key, { slot: event.target.value as MealTag })}
+                  >
+                    {SLOTS.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-0 flex-1 sm:order-3 sm:w-40 sm:flex-none">
+                  <label className="sr-only" htmlFor={`${domId}-mult-${index}`}>
+                    Portion for meal {index + 1}
+                  </label>
+                  <select
+                    id={`${domId}-mult-${index}`}
+                    className={field}
+                    name="mealMultiplier"
+                    value={row.multiplier}
+                    onChange={(event) => update(row.key, { multiplier: Number(event.target.value) })}
+                  >
+                    {PORTIONS.map((portion) => (
+                      <option key={portion.value} value={portion.value}>
+                        Portion: {portion.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
               </div>
-
-              {/* Wide enough for "Portion: 1½" — the label is the point of it. */}
-              <div className="w-40">
-                <label className="sr-only" htmlFor={`${domId}-mult-${index}`}>
-                  Portion for meal {index + 1}
-                </label>
-                <select
-                  id={`${domId}-mult-${index}`}
-                  className={field}
-                  name="mealMultiplier"
-                  value={row.multiplier}
-                  onChange={(event) => update(row.key, { multiplier: Number(event.target.value) })}
-                >
-                  {PORTIONS.map((portion) => (
-                    <option key={portion.value} value={portion.value}>
-                      Portion: {portion.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <span className="w-20 shrink-0 pb-3 text-right text-xs text-faint tabular-nums">
-                {meal?.calories ? `${Math.round(meal.calories * row.multiplier)} kcal` : "—"}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
-                aria-label={`Remove meal ${index + 1}`}
-                className="rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </li>
           );
         })}

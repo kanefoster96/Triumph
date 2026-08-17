@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarRange, Check, ShoppingBasket, Trash2 } from "lucide-react";
+import { CalendarRange, Check, ShoppingBasket, Trash2, TriangleAlert } from "lucide-react";
 import {
   commentsFor,
   getComments,
@@ -13,7 +13,15 @@ import {
   today,
 } from "@/lib/members/service";
 import { deleteFoodLog, logFood, toggleMeal } from "@/lib/members/actions";
-import { CalorieBar, EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
+import {
+  CalorieBar,
+  EmptyState,
+  Panel,
+  ScreenTitle,
+  field,
+  fieldLabel,
+  submitButton,
+} from "@/components/members/ui";
 import { MacroRing } from "@/components/members/MacroRing";
 import { CommentThread } from "@/components/members/Comments";
 import { cn } from "@/lib/utils";
@@ -40,7 +48,12 @@ export default async function FoodPage() {
   const eaten = new Set(mealLogs.map((log) => `${log.slot}:${log.mealId}`));
   const mealCalories = mealLogs.reduce((sum, log) => sum + (log.calories ?? 0), 0);
   const total = sumCalories(todaysLogs) + mealCalories;
-  const macros = mealLogs.reduce(
+
+  // Macros come from the meals plus any snack the client gave figures for.
+  // Calories logged without them are counted in the total but named separately
+  // rather than quietly left out of the breakdown, which is what made the ring
+  // and the number underneath it disagree.
+  const macros = [...mealLogs, ...todaysLogs].reduce(
     (sum, log) => ({
       protein: sum.protein + (log.proteinG ?? 0),
       carbs: sum.carbs + (log.carbsG ?? 0),
@@ -48,6 +61,30 @@ export default async function FoodPage() {
     }),
     { protein: 0, carbs: 0, fat: 0 },
   );
+  const accounted = macros.protein * 4 + macros.carbs * 4 + macros.fat * 9;
+  const unaccounted = Math.max(0, Math.round(total - accounted));
+
+  const target = plan.calorieTarget;
+  const remaining = target ? target - total : null;
+
+  /*
+   * Which snack took them over.
+   *
+   * Worked out by replaying the day in the order it was eaten: the one that
+   * crossed the line is the one worth flagging, and the ones after it were
+   * already over. Saying "this took you over" about all of them would be both
+   * wrong and a nag.
+   */
+  const inOrder = [...todaysLogs].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const crossedAt = new Map<string, number>();
+  if (target) {
+    let running = mealCalories;
+    for (const log of inOrder) {
+      const before = running;
+      running += log.calories;
+      if (before <= target && running > target) crossedAt.set(log.id, running - target);
+    }
+  }
 
   const bySlot = SLOT_ORDER.map((slot) => ({
     slot,
@@ -94,81 +131,15 @@ export default async function FoodPage() {
             </p>
           ) : null}
 
-          {/* Anything off the plan is logged here with a reason rather than
-              folded into the plan itself. What Dean needs at the review is why
-              it happened, not a quietly bigger day. */}
-          <div className="mt-5 rounded-2xl border border-line bg-ink p-4">
-            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-              Ate something else?
+          {/* Says what the breakdown does not cover, instead of letting the
+              ring and the total quietly disagree. */}
+          {unaccounted > 50 ? (
+            <p className="mt-2 text-xs text-faint">
+              {unaccounted.toLocaleString("en-GB")} kcal logged without a breakdown, so the split
+              above covers the rest.
             </p>
-            <p className="mt-1.5 text-sm text-muted">
-              Add it here with a quick why — seconds, a meal out, a bad afternoon. Dean reads these at
-              your check-in.
-            </p>
-            <form action={logFood} className="mt-4 flex flex-wrap gap-3">
-              <input type="hidden" name="date" value={date} />
-              <input
-                name="calories"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                required
-                placeholder="Extra kcal"
-                aria-label="Extra calories"
-                className="w-32 rounded-2xl border border-line bg-surface px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
-              />
-              <input
-                name="note"
-                required
-                placeholder="Why? Second helping at dinner"
-                aria-label="Why"
-                className="min-w-0 flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
-              >
-                Add
-              </button>
-            </form>
-          </div>
+          ) : null}
 
-          {todaysLogs.length > 0 ? (
-            <ul className="mt-5 space-y-2">
-              {todaysLogs.map((log) => (
-                <li key={log.id} className="rounded-2xl border border-line bg-ink p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{log.calories.toLocaleString("en-GB")} kcal</p>
-                      {log.note ? <p className="mt-1 text-sm text-muted">{log.note}</p> : null}
-                    </div>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await deleteFoodLog(log.id);
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        aria-label="Delete entry"
-                        className="rounded-full p-2 text-faint transition-colors hover:bg-raised hover:text-danger"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </form>
-                  </div>
-                  <CommentThread
-                    comments={commentsFor(comments, "food_log", log.id)}
-                    clientId={profile.id}
-                    targetType="food_log"
-                    targetId={log.id}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState>Nothing logged today yet.</EmptyState>
-          )}
         </Panel>
 
         {bySlot.length > 0 ? (
@@ -265,6 +236,146 @@ export default async function FoodPage() {
             </p>
           </Panel>
         ) : null}
+
+        {/* Snacks last: the plan is the thing to follow, and this is what
+            happened on top of it. */}
+        <Panel title="Anything else you ate">
+          <p className="text-sm leading-relaxed text-muted">
+            Seconds, a meal out, a bad afternoon — put it here rather than leaving it out. Macros are
+            optional; the calories alone still count.
+          </p>
+
+          {target ? (
+            <p className="mt-3 text-sm">
+              {remaining !== null && remaining >= 0 ? (
+                <span className="text-muted">
+                  <span className="font-semibold text-text">
+                    {remaining.toLocaleString("en-GB")} kcal
+                  </span>{" "}
+                  left today.
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 font-semibold text-amber">
+                  <TriangleAlert className="h-4 w-4" />
+                  {Math.abs(remaining ?? 0).toLocaleString("en-GB")} kcal over today.
+                </span>
+              )}
+            </p>
+          ) : null}
+
+          <form action={logFood} className="mt-4 space-y-3">
+            <input type="hidden" name="date" value={date} />
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {(
+                [
+                  ["calories", "Calories", true],
+                  ["protein", "Protein (g)", false],
+                  ["carbs", "Carbs (g)", false],
+                  ["fat", "Fat (g)", false],
+                ] as const
+              ).map(([name, label, required]) => (
+                <div key={name}>
+                  <label className={fieldLabel} htmlFor={`snack-${name}`}>
+                    {label}
+                  </label>
+                  <input
+                    id={`snack-${name}`}
+                    name={name}
+                    type="number"
+                    inputMode="numeric"
+                    min={required ? 1 : 0}
+                    required={required}
+                    className={field}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <label className={fieldLabel} htmlFor="snack-note">
+                What was it?
+              </label>
+              <input
+                id="snack-note"
+                name="note"
+                required
+                placeholder="Flapjack at the office"
+                className={field}
+              />
+            </div>
+
+            <button type="submit" className={submitButton}>
+              Add it
+            </button>
+          </form>
+
+          {todaysLogs.length > 0 ? (
+            <ul className="mt-5 space-y-2">
+              {todaysLogs.map((log) => {
+                const over = crossedAt.get(log.id);
+                const hasMacros =
+                  log.proteinG !== null || log.carbsG !== null || log.fatG !== null;
+
+                return (
+                  <li
+                    key={log.id}
+                    className={cn(
+                      "rounded-2xl border p-4",
+                      over ? "border-amber/40 bg-amber/[0.05]" : "border-line bg-ink",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">
+                          {log.calories.toLocaleString("en-GB")} kcal
+                        </p>
+                        {log.note ? <p className="mt-1 text-sm text-muted">{log.note}</p> : null}
+                        {hasMacros ? (
+                          <p className="mt-1 text-xs text-faint">
+                            {log.carbsG ?? 0}C · {log.fatG ?? 0}F · {log.proteinG ?? 0}P
+                          </p>
+                        ) : null}
+                      </div>
+                      <form
+                        action={async () => {
+                          "use server";
+                          await deleteFoodLog(log.id);
+                        }}
+                      >
+                        <button
+                          type="submit"
+                          aria-label={`Delete ${log.note ?? "entry"}`}
+                          className="rounded-full p-2 text-faint transition-colors hover:bg-raised hover:text-danger"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Flagged on the one that crossed the line, not on every
+                        entry after it. */}
+                    {over ? (
+                      <p className="mt-3 inline-flex items-start gap-2 text-xs leading-relaxed font-semibold text-amber">
+                        <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        This one took you past your target, by {over.toLocaleString("en-GB")} kcal.
+                      </p>
+                    ) : null}
+
+                    <CommentThread
+                      comments={commentsFor(comments, "food_log", log.id)}
+                      clientId={profile.id}
+                      targetType="food_log"
+                      targetId={log.id}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <EmptyState>Nothing extra today.</EmptyState>
+          )}
+        </Panel>
 
         <Panel title="Earlier days">
           {earlierDays.length === 0 ? (

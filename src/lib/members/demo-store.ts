@@ -5,6 +5,7 @@ import type { RawRevision } from "./service";
 import type {
   DaySubmission,
   FoodDayFeedback,
+  FoodLog,
   FoodMode,
   MealLog,
   Profile,
@@ -58,6 +59,10 @@ export interface DemoData {
   setEdits: Record<string, { actualWeightKg: number | null; actualReps: number | null; doneAt: string | null }>;
   /** Plan days the client has begun. Stored as ids, so no copy is needed. */
   startedWorkouts: string[];
+  /** Off-plan food added since. Seeded logs stay in `demo.ts`. */
+  foodLogs: FoodLog[];
+  /** Seeded logs the client has deleted — a seed cannot be removed in place. */
+  deletedFoodLogs: string[];
 }
 
 function empty(): DemoData {
@@ -73,6 +78,8 @@ function empty(): DemoData {
     itemEdits: {},
     setEdits: {},
     startedWorkouts: [],
+    foodLogs: [],
+    deletedFoodLogs: [],
   };
 }
 

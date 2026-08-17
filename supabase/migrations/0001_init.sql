@@ -264,11 +264,17 @@ create index food_plan_meals_plan_idx on public.food_plan_meals (food_plan_id, p
 
 -- One row per entry, so a client can log incrementally through the day or drop
 -- in a single end-of-day total. The day's running total is the sum.
+-- Anything eaten off the plan. Macros are optional on purpose: someone who
+-- knows them keeps the day's breakdown honest, and someone who does not should
+-- still log the calories rather than log nothing at all.
 create table public.food_logs (
   id         uuid primary key default gen_random_uuid(),
   client_id  uuid not null references public.profiles(id) on delete cascade,
   logged_for date not null default current_date,
   calories   int not null,
+  protein_g  int,
+  carbs_g    int,
+  fat_g      int,
   note       text,
   created_at timestamptz not null default now()
 );

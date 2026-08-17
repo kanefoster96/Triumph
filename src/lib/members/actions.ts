@@ -12,7 +12,6 @@ import {
   demoMeals,
   demoPlanBlocks,
   demoDayPlans,
-  demoFoodLogs,
   demoFoodPlans,
   demoProfiles,
   demoSessionPlans,
@@ -150,19 +149,43 @@ export async function logFood(formData: FormData) {
 
   const note = String(formData.get("note") ?? "").trim() || null;
   const loggedFor = String(formData.get("date") ?? today());
+
+  // Optional: someone who knows the macros keeps the ring honest, someone who
+  // does not still gets to log the calories.
+  const macro = (key: string) => {
+    const value = Number(formData.get(key));
+    return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  };
+  const proteinG = macro("protein");
+  const carbsG = macro("carbs");
+  const fatG = macro("fat");
+
   const supabase = await createClient();
 
   if (!supabase) {
-    demoFoodLogs.push({
-      id: crypto.randomUUID(),
-      clientId,
-      loggedFor,
-      calories,
-      note,
-      createdAt: new Date().toISOString(),
+    await writeDemoData((data) => {
+      data.foodLogs.push({
+        id: crypto.randomUUID(),
+        clientId,
+        loggedFor,
+        calories: Math.round(calories),
+        proteinG,
+        carbsG,
+        fatG,
+        note,
+        createdAt: new Date().toISOString(),
+      });
     });
   } else {
-    await supabase.from("food_logs").insert({ client_id: clientId, logged_for: loggedFor, calories, note });
+    await supabase.from("food_logs").insert({
+      client_id: clientId,
+      logged_for: loggedFor,
+      calories: Math.round(calories),
+      protein_g: proteinG,
+      carbs_g: carbsG,
+      fat_g: fatG,
+      note,
+    });
   }
 
   refresh();
@@ -172,8 +195,12 @@ export async function deleteFoodLog(id: string) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const index = demoFoodLogs.findIndex((l) => l.id === id);
-    if (index >= 0) demoFoodLogs.splice(index, 1);
+    await writeDemoData((data) => {
+      data.foodLogs = data.foodLogs.filter((l) => l.id !== id);
+      // A seeded log cannot be spliced out of the seed, so it is remembered
+      // as deleted instead.
+      if (!data.deletedFoodLogs.includes(id)) data.deletedFoodLogs.push(id);
+    });
   } else {
     await supabase.from("food_logs").delete().eq("id", id);
   }
