@@ -10,6 +10,8 @@ import {
   demoComments,
   demoExercises,
   demoMeals,
+  demoPlanBlocks,
+  demoPlanRevisions,
   demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
@@ -19,8 +21,18 @@ import {
   demoWeightEntries,
   demoWorkouts,
 } from "./demo";
-import { DEMO_ROLE_COOKIE, getCurrentProfile, getWorkoutFor, shiftDate, today } from "./service";
-import type { CommentTarget, MealTag } from "./types";
+import {
+  DEMO_ROLE_COOKIE,
+  getCurrentProfile,
+  getExercises,
+  getMeals,
+  getPlanBlock,
+  getPlanCycle,
+  getWorkoutFor,
+  shiftDate,
+  today,
+} from "./service";
+import type { CommentTarget, EditScope, MealTag } from "./types";
 
 /**
  * Writes for the members' area and Dean's admin.
@@ -1518,4 +1530,321 @@ export async function finishWorkout(formData: FormData) {
 
   refresh();
   redirect("/app/workouts");
+}
+
+// ---------------------------------------------------------------------------
+// The repeating plan
+// ---------------------------------------------------------------------------
+
+/**
+ * "Back squat | 60x10, 65x8, 70x6 | keep the depth" — one exercise per line.
+ *
+ * Text rather than a widget for the same reason the checklist always was: Dean
+ * can paste a whole day in one go, and it works with no JavaScript. Names are
+ * matched against the library, case-insensitively.
+ */
+function parsePlanExercises(input: string, library: Array<{ id: string; name: string }>) {
+  const byName = new Map(library.map((e) => [e.name.toLowerCase(), e.id]));
+
+  return input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, position) => {
+      const [name, setSpec, notes] = line.split("|").map((part) => part.trim());
+      const exerciseId = byName.get((name ?? "").toLowerCase());
+      if (!exerciseId) return null;
+
+      const sets = (setSpec ?? "")
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part, index) => {
+          const [weight, reps] = part.toLowerCase().split("x");
+          const weightKg = Number(weight);
+          const repCount = Number(reps);
+          return {
+            position: index,
+            targetWeightKg: Number.isFinite(weightKg) ? weightKg : null,
+            targetReps: Number.isFinite(repCount) ? repCount : null,
+          };
+        });
+
+      return { position, exerciseId, notes: notes || null, sets };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+}
+
+/** "breakfast | Peanut butter oats | 1" — slot, meal, multiplier. */
+function parsePlanMeals(input: string, library: Array<{ id: string; name: string }>) {
+  const byName = new Map(library.map((m) => [m.name.toLowerCase(), m.id]));
+  const slots: MealTag[] = ["breakfast", "lunch", "dinner", "snack"];
+  const counters = new Map<MealTag, number>();
+
+  return input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [slotName, mealName, multiplier] = line.split("|").map((part) => part.trim());
+      const slot = slots.find((s) => s === (slotName ?? "").toLowerCase());
+      const mealId = byName.get((mealName ?? "").toLowerCase());
+      if (!slot || !mealId) return null;
+
+      const factor = Number(multiplier);
+      const position = counters.get(slot) ?? 0;
+      counters.set(slot, position + 1);
+
+      return {
+        slot,
+        position,
+        mealId,
+        multiplier: Number.isFinite(factor) && factor > 0 ? factor : 1,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+}
+
+/**
+ * Insert one revision with its exercises and meals. Every plan edit goes
+ * through here, so "insert, never rewrite" holds in one place.
+ */
+async function writeRevision(
+  blockId: string,
+  dayIndex: number,
+  kind: "workout" | "food",
+  effectiveFrom: string,
+  onlyOn: string | null,
+  body: {
+    title: string | null;
+    suggestedTime: string | null;
+    coachNotes: string | null;
+    calorieTarget: number | null;
+    proteinTarget: number | null;
+    isRest: boolean;
+    exercises: Array<{
+      position: number;
+      exerciseId: string;
+      notes: string | null;
+      sets: Array<{ position: number; targetWeightKg: number | null; targetReps: number | null }>;
+    }>;
+    meals: Array<{ slot: MealTag; position: number; mealId: string; multiplier: number }>;
+  },
+) {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    demoPlanRevisions.push({
+      id: crypto.randomUUID(),
+      blockId,
+      dayIndex,
+      kind,
+      effectiveFrom,
+      onlyOn,
+      title: body.title,
+      suggestedTime: body.suggestedTime,
+      coachNotes: body.coachNotes,
+      calorieTarget: body.calorieTarget,
+      proteinTarget: body.proteinTarget,
+      isRest: body.isRest,
+      exercises: body.exercises.map((entry) => ({
+        id: crypto.randomUUID(),
+        position: entry.position,
+        exerciseId: entry.exerciseId,
+        notes: entry.notes,
+        sets: entry.sets.map((set) => ({ id: crypto.randomUUID(), ...set })),
+      })),
+      meals: body.meals.map((entry) => ({ id: crypto.randomUUID(), ...entry })),
+    });
+    return;
+  }
+
+  const { data: revision } = await supabase
+    .from("plan_day_revisions")
+    .insert({
+      block_id: blockId,
+      day_index: dayIndex,
+      kind,
+      effective_from: effectiveFrom,
+      only_on: onlyOn,
+      title: body.title,
+      suggested_time: body.suggestedTime,
+      coach_notes: body.coachNotes,
+      calorie_target: body.calorieTarget,
+      protein_target: body.proteinTarget,
+      is_rest: body.isRest,
+    })
+    .select("id")
+    .single();
+  if (!revision) return;
+
+  for (const entry of body.exercises) {
+    const { data: planExercise } = await supabase
+      .from("plan_exercises")
+      .insert({
+        revision_id: revision.id,
+        exercise_id: entry.exerciseId,
+        position: entry.position,
+        notes: entry.notes,
+      })
+      .select("id")
+      .single();
+    if (!planExercise || entry.sets.length === 0) continue;
+
+    await supabase.from("plan_sets").insert(
+      entry.sets.map((set) => ({
+        plan_exercise_id: planExercise.id,
+        position: set.position,
+        target_weight_kg: set.targetWeightKg,
+        target_reps: set.targetReps,
+      })),
+    );
+  }
+
+  if (body.meals.length > 0) {
+    await supabase.from("plan_meal_slots").insert(
+      body.meals.map((entry) => ({
+        revision_id: revision.id,
+        slot: entry.slot,
+        position: entry.position,
+        meal_id: entry.mealId,
+        multiplier: entry.multiplier,
+      })),
+    );
+  }
+}
+
+/** Start a client on a repeating plan. The start date is also the takeover. */
+export async function createPlanBlock(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!clientId) return;
+
+  const cycleWeeks = Number(formData.get("cycleWeeks")) === 2 ? 2 : 1;
+  const startsOn = String(formData.get("startsOn") ?? today());
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = demoPlanBlocks.find((b) => b.clientId === clientId);
+    if (existing) Object.assign(existing, { cycleWeeks, startsOn });
+    else demoPlanBlocks.push({ id: crypto.randomUUID(), clientId, cycleWeeks, startsOn });
+  } else {
+    await supabase
+      .from("plan_blocks")
+      .upsert(
+        { client_id: clientId, cycle_weeks: cycleWeeks, starts_on: startsOn },
+        { onConflict: "client_id" },
+      );
+  }
+
+  refresh();
+}
+
+/**
+ * Write one day of the cycle.
+ *
+ * Scope is the whole point: "weekday" inserts a revision effective from the
+ * chosen date, so every future instance of that weekday changes; "date" writes
+ * a one-off for that date alone. Neither is ever dated before today, which is
+ * what keeps past days exactly as they were.
+ */
+export async function savePlanDay(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  const dayIndex = Number(formData.get("dayIndex"));
+  const kind = formData.get("kind") === "food" ? "food" : "workout";
+  if (!clientId || !Number.isFinite(dayIndex)) return;
+
+  const block = await getPlanBlock(clientId);
+  if (!block) return;
+
+  const scope: EditScope = formData.get("scope") === "date" ? "date" : "weekday";
+  const requested = String(formData.get("from") ?? today());
+  // Never backdate: an edit reaches forward from today at the earliest.
+  const from = requested < today() ? today() : requested;
+
+  const isRest = formData.get("isRest") === "on";
+  const title = String(formData.get("title") ?? "").trim() || null;
+  const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
+  const coachNotes = String(formData.get("coachNotes") ?? "").trim() || null;
+  const calorieTarget = Number(formData.get("calorieTarget")) || null;
+  const proteinTarget = Number(formData.get("proteinTarget")) || null;
+
+  const [library, mealLibrary] = await Promise.all([getExercises(), getMeals()]);
+  const exercises = isRest ? [] : parsePlanExercises(String(formData.get("exercises") ?? ""), library);
+  const meals = isRest ? [] : parsePlanMeals(String(formData.get("meals") ?? ""), mealLibrary);
+
+  await writeRevision(block.id, dayIndex, kind, from, scope === "date" ? from : null, {
+    title,
+    suggestedTime,
+    coachNotes,
+    calorieTarget,
+    proteinTarget,
+    isRest,
+    exercises,
+    meals,
+  });
+
+  refresh();
+}
+
+/**
+ * Nudge every target on a day, or across the whole block.
+ *
+ * Written as a new revision like any other edit, so the week before the bump
+ * still reads as what it was.
+ */
+export async function bumpPlanWeights(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  const delta = Number(formData.get("delta") ?? 2.5) || 2.5;
+  const scopeDay = formData.get("dayIndex");
+  const onlyDay = scopeDay === null || scopeDay === "" ? null : Number(scopeDay);
+
+  const block = await getPlanBlock(clientId);
+  if (!block) return;
+
+  const from = today();
+  const days = onlyDay === null ? Array.from({ length: block.cycleWeeks * 7 }, (_, i) => i) : [onlyDay];
+
+  for (const dayIndex of days) {
+    const day = (await getPlanCycle(block, from, "workout"))[dayIndex];
+    // Only a day with weighted sets is worth writing a new revision for.
+    if (!day || day.exercises.length === 0) continue;
+
+    const bumped = day.exercises.map((exercise) => ({
+      position: exercise.position,
+      exerciseId: exercise.exerciseId,
+      notes: exercise.notes,
+      sets: exercise.sets.map((set) => ({
+        position: set.position,
+        // Bodyweight and unweighted work stay where they are.
+        targetWeightKg:
+          set.targetWeightKg === null || set.targetWeightKg === 0
+            ? set.targetWeightKg
+            : Number((set.targetWeightKg + delta).toFixed(2)),
+        targetReps: set.targetReps,
+      })),
+    }));
+
+    await writeRevision(block.id, dayIndex, "workout", from, null, {
+      title: day.title,
+      suggestedTime: day.suggestedTime,
+      coachNotes: day.coachNotes,
+      calorieTarget: null,
+      proteinTarget: null,
+      isRest: false,
+      exercises: bumped,
+      meals: [],
+    });
+  }
+
+  refresh();
 }

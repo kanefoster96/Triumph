@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Dumbbell, Home, LineChart, Salad } from "lucide-react";
+import { CalendarDays, Dumbbell, Home, LineChart, Repeat, Salad } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
  * Dean's view of one client, split the same way the client's own app is.
  * Same five sections, in the same order — so what he is editing always maps
- * onto what they are looking at.
+ * onto what they are looking at — plus Plan, which is the repeating shape
+ * behind all of them and has no client-side counterpart.
  */
 export function ClientTabs({ clientId }: { clientId: string }) {
   const pathname = usePathname();
@@ -16,6 +17,7 @@ export function ClientTabs({ clientId }: { clientId: string }) {
 
   const tabs = [
     { href: base, label: "Overview", icon: Home },
+    { href: `${base}/plan`, label: "Plan", icon: Repeat },
     { href: `${base}/sessions`, label: "Sessions", icon: CalendarDays },
     { href: `${base}/workouts`, label: "Workouts", icon: Dumbbell },
     { href: `${base}/food`, label: "Food", icon: Salad },
