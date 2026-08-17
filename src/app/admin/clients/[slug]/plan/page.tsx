@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarRange, TrendingUp, TriangleAlert } from "lucide-react";
+import { CalendarRange, Copy as CopyIcon, TrendingUp, TriangleAlert } from "lucide-react";
 import {
   getExercises,
   getLastEfforts,
@@ -259,6 +259,13 @@ export default async function AdminClientPlanPage({
                 Make this a rest day
               </label>
 
+              <CopyToDays
+                startsOn={block.startsOn}
+                cycleWeeks={block.cycleWeeks}
+                dayIndex={dayIndex as number}
+                name="session"
+              />
+
               <ScopeFields defaultFrom={now} />
 
               <button type="submit" className={submitButton}>
@@ -280,6 +287,13 @@ export default async function AdminClientPlanPage({
                 calorieTarget={foodDay.calorieTarget}
               />
 
+              <CopyToDays
+                startsOn={block.startsOn}
+                cycleWeeks={block.cycleWeeks}
+                dayIndex={dayIndex as number}
+                name="food"
+              />
+
               <ScopeFields defaultFrom={now} />
 
               <button type="submit" className={submitButton}>
@@ -289,6 +303,60 @@ export default async function AdminClientPlanPage({
           </Panel>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * The same day, applied to other days of the cycle.
+ *
+ * Most of a week is repetition: four food slots that barely change, a session
+ * that runs again on Wednesday. Building each one from scratch was the bulk of
+ * setting a client up, so this writes one day to as many as Dean ticks — in
+ * the same save, because a second button to press is a second thing to forget.
+ *
+ * Checkboxes rather than anything clever: no JavaScript, and the days it will
+ * land on are all visible at once.
+ */
+function CopyToDays({
+  startsOn,
+  cycleWeeks,
+  dayIndex,
+  name,
+}: {
+  startsOn: string;
+  cycleWeeks: number;
+  dayIndex: number;
+  name: string;
+}) {
+  const days = Array.from({ length: cycleWeeks * 7 }, (_, i) => i).filter((i) => i !== dayIndex);
+
+  return (
+    <div className="rounded-2xl border border-line bg-ink p-4">
+      <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+        <CopyIcon className="h-3.5 w-3.5" />
+        Use this for other days too
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {days.map((index) => (
+          <label
+            key={index}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent has-checked:border-accent has-checked:bg-accent/10 has-checked:text-accent"
+          >
+            <input
+              type="checkbox"
+              name="alsoDay"
+              value={index}
+              className="h-3.5 w-3.5 accent-[var(--color-accent)]"
+            />
+            {dayLabel(startsOn, index, cycleWeeks)}
+          </label>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-faint">
+        Saves the same {name} onto each one you tick. Only applies when the change reaches forward
+        by weekday — a one-off date is a single day by definition.
+      </p>
     </div>
   );
 }

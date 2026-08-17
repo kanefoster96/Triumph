@@ -32,6 +32,10 @@ interface ExerciseRow {
   exerciseId: string;
   notes: string;
   sets: SetRow[];
+  /** The "3 × 8 @ 60kg" shorthand, before it is turned into set rows. */
+  quickSets: string;
+  quickReps: string;
+  quickWeight: string;
 }
 
 interface MealRow {
@@ -49,6 +53,11 @@ function toExerciseRows(day: PlanDay): ExerciseRow[] {
     key: nextKey(),
     exerciseId: exercise.exerciseId,
     notes: exercise.notes ?? "",
+    // Seeded from what is already there, so re-filling starts from the truth.
+    quickSets: String(exercise.sets.length || 3),
+    quickReps: exercise.sets[0]?.targetReps === null ? "" : String(exercise.sets[0]?.targetReps ?? ""),
+    quickWeight:
+      exercise.sets[0]?.targetWeightKg === null ? "" : String(exercise.sets[0]?.targetWeightKg ?? ""),
     sets: exercise.sets.map((set) => ({
       key: nextKey(),
       weight: set.targetWeightKg === null ? "" : String(set.targetWeightKg),
@@ -83,6 +92,23 @@ export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: E
 
   const update = (key: string, patch: Partial<ExerciseRow>) =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+
+  /** Turn "3 × 8 @ 60" into three identical set rows. */
+  const fillSets = (rowKey: string) =>
+    setRows((current) =>
+      current.map((row) => {
+        if (row.key !== rowKey) return row;
+        const count = Math.min(10, Math.max(1, Number(row.quickSets) || row.sets.length || 1));
+        return {
+          ...row,
+          sets: Array.from({ length: count }, () => ({
+            key: nextKey(),
+            weight: row.quickWeight,
+            reps: row.quickReps,
+          })),
+        };
+      }),
+    );
 
   const updateSet = (rowKey: string, setKey: string, patch: Partial<SetRow>) =>
     setRows((current) =>
@@ -136,6 +162,70 @@ export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: E
               className="rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger"
             >
               <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Sets are usually the same thing three or four times. Building
+              them one field at a time was most of the typing in setting a
+              client up, so this writes the whole ladder in one go and the
+              rows below stay editable for the odd set that differs. */}
+          <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl bg-raised/60 p-2.5">
+            <span className="text-xs font-semibold text-faint">Fill</span>
+            <div className="w-16">
+              <label className="sr-only" htmlFor={`${domId}-qs-${index}`}>
+                Number of sets for exercise {index + 1}
+              </label>
+              <input
+                id={`${domId}-qs-${index}`}
+                className={field}
+                type="number"
+                min="1"
+                max="10"
+                inputMode="numeric"
+                value={row.quickSets}
+                onChange={(event) => update(row.key, { quickSets: event.target.value })}
+                placeholder="3"
+              />
+            </div>
+            <span className="pb-3 text-xs text-faint">×</span>
+            <div className="w-16">
+              <label className="sr-only" htmlFor={`${domId}-qr-${index}`}>
+                Reps for exercise {index + 1}
+              </label>
+              <input
+                id={`${domId}-qr-${index}`}
+                className={field}
+                type="number"
+                min="1"
+                inputMode="numeric"
+                value={row.quickReps}
+                onChange={(event) => update(row.key, { quickReps: event.target.value })}
+                placeholder="8"
+              />
+            </div>
+            <span className="pb-3 text-xs text-faint">@</span>
+            <div className="w-20">
+              <label className="sr-only" htmlFor={`${domId}-qw-${index}`}>
+                Weight for exercise {index + 1}
+              </label>
+              <input
+                id={`${domId}-qw-${index}`}
+                className={field}
+                type="number"
+                step="0.5"
+                min="0"
+                inputMode="decimal"
+                value={row.quickWeight}
+                onChange={(event) => update(row.key, { quickWeight: event.target.value })}
+                placeholder="kg"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => fillSets(row.key)}
+              className="rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              Apply
             </button>
           </div>
 
@@ -244,7 +334,17 @@ export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: E
         onClick={() =>
           setRows((current) => [
             ...current,
-            { key: nextKey(), exerciseId: "", notes: "", sets: [{ key: nextKey(), weight: "", reps: "" }] },
+            {
+              key: nextKey(),
+              exerciseId: "",
+              notes: "",
+              // Three sets is the common case, so a new exercise starts there
+              // rather than at one and needing two more clicks.
+              quickSets: "3",
+              quickReps: "",
+              quickWeight: "",
+              sets: Array.from({ length: 3 }, () => ({ key: nextKey(), weight: "", reps: "" })),
+            },
           ])
         }
         className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-text"

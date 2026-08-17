@@ -4,6 +4,7 @@ import { demoWeightEntries } from "./demo";
 import type { RawRevision } from "./service";
 import type {
   DaySubmission,
+  PlanBlock,
   FoodDayFeedback,
   FoodLog,
   FoodMode,
@@ -28,9 +29,36 @@ import type {
  */
 
 const COOKIE = "triumph-demo-data";
+/**
+ * The plan gets a cookie of its own.
+ *
+ * A week of food plus three sessions is around ten revisions, which does not
+ * fit alongside the day-to-day data in one 4KB cookie — the pruner was
+ * throwing away Monday's food to make room for Monday's session. Two cookies
+ * is the cheapest way to double the ceiling, and the split is a real one:
+ * one holds what Dean planned, the other what the client did.
+ */
+const PLAN_COOKIE = "triumph-demo-plan";
 
-/** Roughly the practical cookie ceiling, kept well under 4KB of headers. */
-const MAX_BYTES = 3500;
+/**
+ * The browser's per-cookie ceiling is about 4KB, and it applies to the value
+ * *as sent* — which is percent-encoded, so every quote and brace in the JSON
+ * costs three bytes rather than one. Measuring the raw string let the encoded
+ * cookie sail past 4KB, at which point Chrome rejects it outright and silently
+ * keeps the previous one: Dean's save appeared to work and simply vanished.
+ * So the budget is measured on the encoded form, with room for the name and
+ * attributes.
+ */
+const MAX_BYTES = 3600;
+
+/**
+ * The plan cookie carries no other passengers, so it can use nearly the whole
+ * 4KB — its name and attributes come to about seventy bytes.
+ */
+const MAX_PLAN_BYTES = 3950;
+
+/** What this value will actually weigh in the header. */
+const wireSize = (value: string) => encodeURIComponent(value).length;
 
 export interface DemoData {
   mealLogs: MealLog[];
@@ -44,7 +72,7 @@ export interface DemoData {
    * Plan edits, appended to the seeded ones. Order matters: the newest edit to
    * a date is the one that counts, so these are never reordered.
    */
-  planRevisions: RawRevision[];
+  planRevisions: PackedRevision[];
   /**
    * What the client has done to a workout, as deltas rather than copies.
    *
@@ -63,6 +91,13 @@ export interface DemoData {
   foodLogs: FoodLog[];
   /** Seeded logs the client has deleted — a seed cannot be removed in place. */
   deletedFoodLogs: string[];
+  /**
+   * Plan blocks Dean has started or re-dated. Without this a newly created
+   * plan lives only in the instance that made it, and the very next request —
+   * the one that saves its first day — finds no block and quietly does
+   * nothing, which is exactly how it failed.
+   */
+  planBlocks: PlanBlock[];
 }
 
 function empty(): DemoData {
@@ -80,6 +115,7 @@ function empty(): DemoData {
     startedWorkouts: [],
     foodLogs: [],
     deletedFoodLogs: [],
+    planBlocks: [],
   };
 }
 
@@ -91,19 +127,30 @@ function empty(): DemoData {
  */
 export const demoData = cache(async (): Promise<DemoData> => {
   let raw: string | undefined;
+  let rawPlan: string | undefined;
   try {
-    raw = (await cookies()).get(COOKIE)?.value;
+    const store = await cookies();
+    raw = store.get(COOKIE)?.value;
+    rawPlan = store.get(PLAN_COOKIE)?.value;
   } catch {
     return empty();
   }
-  if (!raw) return empty();
 
-  try {
-    return { ...empty(), ...(JSON.parse(raw) as Partial<DemoData>) };
-  } catch {
-    // A cookie from an older shape is not worth an error page.
-    return empty();
-  }
+  const parse = <T,>(value: string | undefined, fallback: T): T => {
+    if (!value) return fallback;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      // A cookie from an older shape is not worth an error page.
+      return fallback;
+    }
+  };
+
+  return {
+    ...empty(),
+    ...parse<Partial<DemoData>>(raw, {}),
+    planRevisions: parse<PackedRevision[]>(rawPlan, []),
+  };
 });
 
 /**
@@ -117,18 +164,41 @@ export async function writeDemoData(mutate: (data: DemoData) => void): Promise<v
   const data = await demoData();
   mutate(data);
 
-  const value = prune(data);
+  const { planRevisions, ...rest } = data;
+  const plan = prunePlan(planRevisions);
+  const value = prune(rest);
+
   try {
-    (await cookies()).set(COOKIE, value, {
+    const store = await cookies();
+    const options = {
       path: "/",
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "lax" as const,
       // A demo is a sitting worth of looking round, not a permanent account.
       maxAge: 60 * 60 * 24 * 7,
-    });
+    };
+    store.set(COOKIE, value, options);
+    store.set(PLAN_COOKIE, plan, options);
   } catch {
     /* Called outside a request that can set cookies — nothing to persist to. */
   }
+}
+
+/**
+ * Keep the plan under its own ceiling, dropping the oldest edit first.
+ *
+ * Losing the oldest revision is the least bad thing that can happen here: a
+ * day still resolves from whatever came before it, so the week degrades to an
+ * earlier version of itself rather than to nothing.
+ */
+function prunePlan(revisions: PackedRevision[]): string {
+  const kept = [...revisions];
+  let value = JSON.stringify(kept);
+  while (kept.length > 1 && wireSize(value) > MAX_PLAN_BYTES) {
+    kept.shift();
+    value = JSON.stringify(kept);
+  }
+  return value;
 }
 
 /**
@@ -139,11 +209,11 @@ export async function writeDemoData(mutate: (data: DemoData) => void): Promise<v
  * which is the failure this whole module exists to fix. Losing last week's
  * shopping list is a fair price for today always saving.
  */
-function prune(data: DemoData): string {
+function prune(data: Omit<DemoData, "planRevisions">): string {
   const byDateDesc = (a: string, b: string) => b.localeCompare(a);
   let value = JSON.stringify(data);
 
-  while (value.length > MAX_BYTES) {
+  while (wireSize(value) > MAX_BYTES) {
     const oldestList = [...data.shoppingLists].sort((a, b) =>
       byDateDesc(b.createdAt, a.createdAt),
     )[0];
@@ -159,9 +229,6 @@ function prune(data: DemoData): string {
       data.foodDayFeedback = data.foodDayFeedback.filter(
         (entry) => entry.loggedFor !== oldestMealDay,
       );
-    } else if (data.planRevisions.length > 1) {
-      // Plan edits are the actual coaching, so they go last of all.
-      data.planRevisions = data.planRevisions.slice(1);
     } else if (data.weightEntries.length > 1) {
       const oldest = [...data.weightEntries].sort((a, b) => byDateDesc(b.loggedFor, a.loggedFor))[0];
       data.weightEntries = data.weightEntries.filter((w) => w !== oldest);
@@ -178,7 +245,7 @@ function prune(data: DemoData): string {
 
 /** Whether the store is close enough to full that the next write may not fit. */
 export async function demoStoreIsFull(): Promise<boolean> {
-  return JSON.stringify(await demoData()).length > MAX_BYTES;
+  return wireSize(JSON.stringify(await demoData())) > MAX_BYTES * 0.9;
 }
 
 /** A seeded profile with any mode Dean has since switched it to. */
@@ -201,4 +268,89 @@ export async function demoWeights(): Promise<WeightEntry[]> {
     ...weightEntries,
     ...demoWeightEntries.filter((w) => !added.has(`${w.clientId}:${w.loggedFor}`)),
   ];
+}
+
+/**
+ * Plan revisions, packed.
+ *
+ * Stored verbatim a single training day came to 1,802 bytes — mostly a fresh
+ * UUID on every exercise and every set — so two days overflowed the cookie and
+ * the pruner threw away the very edit that had just been made. Nothing Dean
+ * saved stuck.
+ *
+ * Packed, the same day is a few hundred bytes: positional arrays, no generated
+ * ids, and only the library ids that actually have to be kept. The ids are
+ * rebuilt on read from the block, day and position, which is what keeps them
+ * stable — a workout tick is keyed to an item id, so an id that changed
+ * between reads would quietly orphan it.
+ */
+export type PackedRevision = [
+  blockId: string,
+  dayIndex: number,
+  kind: 0 | 1, // 0 workout, 1 food
+  effectiveFrom: string,
+  onlyOn: string | null,
+  title: string | null,
+  suggestedTime: string | null,
+  coachNotes: string | null,
+  calorieTarget: number | null,
+  proteinTarget: number | null,
+  isRest: 0 | 1,
+  exercises: Array<[exerciseId: string, notes: string | null, sets: Array<[w: number | null, r: number | null]>]>,
+  meals: Array<[slot: string, mealId: string, multiplier: number]>,
+];
+
+export function packRevision(r: RawRevision): PackedRevision {
+  return [
+    r.blockId,
+    r.dayIndex,
+    r.kind === "food" ? 1 : 0,
+    r.effectiveFrom,
+    r.onlyOn,
+    r.title,
+    r.suggestedTime,
+    r.coachNotes,
+    r.calorieTarget,
+    r.proteinTarget,
+    r.isRest ? 1 : 0,
+    r.exercises.map((e) => [e.exerciseId, e.notes, e.sets.map((s) => [s.targetWeightKg, s.targetReps])]),
+    r.meals.map((m) => [m.slot, m.mealId, m.multiplier]),
+  ];
+}
+
+export function unpackRevision(p: PackedRevision, seq: number): RawRevision {
+  const id = `demo-rev-${seq}`;
+  return {
+    id,
+    blockId: p[0],
+    dayIndex: p[1],
+    kind: p[2] === 1 ? "food" : "workout",
+    effectiveFrom: p[3],
+    onlyOn: p[4],
+    title: p[5],
+    suggestedTime: p[6],
+    coachNotes: p[7],
+    calorieTarget: p[8],
+    proteinTarget: p[9],
+    isRest: p[10] === 1,
+    exercises: p[11].map(([exerciseId, notes, sets], i) => ({
+      id: `${id}-e${i}`,
+      position: i,
+      exerciseId,
+      notes,
+      sets: sets.map(([targetWeightKg, targetReps], j) => ({
+        id: `${id}-e${i}-s${j}`,
+        position: j,
+        targetWeightKg,
+        targetReps,
+      })),
+    })),
+    meals: p[12].map(([slot, mealId, multiplier], i) => ({
+      id: `${id}-m${i}`,
+      slot: slot as RawRevision["meals"][number]["slot"],
+      position: i,
+      mealId,
+      multiplier,
+    })),
+  };
 }

@@ -77,6 +77,14 @@ over whatever produced the workout, seed row or plan. Starting a plan day is
 just its id in `startedWorkouts` for the same reason — copying it would also
 orphan every tick keyed to the original ids.
 
+The demo store spans two cookies — day-to-day data and the plan — because a
+week of food plus three sessions does not fit in one. Sizes are measured on
+the percent-encoded value, not the raw JSON: a cookie over ~4KB on the wire is
+rejected outright by the browser and the previous one silently kept, which
+looks exactly like a save that worked and then vanished. Plan revisions are
+stored packed (`packRevision`), with ids rebuilt deterministically on read so
+a workout tick keyed to an item id is never orphaned.
+
 Scaled meal amounts are presented to the client as the meal, full stop. No
 client-facing text may explain, justify or hint at scaling — no "multiplier",
 no "1.5×", no "base amount". Where a client is allowed to choose, it is

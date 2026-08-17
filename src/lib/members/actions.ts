@@ -18,7 +18,7 @@ import {
   demoSessions,
   demoWorkouts,
 } from "./demo";
-import { writeDemoData } from "./demo-store";
+import { packRevision, writeDemoData } from "./demo-store";
 import {
   DEMO_ROLE_COOKIE,
   dayIndexFor,
@@ -1688,7 +1688,7 @@ async function writeRevision(
     // Appended, never reordered — the newest edit to a date is the one that
     // counts, and that is decided by position in this list.
     await writeDemoData((data) => {
-      data.planRevisions.push(revision);
+      data.planRevisions.push(packRevision(revision));
     });
     return;
   }
@@ -1762,9 +1762,21 @@ export async function createPlanBlock(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoPlanBlocks.find((b) => b.clientId === clientId);
-    if (existing) Object.assign(existing, { cycleWeeks, startsOn });
-    else demoPlanBlocks.push({ id: crypto.randomUUID(), clientId, cycleWeeks, startsOn });
+    const seeded = demoPlanBlocks.find((b) => b.clientId === clientId);
+    await writeDemoData((data) => {
+      const existing = data.planBlocks.find((b) => b.clientId === clientId);
+      if (existing) Object.assign(existing, { cycleWeeks, startsOn });
+      else {
+        // Keep a seeded block's id so the days already written to it survive
+        // a change of cycle or start date.
+        data.planBlocks.push({
+          id: seeded?.id ?? crypto.randomUUID(),
+          clientId,
+          cycleWeeks,
+          startsOn,
+        });
+      }
+    });
   } else {
     await supabase
       .from("plan_blocks")
@@ -1812,16 +1824,35 @@ export async function savePlanDay(formData: FormData) {
   const exercises = isRest ? [] : readPlanExercises(formData);
   const meals = isRest ? [] : readPlanMeals(formData);
 
-  await writeRevision(block.id, dayIndex, kind, from, scope === "date" ? from : null, {
-    title,
-    suggestedTime,
-    coachNotes,
-    calorieTarget,
-    proteinTarget,
-    isRest,
-    exercises,
-    meals,
-  });
+  /*
+   * The same day, written to more than one weekday.
+   *
+   * Most of a week is repetition — four food slots that barely change, a
+   * session that runs again on Wednesday — and setting each one from scratch
+   * was the bulk of the work. Ignored when the edit is scoped to a single
+   * date, because one date is one weekday and "also apply to Friday" has no
+   * meaning there.
+   */
+  const alsoDays =
+    scope === "date"
+      ? []
+      : formData
+          .getAll("alsoDay")
+          .map(Number)
+          .filter((n) => Number.isInteger(n) && n >= 0 && n < block.cycleWeeks * 7);
+
+  for (const index of new Set([dayIndex, ...alsoDays])) {
+    await writeRevision(block.id, index, kind, from, scope === "date" ? from : null, {
+      title,
+      suggestedTime,
+      coachNotes,
+      calorieTarget,
+      proteinTarget,
+      isRest,
+      exercises,
+      meals,
+    });
+  }
 
   refresh();
 }

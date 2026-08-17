@@ -18,7 +18,7 @@ import {
   demoSessions,
   demoWorkouts,
 } from "./demo";
-import { demoData, demoWeights, withFoodMode } from "./demo-store";
+import { demoData, demoWeights, unpackRevision, withFoodMode } from "./demo-store";
 import type {
   CheckIn,
   DaySubmission,
@@ -1249,7 +1249,15 @@ export function dayIndexFor(block: PlanBlock, date: string): number | null {
 
 export async function getPlanBlock(clientId: string): Promise<PlanBlock | null> {
   const supabase = await createClient();
-  if (!supabase) return demoPlanBlocks.find((b) => b.clientId === clientId) ?? null;
+  if (!supabase) {
+    // A block Dean has started wins over the seeded one for that client.
+    const { planBlocks } = await demoData();
+    return (
+      planBlocks.find((b) => b.clientId === clientId) ??
+      demoPlanBlocks.find((b) => b.clientId === clientId) ??
+      null
+    );
+  }
 
   const { data } = await supabase.from("plan_blocks").select("*").eq("client_id", clientId).maybeSingle();
   return data ? toPlanBlock(data) : null;
@@ -1360,7 +1368,9 @@ async function loadRevisions(blockId: string): Promise<RawRevision[]> {
   const supabase = await createClient();
   if (!supabase) {
     const { planRevisions } = await demoData();
-    return [...demoPlanRevisions, ...planRevisions].filter((r) => r.blockId === blockId);
+    return [...demoPlanRevisions, ...planRevisions.map(unpackRevision)].filter(
+      (r) => r.blockId === blockId,
+    );
   }
 
   const { data } = await supabase
