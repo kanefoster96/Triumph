@@ -85,19 +85,33 @@ worth looking at is flagged with the reason (`2 of 3 workouts not finished`,
 `Left a note`, `Plan runs out within a week`, `Review due`) and sorted to the
 top; the rest read **On track** and can be skimmed past.
 
-Two decisions, and both write the plan forward and send the client a note:
+Two decisions, and both write the plan forward and send the client a note.
+Their rules are deliberately opposite, and each panel says which it is:
 
-- **Continue plan** repeats the training week they are already on. It reads the
-  last fortnight, keeps the most recent workout for each weekday, and clones
-  that shape forward up to four weeks. Days that already have a workout are
-  left alone, so continuing can only ever add. Food needs no writes — an
-  assigned target carries itself forward.
-- **Adjust plan** takes a workout plan, the weekdays it lands on and a food
-  plan, and applies them over the coming weeks. This is the one place both
-  halves of the week are set in a single pass.
+- **Continue plan** only ever adds. It reads the last fortnight, keeps the most
+  recent workout for each weekday, and clones that shape forward up to four
+  weeks. Days that already have a workout are left alone. Food needs no writes
+  — an assigned target carries itself forward.
+- **Adjust plan** replaces. Pick a workout plan and the weeks ahead become
+  exactly the weekdays ticked: anything queued on other days is cleared, so
+  dropping someone from five days to three actually leaves them on three. Leave
+  a picker on "as they are" and that half is untouched. Nothing before tomorrow
+  is ever altered, and the panel shows how much is currently queued before Dean
+  commits. This is also the one place both halves of the week are set in a
+  single pass.
 
 Either way Dean picks when to look again, the decision is stored against the
-client, and the note lands on their dashboard as **Your weekly check-in**.
+client, and the note lands on their dashboard as **Your check-in from Dean**.
+
+The check-in is a commentable entry like any other, so the client can answer it
+where it sits rather than hunting for a food log to hang the question on. Their
+reply appears under the note on Dean's card, and the last check-in — plus a
+collapsed list of earlier ones and their replies — is shown while he writes the
+next, so this week's advice does not contradict last week's.
+
+Weight is reported as this window's average against the previous window's, not
+as an endpoint delta: a single reading moves a kilo or two on water alone, and
+a board that flags noise stops being read.
 
 Today's workout is never counted as missed — the day is not over. A check-in
 records the weeks it actually wrote, so continuing a client who has no pattern

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowRight, MessageSquareText, RefreshCw, SlidersHorizontal } from "lucide-react";
 import type { CheckInSummary, DayPlan, SessionPlan } from "@/lib/members/types";
 import { recordCheckIn } from "@/lib/members/actions";
+import { commentsFor } from "@/lib/members/service";
 import { Chip } from "@/components/ui/Chip";
+import { CommentThread } from "./Comments";
 import { field, fieldLabel, submitButton } from "./ui";
 import { cn, relativeDate } from "@/lib/utils";
 
@@ -113,7 +115,8 @@ export function CheckInCard({
   sessionPlans: SessionPlan[];
   dayPlans: DayPlan[];
 }) {
-  const { profile, flags, lastCheckIn, notes, trainingDays } = summary;
+  const { profile, flags, lastCheckIn, notes, trainingDays, checkInComments, plannedAhead } = summary;
+  const earlier = summary.recentCheckIns.slice(1);
   const id = profile.id;
   const settled = flags.length === 0;
   const canContinue = trainingDays.length > 0;
@@ -169,12 +172,20 @@ export function CheckInCard({
             </dd>
           </div>
           <div>
-            <dt className={fieldLabel}>Weight</dt>
+            <dt className={fieldLabel}>Weight avg</dt>
             <dd className="font-display text-xl font-bold tabular-nums">
-              {summary.weightChangeKg === null
-                ? "—"
-                : `${summary.weightChangeKg > 0 ? "+" : ""}${summary.weightChangeKg.toFixed(1)}kg`}
+              {summary.averageWeightKg === null ? "—" : `${summary.averageWeightKg.toFixed(1)}kg`}
+              {summary.weightChangeKg !== null ? (
+                <span className="text-sm font-normal text-faint">
+                  {" "}
+                  {summary.weightChangeKg > 0 ? "+" : ""}
+                  {summary.weightChangeKg.toFixed(1)}
+                </span>
+              ) : null}
             </dd>
+            {summary.weightChangeKg !== null ? (
+              <p className="mt-0.5 text-xs text-faint">vs previous {summary.windowDays} days</p>
+            ) : null}
           </div>
         </dl>
 
@@ -208,13 +219,54 @@ export function CheckInCard({
           </div>
         ) : null}
 
+        {/* "What did I tell them last week?" is the first question of any
+            review, so the last one is open and the rest are one click away. */}
         {lastCheckIn ? (
-          <p className="text-xs text-faint">
-            Last check-in {relativeDate(lastCheckIn.createdAt.slice(0, 10)).toLowerCase()} ·{" "}
-            {lastCheckIn.outcome === "adjusted" ? "adjusted" : "continued"}
-            {lastCheckIn.weeksPlanned > 0 ? ` for ${lastCheckIn.weeksPlanned} weeks` : ""} ·{" "}
-            <span className="text-muted">&ldquo;{lastCheckIn.note}&rdquo;</span>
-          </p>
+          <div className="rounded-2xl border border-line bg-ink p-4">
+            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+              You said {relativeDate(lastCheckIn.createdAt.slice(0, 10)).toLowerCase()} ·{" "}
+              {lastCheckIn.outcome === "adjusted" ? "adjusted" : "continued"}
+              {lastCheckIn.weeksPlanned > 0 ? ` ${lastCheckIn.weeksPlanned} weeks` : ""}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-text">{lastCheckIn.note}</p>
+
+            <CommentThread
+              comments={commentsFor(checkInComments, "check_in", lastCheckIn.id)}
+              clientId={id}
+              targetType="check_in"
+              targetId={lastCheckIn.id}
+              canReply
+              placeholder={`Reply to ${profile.fullName.split(" ")[0]}…`}
+            />
+
+            {earlier.length > 0 ? (
+              <details className="mt-4 border-t border-line pt-3">
+                <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-text">
+                  Earlier check-ins ({earlier.length})
+                </summary>
+                <ul className="mt-3 space-y-4">
+                  {earlier.map((entry) => {
+                    const replies = commentsFor(checkInComments, "check_in", entry.id);
+                    return (
+                      <li key={entry.id} className="border-l border-line pl-4">
+                        <p className="text-xs text-faint">
+                          {shortDate(entry.createdAt.slice(0, 10))} ·{" "}
+                          {entry.outcome === "adjusted" ? "adjusted" : "continued"}
+                          {entry.weeksPlanned > 0 ? ` ${entry.weeksPlanned} weeks` : ""}
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-muted">{entry.note}</p>
+                        {replies.map((reply) => (
+                          <p key={reply.id} className="mt-2 text-xs text-faint">
+                            <span className="font-semibold text-muted">{reply.authorName}:</span> {reply.body}
+                          </p>
+                        ))}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            ) : null}
+          </div>
         ) : (
           <p className="text-xs text-faint">No check-in recorded yet.</p>
         )}
@@ -263,6 +315,22 @@ export function CheckInCard({
             <form action={recordCheckIn} className="space-y-4 border-t border-line p-4">
               <input type="hidden" name="clientId" value={id} />
               <input type="hidden" name="outcome" value="adjusted" />
+
+              {/* The counterpart to Continue's "only ever adds". Adjust is a
+                  deliberate replacement, so it has to say so before it writes. */}
+              <p className="text-sm text-muted">
+                Where continuing only ever adds, adjusting <strong>replaces</strong>. Pick a workout plan and
+                the weeks ahead become exactly the days you tick — anything queued on other days is cleared.
+                Leave a picker on &ldquo;as they are&rdquo; and that half is not touched at all. Days already
+                in the past are never touched.
+              </p>
+              {plannedAhead.workouts > 0 || plannedAhead.foodDays > 0 ? (
+                <p className="text-sm text-amber">
+                  {plannedAhead.workouts} workout{plannedAhead.workouts === 1 ? "" : "s"} and{" "}
+                  {plannedAhead.foodDays} food day{plannedAhead.foodDays === 1 ? "" : "s"} are currently
+                  planned ahead.
+                </p>
+              ) : null}
 
               <div>
                 <label className={fieldLabel} htmlFor={`adj-${id}-workout`}>

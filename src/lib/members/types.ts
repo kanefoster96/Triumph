@@ -142,6 +142,9 @@ export interface Comment {
 /** Everything the client dashboard needs, in one round trip. */
 export interface DashboardSummary {
   profile: Profile;
+  /** Dean's latest word on how it is going, and the thread under it. */
+  latestCheckIn: CheckIn | null;
+  checkInComments: Comment[];
   /** Only in-person clients ever have one of these. */
   nextSession: CoachSession | null;
   /** The next workout after today — what an online client is looking for. */
@@ -196,7 +199,13 @@ export interface CheckInSummary {
   windowDays: number;
   averageCalories: number | null;
   calorieTarget: number | null;
-  /** Negative means they lost weight over the window. */
+  /** Mean weight across the window. Day-to-day readings swing too much to use. */
+  averageWeightKg: number | null;
+  /**
+   * This window's average against the previous window's average. Negative means
+   * they lost weight. Null until there are entries in both windows — an
+   * endpoint-to-endpoint delta would report water, not progress.
+   */
   weightChangeKg: number | null;
   notes: ClientNote[];
   /**
@@ -206,7 +215,13 @@ export interface CheckInSummary {
   trainingDays: number[];
   /** Last date with a workout or food plan assigned; null when nothing is. */
   plannedThrough: string | null;
+  /** What is already queued from tomorrow — what "adjust" would replace. */
+  plannedAhead: { workouts: number; foodDays: number };
   lastCheckIn: CheckIn | null;
+  /** Most recent first, so Dean can see what he said before writing again. */
+  recentCheckIns: CheckIn[];
+  /** Replies on those check-ins, both directions. */
+  checkInComments: Comment[];
   /** Why this client needs a look. Empty means nothing stands out. */
   flags: string[];
 }

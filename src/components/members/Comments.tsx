@@ -13,12 +13,15 @@ export function CommentThread({
   targetType,
   targetId,
   canReply = false,
+  placeholder = "Reply to this note…",
 }: {
   comments: Comment[];
   clientId: string;
   targetType: CommentTarget;
   targetId: string;
   canReply?: boolean;
+  /** What the reply box invites. A check-in asks for more than a note does. */
+  placeholder?: string;
 }) {
   if (comments.length === 0 && !canReply) return null;
 
@@ -52,8 +55,8 @@ export function CommentThread({
           <input
             name="body"
             required
-            placeholder="Reply to this note…"
-            aria-label="Reply to this note"
+            placeholder={placeholder}
+            aria-label={placeholder}
             className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2.5 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
           />
           <button

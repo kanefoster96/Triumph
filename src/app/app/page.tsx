@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, CalendarDays, Dumbbell, LineChart, MessageCircle, Salad } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  ClipboardCheck,
+  Dumbbell,
+  LineChart,
+  MessageCircle,
+  Salad,
+} from "lucide-react";
 import { getCurrentProfile, getDashboard } from "@/lib/members/service";
 import { markCommentsRead } from "@/lib/members/actions";
 import { CalorieBar, Panel, ScreenTitle } from "@/components/members/ui";
+import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { relativeDate } from "@/lib/utils";
-import type { CommentTarget } from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
 
@@ -28,11 +36,6 @@ function formatPlannedDay(date: string) {
     month: "long",
     timeZone: "UTC",
   });
-}
-
-/** A check-in is Dean writing to them; everything else is a reply on a note. */
-function commentContext(target: CommentTarget) {
-  return target === "check_in" ? "Your weekly check-in" : `On your ${target.replace("_", " ")} note`;
 }
 
 /** The one thing to do next, chosen in priority order. */
@@ -90,12 +93,44 @@ export default async function DashboardPage() {
             {summary.unreadComments.map((comment) => (
               <li key={comment.id} className="rounded-2xl bg-raised p-4">
                 <p className="text-xs text-faint">
-                  {commentContext(comment.targetType)} · {relativeDate(comment.createdAt.slice(0, 10))}
+                  On your {comment.targetType.replace("_", " ")} note ·{" "}
+                  {relativeDate(comment.createdAt.slice(0, 10))}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-text">{comment.body}</p>
               </li>
             ))}
           </ul>
+        </div>
+      ) : null}
+
+      {/* Dean's latest word, and the one place the client can answer him
+          without having to hang the question on a workout or a food log. */}
+      {summary.latestCheckIn ? (
+        <div className="mb-6 rounded-[var(--radius-sheet)] border border-line bg-surface p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="inline-flex items-center gap-2 text-base font-semibold">
+              <ClipboardCheck className="h-4 w-4 text-accent" />
+              Your check-in from Dean
+            </h2>
+            <span className="text-xs text-faint">
+              {relativeDate(summary.latestCheckIn.createdAt.slice(0, 10))} ·{" "}
+              {summary.latestCheckIn.outcome === "adjusted" ? "plan adjusted" : "plan carrying on"}
+              {summary.latestCheckIn.weeksPlanned > 0
+                ? ` for ${summary.latestCheckIn.weeksPlanned} weeks`
+                : ""}
+            </span>
+          </div>
+
+          <p className="mt-3 text-sm leading-relaxed text-text">{summary.latestCheckIn.note}</p>
+
+          <CommentThread
+            comments={summary.checkInComments}
+            clientId={profile.id}
+            targetType="check_in"
+            targetId={summary.latestCheckIn.id}
+            canReply
+            placeholder="Reply to Dean…"
+          />
         </div>
       ) : null}
 

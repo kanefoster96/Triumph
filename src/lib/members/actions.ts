@@ -959,6 +959,42 @@ async function repeatCurrentWeek(clientId: string, weeks: number): Promise<numbe
   return written;
 }
 
+/**
+ * Clear queued workouts the new pattern does not cover.
+ *
+ * Adjusting someone to Mon/Wed/Fri has to mean they train Mon/Wed/Fri. Leaving
+ * their old Tue/Thu days in place would quietly hand them five sessions a week
+ * — the opposite of what Dean just decided. Only ever touches days from
+ * tomorrow onwards, so nothing already worked through is lost.
+ */
+async function clearUnplannedDays(clientId: string, from: string, to: string, keep: number[]) {
+  // No weekdays ticked means every day is covered, so nothing falls outside.
+  if (keep.length === 0) return;
+
+  const outside = (date: string) => date >= from && date <= to && !keep.includes(weekdayOf(date));
+  const supabase = await createClient();
+
+  if (!supabase) {
+    for (let i = demoWorkouts.length - 1; i >= 0; i -= 1) {
+      const workout = demoWorkouts[i];
+      if (workout.clientId === clientId && outside(workout.scheduledFor)) {
+        demoWorkouts.splice(i, 1);
+      }
+    }
+    return;
+  }
+
+  const { data } = await supabase
+    .from("workouts")
+    .select("id, scheduled_for")
+    .eq("client_id", clientId)
+    .gte("scheduled_for", from)
+    .lte("scheduled_for", to);
+
+  const ids = (data ?? []).filter((row) => outside(row.scheduled_for)).map((row) => row.id);
+  if (ids.length > 0) await supabase.from("workouts").delete().in("id", ids);
+}
+
 /** Hand a set of fields to the existing assigners, which read FormData. */
 function assignmentForm(fields: {
   clientId: string;
@@ -1020,6 +1056,7 @@ export async function recordCheckIn(formData: FormData) {
       const to = shiftDate(periodEnd, weeks * 7);
 
       if (workoutPlanId) {
+        await clearUnplannedDays(clientId, from, to, weekdays);
         await assignSessionPlan(
           assignmentForm({ clientId, planId: workoutPlanId, from, to, weekdays, suggestedTime }),
         );

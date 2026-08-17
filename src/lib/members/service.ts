@@ -505,6 +505,13 @@ function isMessage(note: string): boolean {
   return note.trim().split(/\s+/).length >= 4;
 }
 
+/** Mean of a set of weigh-ins, to one decimal. Null when there are none. */
+function meanWeight(entries: WeightEntry[]): number | null {
+  if (entries.length === 0) return null;
+  const total = entries.reduce((sum, entry) => sum + entry.weightKg, 0);
+  return Number((total / entries.length).toFixed(1));
+}
+
 /** Everything the client wrote in the window, newest first. */
 function gatherNotes(
   workouts: Workout[],
@@ -563,13 +570,14 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
 
   const rows = await Promise.all(
     profiles.map(async (profile): Promise<CheckInSummary> => {
-      const [workouts, foodLogs, weights, assignedFood, foodPlan, checkIns] = await Promise.all([
+      const [workouts, foodLogs, weights, assignedFood, foodPlan, checkIns, comments] = await Promise.all([
         getWorkouts(profile.id),
         getFoodLogs(profile.id),
         getWeightEntries(profile.id),
         getAssignedFoodDates(profile.id),
         getFoodPlan(profile.id),
         getCheckIns(profile.id),
+        getComments(profile.id),
       ]);
 
       const inWindow = (date: string) => date >= periodStart && date <= periodEnd;
@@ -598,11 +606,18 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
         ? Math.round(sumCalories(windowLogs) / loggedDays.length)
         : null;
 
-      // Oldest to newest inside the window, so the change reads as a delta.
-      const windowWeights = weights.filter((w) => inWindow(w.loggedFor)).reverse();
+      // Weight is this window's average against the previous window's. A single
+      // reading moves a kilo or two on water alone, so an endpoint-to-endpoint
+      // delta would report noise as a trend and flag people who are fine.
+      const previousStart = shiftDate(periodStart, -windowDays);
+      const previousEnd = shiftDate(periodStart, -1);
+      const averageWeightKg = meanWeight(weights.filter((w) => inWindow(w.loggedFor)));
+      const previousWeightKg = meanWeight(
+        weights.filter((w) => w.loggedFor >= previousStart && w.loggedFor <= previousEnd),
+      );
       const weightChangeKg =
-        windowWeights.length >= 2
-          ? Number((windowWeights[windowWeights.length - 1].weightKg - windowWeights[0].weightKg).toFixed(1))
+        averageWeightKg !== null && previousWeightKg !== null
+          ? Number((averageWeightKg - previousWeightKg).toFixed(1))
           : null;
 
       const lastWorkoutDay =
@@ -621,8 +636,17 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
           .sort()
           .at(-1) ?? null;
 
+      // What "adjust" would replace: everything queued from tomorrow onwards.
+      const tomorrow = shiftDate(periodEnd, 1);
+      const plannedAhead = {
+        workouts: workouts.filter((w) => w.scheduledFor >= tomorrow).length,
+        foodDays: assignedFood.filter((p) => p.assignedFor >= tomorrow).length,
+      };
+
       const notes = gatherNotes(workouts, foodLogs, weights, periodStart, periodEnd);
       const lastCheckIn = checkIns[0] ?? null;
+      const recentCheckIns = checkIns.slice(0, 6);
+      const checkInComments = comments.filter((c) => c.targetType === "check_in");
       const calorieTarget = foodPlan?.calorieTarget ?? null;
 
       // Every flag names something Dean would actually act on, so the card can
@@ -665,11 +689,15 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
         foodLoggedDays: loggedDays.length,
         averageCalories,
         calorieTarget,
+        averageWeightKg,
         weightChangeKg,
         notes,
         trainingDays,
         plannedThrough,
+        plannedAhead,
         lastCheckIn,
+        recentCheckIns,
+        checkInComments,
         flags,
       };
     }),
@@ -691,7 +719,7 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
 
 export async function getDashboard(profile: Profile): Promise<DashboardSummary> {
   const date = today();
-  const [sessions, workouts, workout, foodPlan, foodLogs, weights, comments] = await Promise.all([
+  const [sessions, workouts, workout, foodPlan, foodLogs, weights, comments, checkIns] = await Promise.all([
     getSessions(profile.id),
     getWorkouts(profile.id),
     getWorkoutFor(profile.id, date),
@@ -699,6 +727,7 @@ export async function getDashboard(profile: Profile): Promise<DashboardSummary> 
     getFoodLogs(profile.id, date),
     getWeightEntries(profile.id),
     getComments(profile.id),
+    getCheckIns(profile.id),
   ]);
 
   const now = Date.now();
@@ -713,15 +742,23 @@ export async function getDashboard(profile: Profile): Promise<DashboardSummary> 
       .filter((w) => w.scheduledFor > date)
       .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))[0] ?? null;
 
+  // The check-in has its own card with a reply box, so it is kept out of the
+  // "new from Dean" list rather than being said twice.
+  const latestCheckIn = checkIns[0] ?? null;
+
   return {
     profile,
+    latestCheckIn,
+    checkInComments: latestCheckIn ? commentsFor(comments, "check_in", latestCheckIn.id) : [],
     nextSession,
     nextWorkout,
     todaysWorkout: workout,
     foodPlan,
     todaysCalories: sumCalories(foodLogs),
     latestWeight: weights[0] ?? null,
-    unreadComments: comments.filter((c) => c.readAt === null && c.authorRole === "admin"),
+    unreadComments: comments.filter(
+      (c) => c.readAt === null && c.authorRole === "admin" && c.targetType !== "check_in",
+    ),
   };
 }
 
