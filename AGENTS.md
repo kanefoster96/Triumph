@@ -70,6 +70,13 @@ appeared to undo itself. Anything written in demo mode belongs in that cookie
 — if you add a new demo write, add it there rather than to a `const` in
 `demo.ts`, which is now seed data only.
 
+Workout state is stored there as deltas keyed by id (`itemEdits`, `setEdits`,
+`workoutEdits`), never as copies of the workout: five exercises of four sets
+would be most of the cookie budget on its own. `withWorkoutEdits` lays them
+over whatever produced the workout, seed row or plan. Starting a plan day is
+just its id in `startedWorkouts` for the same reason — copying it would also
+orphan every tick keyed to the original ids.
+
 Scaled meal amounts are presented to the client as the meal, full stop. No
 client-facing text may explain, justify or hint at scaling — no "multiplier",
 no "1.5×", no "base amount". Where a client is allowed to choose, it is

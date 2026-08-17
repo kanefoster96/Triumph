@@ -93,13 +93,13 @@ export async function toggleWorkoutItem(itemId: string, done: boolean) {
   const supabase = await createClient();
 
   if (!supabase) {
-    for (const workout of demoWorkouts) {
-      const item = workout.items.find((i) => i.id === itemId);
-      if (item) {
-        item.done = done;
-        item.doneAt = done ? new Date().toISOString() : null;
-      }
-    }
+    await writeDemoData((data) => {
+      data.itemEdits[itemId] = {
+        ...data.itemEdits[itemId],
+        done,
+        doneAt: done ? new Date().toISOString() : null,
+      };
+    });
   } else {
     await supabase
       .from("workout_items")
@@ -115,8 +115,9 @@ export async function saveWorkoutNote(workoutId: string, note: string) {
   const value = note.trim() || null;
 
   if (!supabase) {
-    const workout = demoWorkouts.find((w) => w.id === workoutId);
-    if (workout) workout.clientNote = value;
+    await writeDemoData((data) => {
+      data.workoutEdits[workoutId] = { ...data.workoutEdits[workoutId], clientNote: value };
+    });
   } else {
     await supabase.from("workouts").update({ client_note: value }).eq("id", workoutId);
   }
@@ -129,8 +130,9 @@ export async function setWorkoutComplete(workoutId: string, complete: boolean) {
   const completedAt = complete ? new Date().toISOString() : null;
 
   if (!supabase) {
-    const workout = demoWorkouts.find((w) => w.id === workoutId);
-    if (workout) workout.completedAt = completedAt;
+    await writeDemoData((data) => {
+      data.workoutEdits[workoutId] = { ...data.workoutEdits[workoutId], completedAt };
+    });
   } else {
     await supabase.from("workouts").update({ completed_at: completedAt }).eq("id", workoutId);
   }
@@ -1375,17 +1377,12 @@ export async function startWorkout(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const workoutId = crypto.randomUUID();
-    demoWorkouts.push({
-      ...existing,
-      id: workoutId,
-      fromPlan: false,
-      items: existing.items.map((item) => ({
-        ...item,
-        id: crypto.randomUUID(),
-        workoutId,
-        sets: item.sets.map((set) => ({ ...set, id: crypto.randomUUID() })),
-      })),
+    // No copy: the plan already generates this day with stable ids, so
+    // starting it is just a note that they have begun. Copying the whole
+    // workout would put several kilobytes of sets into a cookie to say one
+    // boolean, and would orphan every tick keyed to the original ids.
+    await writeDemoData((data) => {
+      if (!data.startedWorkouts.includes(existing.id)) data.startedWorkouts.push(existing.id);
     });
   } else {
     const { data: workout } = await supabase
@@ -1452,19 +1449,20 @@ export async function logSet(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    for (const workout of demoWorkouts) {
-      for (const item of workout.items) {
-        const set = item.sets.find((s) => s.id === setId);
-        if (set) {
-          set.actualWeightKg = actualWeightKg;
-          set.actualReps = actualReps;
-          set.doneAt = doneAt;
-          // An exercise counts as done once every set has been logged.
-          item.done = item.sets.every((s) => s.doneAt);
-          item.doneAt = item.done ? doneAt : null;
-        }
-      }
-    }
+    const itemId = String(formData.get("itemId") ?? "");
+    const siblings = formData.getAll("siblingSetId").map(String);
+
+    await writeDemoData((data) => {
+      data.setEdits[setId] = { actualWeightKg, actualReps, doneAt };
+      if (!itemId) return;
+      // An exercise counts as done once every one of its sets has been logged.
+      const allDone = siblings.every((id) => id === setId || data.setEdits[id]?.doneAt);
+      data.itemEdits[itemId] = {
+        ...data.itemEdits[itemId],
+        done: allDone,
+        doneAt: allDone ? doneAt : null,
+      };
+    });
   } else {
     await supabase
       .from("workout_sets")
@@ -1504,13 +1502,9 @@ export async function skipExercise(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    for (const workout of demoWorkouts) {
-      const item = workout.items.find((i) => i.id === itemId);
-      if (item) {
-        item.skippedReason = reason;
-        item.done = false;
-      }
-    }
+    await writeDemoData((data) => {
+      data.itemEdits[itemId] = { ...data.itemEdits[itemId], skippedReason: reason, done: false };
+    });
   } else {
     await supabase.from("workout_items").update({ skipped_reason: reason, done: false }).eq("id", itemId);
   }
@@ -1534,12 +1528,9 @@ export async function finishWorkout(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const workout = demoWorkouts.find((w) => w.id === workoutId);
-    if (workout) {
-      workout.feeling = feeling;
-      workout.clientNote = note;
-      workout.completedAt = completedAt;
-    }
+    await writeDemoData((data) => {
+      data.workoutEdits[workoutId] = { feeling, clientNote: note, completedAt };
+    });
   } else {
     await supabase
       .from("workouts")

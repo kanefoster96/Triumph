@@ -182,6 +182,13 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
             >
               <form action={logSet} className="flex flex-wrap items-end gap-3">
                 <input type="hidden" name="setId" value={set.id} />
+                {/* An exercise is done once every one of its sets is, and the
+                    server has no cheap way back from a set to its siblings
+                    when the day was generated rather than stored. */}
+                <input type="hidden" name="itemId" value={item.id} />
+                {item.sets.map((sibling) => (
+                  <input key={sibling.id} type="hidden" name="siblingSetId" value={sibling.id} />
+                ))}
 
                 <span className="w-14 shrink-0">
                   <span className={fieldLabel}>Set</span>

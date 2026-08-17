@@ -441,12 +441,68 @@ export async function getAllSessions(): Promise<Array<CoachSession & { clientNam
 // Workouts
 // ---------------------------------------------------------------------------
 
+/**
+ * Lay the client's own edits over a workout.
+ *
+ * The workout itself is either seed data or generated from the plan; what they
+ * did to it — ticks, logged sets, the note at the end — lives in the demo
+ * store, keyed by id. Applied on every read so it does not matter which of the
+ * two produced the workout.
+ */
+async function withWorkoutEdits(workout: Workout): Promise<Workout> {
+  const { workoutEdits, itemEdits, setEdits, startedWorkouts } = await demoData();
+  const edit = workoutEdits[workout.id];
+
+  return {
+    ...workout,
+    completedAt: edit?.completedAt !== undefined ? edit.completedAt : workout.completedAt,
+    clientNote: edit?.clientNote !== undefined ? edit.clientNote : workout.clientNote,
+    feeling: edit?.feeling !== undefined ? edit.feeling : workout.feeling,
+    // Once begun it is theirs, not a preview of the plan.
+    fromPlan: workout.fromPlan && !startedWorkouts.includes(workout.id),
+    items: workout.items.map((item) => {
+      const patch = itemEdits[item.id];
+      return {
+        ...item,
+        done: patch?.done ?? item.done,
+        doneAt: patch?.doneAt !== undefined ? patch.doneAt : item.doneAt,
+        skippedReason:
+          patch?.skippedReason !== undefined ? patch.skippedReason : item.skippedReason,
+        sets: item.sets.map((set) => {
+          const s = setEdits[set.id];
+          return s ? { ...set, ...s } : set;
+        }),
+      };
+    }),
+  };
+}
+
 export async function getWorkouts(clientId: string): Promise<Workout[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoWorkouts
-      .filter((w) => w.clientId === clientId)
-      .sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor));
+    const seeded = await Promise.all(
+      demoWorkouts.filter((w) => w.clientId === clientId).map(withWorkoutEdits),
+    );
+
+    // A plan day the client has begun counts as a workout of theirs, the same
+    // as the row Supabase would have created. Rebuilt from the plan rather
+    // than copied, and claimed only when the rebuilt id matches — that is what
+    // proves the started day belongs to this client's block.
+    const { startedWorkouts } = await demoData();
+    const block = startedWorkouts.length > 0 ? await getPlanBlock(clientId) : null;
+    const started: Workout[] = [];
+    if (block) {
+      for (const id of startedWorkouts) {
+        const date = id.startsWith("plan:") ? id.split(":")[2] : null;
+        if (!date || seeded.some((w) => w.scheduledFor === date)) continue;
+        const day = await getPlanDay(block, date, "workout");
+        if (!day || day.isRest || day.exercises.length === 0) continue;
+        const built = workoutFromPlan(clientId, date, day);
+        if (built.id === id) started.push(await withWorkoutEdits(built));
+      }
+    }
+
+    return [...seeded, ...started].sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor));
   }
 
   const { data } = await supabase
@@ -473,7 +529,7 @@ export async function getWorkoutFor(clientId: string, date: string): Promise<Wor
 
   const planned = await getPlanDay(block, date, "workout");
   if (!planned || planned.isRest || planned.exercises.length === 0) return null;
-  return workoutFromPlan(clientId, date, planned);
+  return withWorkoutEdits(workoutFromPlan(clientId, date, planned));
 }
 
 /** A plan day rendered as a workout, before the client has started it. */
