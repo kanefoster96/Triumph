@@ -8,6 +8,8 @@ import { site } from "@/lib/data/site";
 import {
   demoCheckIns,
   demoComments,
+  demoExercises,
+  demoMeals,
   demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
@@ -18,7 +20,7 @@ import {
   demoWorkouts,
 } from "./demo";
 import { DEMO_ROLE_COOKIE, getCurrentProfile, shiftDate, today } from "./service";
-import type { CommentTarget } from "./types";
+import type { CommentTarget, MealTag } from "./types";
 
 /**
  * Writes for the members' area and Dean's admin.
@@ -271,6 +273,12 @@ export async function saveWorkout(formData: FormData) {
       position: item.position,
       label: item.label,
       target: item.target,
+      exerciseId: null,
+      muscleGroup: null,
+      equipment: null,
+      howTo: null,
+      skippedReason: null,
+      sets: [],
       // Keep tick state for items whose label has not changed.
       done: existing?.items.find((i) => i.label === item.label)?.done ?? false,
       doneAt: existing?.items.find((i) => i.label === item.label)?.doneAt ?? null,
@@ -290,7 +298,9 @@ export async function saveWorkout(formData: FormData) {
         suggestedTime,
         coachNotes,
         clientNote: null,
+        feeling: null,
         completedAt: null,
+        fromPlan: false,
         items,
       });
     }
@@ -666,6 +676,12 @@ export async function assignSessionPlan(formData: FormData) {
         position: item.position,
         label: item.label,
         target: item.target,
+        exerciseId: null,
+        muscleGroup: null,
+        equipment: null,
+        howTo: null,
+        skippedReason: null,
+        sets: [],
         done: false,
         doneAt: null,
       }));
@@ -685,7 +701,9 @@ export async function assignSessionPlan(formData: FormData) {
           suggestedTime,
           coachNotes: plan.notes,
           clientNote: null,
+          feeling: null,
           completedAt: null,
+          fromPlan: false,
           items,
         });
       }
@@ -885,13 +903,21 @@ async function repeatCurrentWeek(clientId: string, weeks: number): Promise<numbe
         suggestedTime: template.suggestedTime,
         coachNotes: template.coachNotes,
         clientNote: null,
+        feeling: null,
         completedAt: null,
+        fromPlan: false,
         items: template.items.map((item) => ({
           id: crypto.randomUUID(),
           workoutId: id,
           position: item.position,
           label: item.label,
           target: item.target,
+          exerciseId: null,
+          muscleGroup: null,
+          equipment: null,
+          howTo: null,
+          skippedReason: null,
+          sets: [],
           done: false,
           doneAt: null,
         })),
@@ -1109,6 +1135,186 @@ export async function recordCheckIn(formData: FormData) {
 
   // The client reads the note where they read everything else from Dean.
   await addComment(clientId, "check_in", checkInId, note);
+
+  refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Libraries
+// ---------------------------------------------------------------------------
+
+/** "Porridge oats | 60 | g" — the unit is optional, the quantity nearly is. */
+function parseIngredients(input: string) {
+  return input
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, position) => {
+      const [name, quantity, unit] = line.split("|").map((part) => part.trim());
+      const amount = quantity ? Number(quantity) : NaN;
+      return {
+        position,
+        name: name || "Ingredient",
+        quantity: Number.isFinite(amount) ? amount : null,
+        unit: unit || null,
+      };
+    });
+}
+
+export async function saveExercise(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "") || null;
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  const fields = {
+    name,
+    muscleGroup: String(formData.get("muscleGroup") ?? "").trim() || null,
+    equipment: String(formData.get("equipment") ?? "").trim() || null,
+    howTo: String(formData.get("howTo") ?? "").trim() || null,
+  };
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = id ? demoExercises.find((e) => e.id === id) : null;
+    if (existing) Object.assign(existing, fields);
+    else demoExercises.push({ id: crypto.randomUUID(), ...fields, archivedAt: null });
+  } else {
+    const row = {
+      name: fields.name,
+      muscle_group: fields.muscleGroup,
+      equipment: fields.equipment,
+      how_to: fields.howTo,
+    };
+    if (id) await supabase.from("exercises").update(row).eq("id", id);
+    else await supabase.from("exercises").insert(row);
+  }
+
+  refresh();
+}
+
+/**
+ * Archive rather than delete. Past logs keep their snapshot either way, but a
+ * plan still using it needs to stay readable so it can be flagged.
+ */
+export async function archiveExercise(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  const archivedAt = new Date().toISOString();
+
+  if (!supabase) {
+    const existing = demoExercises.find((e) => e.id === id);
+    if (existing) existing.archivedAt = existing.archivedAt ? null : archivedAt;
+  } else {
+    const { data } = await supabase.from("exercises").select("archived_at").eq("id", id).single();
+    await supabase
+      .from("exercises")
+      .update({ archived_at: data?.archived_at ? null : archivedAt })
+      .eq("id", id);
+  }
+
+  refresh();
+}
+
+export async function saveMeal(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "") || null;
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+
+  const number = (key: string) => {
+    const value = Number(formData.get(key));
+    return Number.isFinite(value) && value > 0 ? Math.round(value) : null;
+  };
+
+  const tag = String(formData.get("tag") ?? "lunch") as MealTag;
+  const ingredients = parseIngredients(String(formData.get("ingredients") ?? ""));
+  const method = String(formData.get("method") ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const fields = {
+    name,
+    tag,
+    calories: number("calories"),
+    proteinG: number("protein"),
+    carbsG: number("carbs"),
+    fatG: number("fat"),
+  };
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = id ? demoMeals.find((m) => m.id === id) : null;
+    const built = {
+      ...fields,
+      ingredients: ingredients.map((i) => ({ id: crypto.randomUUID(), ...i })),
+      method,
+    };
+    if (existing) Object.assign(existing, built);
+    else demoMeals.push({ id: crypto.randomUUID(), ...built, archivedAt: null });
+  } else {
+    const row = {
+      name: fields.name,
+      tag: fields.tag,
+      calories: fields.calories,
+      protein_g: fields.proteinG,
+      carbs_g: fields.carbsG,
+      fat_g: fields.fatG,
+    };
+
+    const mealId = id
+      ? ((await supabase.from("meals").update(row).eq("id", id).select("id").single()).data?.id ?? null)
+      : ((await supabase.from("meals").insert(row).select("id").single()).data?.id ?? null);
+    if (!mealId) return;
+
+    await supabase.from("meal_ingredients").delete().eq("meal_id", mealId);
+    if (ingredients.length > 0) {
+      await supabase.from("meal_ingredients").insert(ingredients.map((i) => ({ meal_id: mealId, ...i })));
+    }
+
+    await supabase.from("meal_steps").delete().eq("meal_id", mealId);
+    if (method.length > 0) {
+      await supabase
+        .from("meal_steps")
+        .insert(method.map((body, position) => ({ meal_id: mealId, position, body })));
+    }
+  }
+
+  refresh();
+}
+
+export async function archiveMeal(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  const archivedAt = new Date().toISOString();
+
+  if (!supabase) {
+    const existing = demoMeals.find((m) => m.id === id);
+    if (existing) existing.archivedAt = existing.archivedAt ? null : archivedAt;
+  } else {
+    const { data } = await supabase.from("meals").select("archived_at").eq("id", id).single();
+    await supabase
+      .from("meals")
+      .update({ archived_at: data?.archived_at ? null : archivedAt })
+      .eq("id", id);
+  }
 
   refresh();
 }

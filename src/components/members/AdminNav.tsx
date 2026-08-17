@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ClipboardCheck, ClipboardList, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/admin", label: "Clients", icon: Users },
   { href: "/admin/checkin", label: "Check-ins", icon: ClipboardCheck },
-  { href: "/admin/plans", label: "Plans", icon: ClipboardList },
+  { href: "/admin/library", label: "Library", icon: BookOpen },
   { href: "/admin/schedule", label: "Schedule", icon: CalendarDays },
 ];
 

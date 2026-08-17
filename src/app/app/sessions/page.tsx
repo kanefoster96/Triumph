@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 import { CalendarDays, Clock, Dumbbell, MapPin } from "lucide-react";
-import { getCurrentProfile, getSessions, getWorkouts, partitionSessions, today } from "@/lib/members/service";
+import {
+  getCurrentProfile,
+  getSessions,
+  getTrainingDates,
+  getWorkoutFor,
+  partitionSessions,
+  shiftDate,
+  today,
+} from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { MonthCalendar, resolveCalendarParams, type DayMarker } from "@/components/members/MonthCalendar";
 import { Chip } from "@/components/ui/Chip";
@@ -65,7 +73,16 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
     now,
   );
 
-  const [sessions, workouts] = await Promise.all([getSessions(profile.id), getWorkouts(profile.id)]);
+  // The plan is generated rather than written out in advance, so the calendar
+  // asks for the whole visible month plus the stretch "Coming up" reaches into.
+  const monthStart = `${month}-01`;
+  const rangeFrom = monthStart < now ? monthStart : now;
+  const rangeTo = [shiftDate(monthStart, 40), shiftDate(now, 28)].sort().at(-1) as string;
+
+  const [sessions, trainingDates] = await Promise.all([
+    getSessions(profile.id),
+    getTrainingDates(profile.id, rangeFrom, rangeTo),
+  ]);
   const { past } = await partitionSessions(sessions);
 
   const markers: Record<string, DayMarker> = {};
@@ -73,18 +90,24 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
     const day = session.startsAt.slice(0, 10);
     markers[day] = { ...markers[day], session: true };
   }
-  for (const workout of workouts) {
-    markers[workout.scheduledFor] = { ...markers[workout.scheduledFor], workout: true };
+  for (const date of trainingDates) {
+    markers[date] = { ...markers[date], workout: true };
   }
+
+  const upcomingDates = trainingDates.filter((d) => d >= now).slice(0, 8);
+  const [selectedWorkout, ...upcomingWorkouts] = await Promise.all([
+    getWorkoutFor(profile.id, selected),
+    ...upcomingDates.map((date) => getWorkoutFor(profile.id, date)),
+  ]);
 
   const onSelectedDay = toPlanned(
     sessions.filter((s) => s.startsAt.slice(0, 10) === selected),
-    workouts.filter((w) => w.scheduledFor === selected),
+    selectedWorkout ? [selectedWorkout] : [],
   );
 
   const comingUp = toPlanned(
     sessions.filter((s) => s.status === "scheduled" && s.startsAt.slice(0, 10) >= now),
-    workouts.filter((w) => w.scheduledFor >= now),
+    upcomingWorkouts.filter((w): w is NonNullable<typeof w> => Boolean(w)),
   ).slice(0, 8);
 
   return (

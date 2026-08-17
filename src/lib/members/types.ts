@@ -44,7 +44,16 @@ export interface WorkoutItem {
   workoutId: string;
   position: number;
   label: string;
+  /** Legacy free-text target. Days built from the library use `sets` instead. */
   target: string | null;
+  /** Links back to the library for trends; null on legacy free-text days. */
+  exerciseId: string | null;
+  muscleGroup: string | null;
+  equipment: string | null;
+  howTo: string | null;
+  /** Set when the client passed on it, with their reason. */
+  skippedReason: string | null;
+  sets: WorkoutSet[];
   done: boolean;
   doneAt: string | null;
 }
@@ -59,8 +68,12 @@ export interface Workout {
   suggestedTime: string | null;
   coachNotes: string | null;
   clientNote: string | null;
+  /** 5 (most positive) down to 1, asked once the workout is finished. */
+  feeling: number | null;
   completedAt: string | null;
   items: WorkoutItem[];
+  /** True when this day came from the plan and has not been started yet. */
+  fromPlan: boolean;
 }
 
 export interface FoodPlanMeal {
@@ -239,4 +252,193 @@ export interface ClientOverview {
   calorieTarget: number | null;
   latestWeight: WeightEntry | null;
   nextSession: CoachSession | null;
+}
+
+// ---------------------------------------------------------------------------
+// Libraries
+// ---------------------------------------------------------------------------
+
+export type MealTag = "breakfast" | "lunch" | "dinner" | "snack";
+export type PlanKind = "workout" | "food";
+
+/** Reusable across every client. Archived rather than deleted. */
+export interface Exercise {
+  id: string;
+  name: string;
+  muscleGroup: string | null;
+  equipment: string | null;
+  /** Optional cue, shown to the client while they train. */
+  howTo: string | null;
+  archivedAt: string | null;
+}
+
+export interface Ingredient {
+  id: string;
+  position: number;
+  name: string;
+  /** Kept apart from the unit so a shopping list can scale and merge. */
+  quantity: number | null;
+  unit: string | null;
+}
+
+export interface Meal {
+  id: string;
+  name: string;
+  tag: MealTag;
+  /** Per single serving; a plan slot scales these. */
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  ingredients: Ingredient[];
+  /** Ordered steps, never containing quantities. May be empty. */
+  method: string[];
+  archivedAt: string | null;
+}
+
+/** A meal with every amount already scaled by a client's multiplier. */
+export interface ScaledMeal {
+  meal: Meal;
+  multiplier: number;
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  ingredients: Array<Ingredient & { quantity: number | null }>;
+}
+
+// ---------------------------------------------------------------------------
+// The repeating plan
+// ---------------------------------------------------------------------------
+
+export interface PlanBlock {
+  id: string;
+  clientId: string;
+  /** 1 = the same week every week, 2 = alternating weeks. */
+  cycleWeeks: number;
+  /** Anchors day 0 and is the date the block takes over from the old system. */
+  startsOn: string;
+}
+
+/** One set's target. Sets differ — 10 / 8 / 6 up a ladder is the normal case. */
+export interface PlanSet {
+  id: string;
+  position: number;
+  targetWeightKg: number | null;
+  targetReps: number | null;
+}
+
+export interface PlanExercise {
+  id: string;
+  position: number;
+  exerciseId: string;
+  /** Snapshot-free: read live from the library so corrections propagate. */
+  name: string;
+  muscleGroup: string | null;
+  equipment: string | null;
+  howTo: string | null;
+  /** True when the library item has been archived out from under the plan. */
+  archived: boolean;
+  notes: string | null;
+  sets: PlanSet[];
+}
+
+export interface PlanMealSlot {
+  id: string;
+  slot: MealTag;
+  position: number;
+  meal: Meal;
+  multiplier: number;
+  archived: boolean;
+}
+
+/**
+ * One day of the cycle as it stands on a given date. `revisionId` is null when
+ * the day has never been set.
+ */
+export interface PlanDay {
+  revisionId: string | null;
+  dayIndex: number;
+  kind: PlanKind;
+  isRest: boolean;
+  /** Whether this came from a one-off change rather than the repeating shape. */
+  oneOff: boolean;
+  title: string | null;
+  suggestedTime: string | null;
+  coachNotes: string | null;
+  calorieTarget: number | null;
+  proteinTarget: number | null;
+  exercises: PlanExercise[];
+  meals: PlanMealSlot[];
+}
+
+/** How far an edit reaches. */
+export type EditScope = "date" | "weekday";
+
+// ---------------------------------------------------------------------------
+// Logged training
+// ---------------------------------------------------------------------------
+
+export interface WorkoutSet {
+  id: string;
+  position: number;
+  targetWeightKg: number | null;
+  targetReps: number | null;
+  actualWeightKg: number | null;
+  actualReps: number | null;
+  doneAt: string | null;
+}
+
+/** What the client last did on an exercise, shown beside the next target. */
+export interface LastEffort {
+  on: string;
+  sets: Array<{ weightKg: number | null; reps: number | null }>;
+  feeling: number | null;
+}
+
+export interface MealLog {
+  id: string;
+  clientId: string;
+  loggedFor: string;
+  slot: MealTag;
+  mealId: string | null;
+  name: string;
+  multiplier: number;
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+}
+
+export interface FoodDayFeedback {
+  feeling: number | null;
+  note: string | null;
+}
+
+/** One line of a shopping list, merged across every meal that needs it. */
+export interface ShoppingLine {
+  name: string;
+  unit: string | null;
+  quantity: number | null;
+  /** Meals it is needed for, so the client can see why it is on the list. */
+  usedIn: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Review signals
+// ---------------------------------------------------------------------------
+
+/** Target against actual for one exercise across recent sessions. */
+export interface ExerciseTrend {
+  exerciseId: string;
+  name: string;
+  sessions: Array<{
+    on: string;
+    targetReps: number | null;
+    actualReps: number | null;
+    targetWeightKg: number | null;
+    actualWeightKg: number | null;
+  }>;
+  /** True when actual reps fell short of target in the last two sessions. */
+  slipping: boolean;
 }

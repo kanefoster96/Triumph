@@ -85,6 +85,79 @@ create index sessions_client_starts_idx on public.sessions (client_id, starts_at
 -- Workouts — a checklist of criteria Dean sets, ticked off by the client
 -- ---------------------------------------------------------------------------
 
+-- ---------------------------------------------------------------------------
+-- Libraries
+--
+-- Built once, shared across every client. A plan references a library item
+-- rather than copying it, so a correction reaches every future day at once.
+-- Completed logs snapshot what they need, so history never moves underneath
+-- anyone — the exception is meal method text, which is instructional rather
+-- than tracked data and is always read live.
+--
+-- Nothing is hard deleted: archiving keeps past logs readable and lets a plan
+-- still using the item be flagged rather than silently broken.
+-- ---------------------------------------------------------------------------
+
+create table public.exercises (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,
+  muscle_group text,
+  equipment    text,
+  -- Optional coaching cue, shown to the client while they train.
+  how_to       text,
+  archived_at  timestamptz,
+  created_at   timestamptz not null default now()
+);
+
+create index exercises_name_idx on public.exercises (lower(name));
+
+create type public.meal_tag as enum ('breakfast', 'lunch', 'dinner', 'snack');
+
+create table public.meals (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  tag         public.meal_tag not null default 'lunch',
+  -- Per single serving. A plan slot scales these by its multiplier.
+  calories    int,
+  protein_g   int,
+  carbs_g     int,
+  fat_g       int,
+  archived_at timestamptz,
+  created_at  timestamptz not null default now()
+);
+
+create index meals_tag_idx on public.meals (tag, calories);
+
+-- Split into quantity and unit so a shopping list can scale by a client's
+-- multiplier and merge the same ingredient across meals into one line.
+create table public.meal_ingredients (
+  id       uuid primary key default gen_random_uuid(),
+  meal_id  uuid not null references public.meals(id) on delete cascade,
+  position int not null default 0,
+  name     text not null,
+  quantity numeric(8, 2),
+  unit     text
+);
+
+create index meal_ingredients_meal_idx on public.meal_ingredients (meal_id, position);
+
+-- The method carries no quantities — every amount lives in meal_ingredients,
+-- where it can be scaled. That is also why steps are safe to edit in place:
+-- fixing a wrong instruction should reach everyone, including on a day they
+-- have already cooked it.
+create table public.meal_steps (
+  id       uuid primary key default gen_random_uuid(),
+  meal_id  uuid not null references public.meals(id) on delete cascade,
+  position int not null default 0,
+  body     text not null
+);
+
+create index meal_steps_meal_idx on public.meal_steps (meal_id, position);
+
+-- ---------------------------------------------------------------------------
+-- Workouts — what was asked for, and what actually happened
+-- ---------------------------------------------------------------------------
+
 create table public.workouts (
   id            uuid primary key default gen_random_uuid(),
   client_id     uuid not null references public.profiles(id) on delete cascade,
@@ -96,6 +169,8 @@ create table public.workouts (
   coach_notes   text,
   -- The client's own note: how it felt, weights used.
   client_note   text,
+  -- 5 (💪) down to 1 (👎), asked once the workout is finished.
+  feeling       int check (feeling between 1 and 5),
   completed_at  timestamptz,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
@@ -104,18 +179,43 @@ create table public.workouts (
 
 create index workouts_client_date_idx on public.workouts (client_id, scheduled_for desc);
 
+-- One row per exercise in a workout. `label`, `muscle_group` and `equipment`
+-- are a snapshot taken when the day was written: renaming a library exercise
+-- tidies future plans and never rewrites what someone already did.
 create table public.workout_items (
-  id         uuid primary key default gen_random_uuid(),
-  workout_id uuid not null references public.workouts(id) on delete cascade,
-  position   int not null default 0,
-  label      text not null,
-  -- Optional target, e.g. "3 x 5 @ 80kg".
-  target     text,
-  done       boolean not null default false,
-  done_at    timestamptz
+  id           uuid primary key default gen_random_uuid(),
+  workout_id   uuid not null references public.workouts(id) on delete cascade,
+  position     int not null default 0,
+  label        text not null,
+  -- Optional target, e.g. "3 x 5 @ 80kg". Legacy free-text days still use it;
+  -- days built from the library carry per-set targets in workout_sets instead.
+  target       text,
+  exercise_id  uuid references public.exercises(id) on delete set null,
+  muscle_group text,
+  equipment    text,
+  -- Set when the client passed on it, with their reason.
+  skipped_reason text,
+  done         boolean not null default false,
+  done_at      timestamptz
 );
 
 create index workout_items_workout_idx on public.workout_items (workout_id, position);
+create index workout_items_exercise_idx on public.workout_items (exercise_id);
+
+-- What the client was asked to lift, and what they actually lifted. Both are
+-- kept: the gap between them is the whole progression signal.
+create table public.workout_sets (
+  id               uuid primary key default gen_random_uuid(),
+  workout_item_id  uuid not null references public.workout_items(id) on delete cascade,
+  position         int not null default 0,
+  target_weight_kg numeric(6, 2),
+  target_reps      int,
+  actual_weight_kg numeric(6, 2),
+  actual_reps      int,
+  done_at          timestamptz
+);
+
+create index workout_sets_item_idx on public.workout_sets (workout_item_id, position);
 
 -- ---------------------------------------------------------------------------
 -- Food — Dean assigns meals and/or a calorie target; the client logs against it
@@ -160,8 +260,134 @@ create table public.food_logs (
 
 create index food_logs_client_date_idx on public.food_logs (client_id, logged_for desc);
 
+-- What the client ticked off their plan. A snapshot, so editing a meal in the
+-- library never changes what someone ate — except the method, which is read
+-- live through meal_id.
+create table public.meal_logs (
+  id         uuid primary key default gen_random_uuid(),
+  client_id  uuid not null references public.profiles(id) on delete cascade,
+  logged_for date not null default current_date,
+  slot       public.meal_tag not null,
+  meal_id    uuid references public.meals(id) on delete set null,
+  name       text not null,
+  multiplier numeric(3, 2) not null default 1,
+  calories   int,
+  protein_g  int,
+  carbs_g    int,
+  fat_g      int,
+  created_at timestamptz not null default now(),
+  unique (client_id, logged_for, slot, meal_id)
+);
+
+create index meal_logs_client_date_idx on public.meal_logs (client_id, logged_for desc);
+
+-- How the eating went, asked the same way a workout asks.
+create table public.food_day_feedback (
+  id         uuid primary key default gen_random_uuid(),
+  client_id  uuid not null references public.profiles(id) on delete cascade,
+  logged_for date not null,
+  feeling    int check (feeling between 1 and 5),
+  note       text,
+  created_at timestamptz not null default now(),
+  unique (client_id, logged_for)
+);
+
+-- ---------------------------------------------------------------------------
+-- Repeating plans
+--
+-- A client's plan is a one or two week block that repeats indefinitely, so it
+-- never runs out and there is nothing to top up. The block holds only the
+-- cycle; each day of it is described by a revision, and the newest revision
+-- that has come into effect wins.
+--
+-- Editing "this weekday from here on" inserts a revision with effective_from.
+-- Editing "just this date" inserts one with only_on. Neither ever rewrites an
+-- older revision and neither is ever dated before today, so a past date always
+-- resolves to what was true at the time.
+--
+-- `starts_on` is both the anchor for day 0 and the date the block takes over.
+-- Days before it resolve to whatever the old per-date system assigned, which
+-- is how existing clients keep every day they have already logged.
+-- ---------------------------------------------------------------------------
+
+create type public.plan_kind as enum ('workout', 'food');
+
+create table public.plan_blocks (
+  id          uuid primary key default gen_random_uuid(),
+  client_id   uuid not null references public.profiles(id) on delete cascade,
+  -- 1 = the same week every week, 2 = alternating weeks.
+  cycle_weeks int not null default 1 check (cycle_weeks in (1, 2)),
+  starts_on   date not null,
+  created_at  timestamptz not null default now(),
+  unique (client_id)
+);
+
+create table public.plan_day_revisions (
+  id             uuid primary key default gen_random_uuid(),
+  block_id       uuid not null references public.plan_blocks(id) on delete cascade,
+  -- 0 .. cycle_weeks * 7 - 1, counted from starts_on.
+  day_index      int not null,
+  kind           public.plan_kind not null,
+  effective_from date not null,
+  -- Set for a one-off change to a single date, which beats any effective_from.
+  only_on        date,
+  -- Workout side.
+  title          text,
+  suggested_time time,
+  coach_notes    text,
+  -- Food side. Either may be null — a day can be a target, meals, or both.
+  calorie_target int,
+  protein_target int,
+  -- A cleared day is an empty revision rather than a missing one, so "Dean
+  -- made this a rest day" is distinguishable from "never set".
+  is_rest        boolean not null default false,
+  created_at     timestamptz not null default now()
+);
+
+create index plan_day_revisions_lookup_idx
+  on public.plan_day_revisions (block_id, kind, day_index, effective_from desc);
+create index plan_day_revisions_only_on_idx
+  on public.plan_day_revisions (block_id, kind, only_on);
+
+create table public.plan_exercises (
+  id          uuid primary key default gen_random_uuid(),
+  revision_id uuid not null references public.plan_day_revisions(id) on delete cascade,
+  exercise_id uuid not null references public.exercises(id) on delete cascade,
+  position    int not null default 0,
+  notes       text
+);
+
+create index plan_exercises_revision_idx on public.plan_exercises (revision_id, position);
+
+-- One row per set, because sets differ: 10 / 8 / 6 up a weight ladder is the
+-- normal case, not the exception.
+create table public.plan_sets (
+  id               uuid primary key default gen_random_uuid(),
+  plan_exercise_id uuid not null references public.plan_exercises(id) on delete cascade,
+  position         int not null default 0,
+  target_weight_kg numeric(6, 2),
+  target_reps      int
+);
+
+create index plan_sets_exercise_idx on public.plan_sets (plan_exercise_id, position);
+
+create table public.plan_meal_slots (
+  id          uuid primary key default gen_random_uuid(),
+  revision_id uuid not null references public.plan_day_revisions(id) on delete cascade,
+  slot        public.meal_tag not null,
+  position    int not null default 0,
+  meal_id     uuid not null references public.meals(id) on delete cascade,
+  -- 0.5, 1, 1.5 or 2. Scales calories, macros and ingredient quantities.
+  multiplier  numeric(3, 2) not null default 1 check (multiplier > 0)
+);
+
+create index plan_meal_slots_revision_idx on public.plan_meal_slots (revision_id, slot, position);
+
 -- ---------------------------------------------------------------------------
 -- Reusable plans — built once by Dean, assigned to many days
+--
+-- Superseded by plan_blocks for anyone on a repeating plan. Kept because
+-- existing clients have days assigned from these, and those days are history.
 -- ---------------------------------------------------------------------------
 
 create table public.session_plans (
@@ -316,6 +542,18 @@ alter table public.session_plans      enable row level security;
 alter table public.session_plan_items enable row level security;
 alter table public.day_plans          enable row level security;
 alter table public.check_ins          enable row level security;
+alter table public.exercises          enable row level security;
+alter table public.meals              enable row level security;
+alter table public.meal_ingredients   enable row level security;
+alter table public.meal_steps         enable row level security;
+alter table public.workout_sets       enable row level security;
+alter table public.meal_logs          enable row level security;
+alter table public.food_day_feedback  enable row level security;
+alter table public.plan_blocks        enable row level security;
+alter table public.plan_day_revisions enable row level security;
+alter table public.plan_exercises     enable row level security;
+alter table public.plan_sets          enable row level security;
+alter table public.plan_meal_slots    enable row level security;
 alter table public.day_plan_meals     enable row level security;
 
 -- Profiles
@@ -433,6 +671,124 @@ create policy "admin manages day plan meals" on public.day_plan_meals
 create policy "read own check ins" on public.check_ins
   for select using (client_id = auth.uid() or public.is_admin());
 create policy "admin records check ins" on public.check_ins
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Libraries: everyone signed in can read them, because a client needs the
+-- exercise cue while they train and the method while they cook. Only Dean
+-- writes.
+create policy "read exercises" on public.exercises
+  for select using (auth.uid() is not null);
+create policy "admin manages exercises" on public.exercises
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read meals" on public.meals
+  for select using (auth.uid() is not null);
+create policy "admin manages meals" on public.meals
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read meal ingredients" on public.meal_ingredients
+  for select using (auth.uid() is not null);
+create policy "admin manages meal ingredients" on public.meal_ingredients
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read meal steps" on public.meal_steps
+  for select using (auth.uid() is not null);
+create policy "admin manages meal steps" on public.meal_steps
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Sets belong to a workout item, which belongs to a workout, which is the row
+-- that actually carries the client. The client logs what they lifted, so they
+-- may update their own; only Dean sets the targets.
+create policy "read own workout sets" on public.workout_sets
+  for select using (
+    exists (
+      select 1 from public.workout_items i
+      join public.workouts w on w.id = i.workout_id
+      where i.id = workout_item_id and (w.client_id = auth.uid() or public.is_admin())
+    )
+  );
+create policy "log own workout sets" on public.workout_sets
+  for update using (
+    exists (
+      select 1 from public.workout_items i
+      join public.workouts w on w.id = i.workout_id
+      where i.id = workout_item_id and (w.client_id = auth.uid() or public.is_admin())
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.workout_items i
+      join public.workouts w on w.id = i.workout_id
+      where i.id = workout_item_id and (w.client_id = auth.uid() or public.is_admin())
+    )
+  );
+create policy "admin writes workout sets" on public.workout_sets
+  for insert with check (public.is_admin());
+create policy "admin deletes workout sets" on public.workout_sets
+  for delete using (public.is_admin());
+
+-- Meal ticks and the food day's rating are the client's own record.
+create policy "read own meal logs" on public.meal_logs
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "write own meal logs" on public.meal_logs
+  for all using (client_id = auth.uid() or public.is_admin())
+  with check (client_id = auth.uid() or public.is_admin());
+
+create policy "read own food feedback" on public.food_day_feedback
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "write own food feedback" on public.food_day_feedback
+  for all using (client_id = auth.uid() or public.is_admin())
+  with check (client_id = auth.uid() or public.is_admin());
+
+-- The repeating plan: the client reads theirs, Dean writes everyone's. The
+-- nested tables reach the client through their block.
+create policy "read own plan block" on public.plan_blocks
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "admin manages plan blocks" on public.plan_blocks
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read own plan revisions" on public.plan_day_revisions
+  for select using (
+    exists (
+      select 1 from public.plan_blocks b
+      where b.id = block_id and (b.client_id = auth.uid() or public.is_admin())
+    )
+  );
+create policy "admin manages plan revisions" on public.plan_day_revisions
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read own plan exercises" on public.plan_exercises
+  for select using (
+    exists (
+      select 1 from public.plan_day_revisions r
+      join public.plan_blocks b on b.id = r.block_id
+      where r.id = revision_id and (b.client_id = auth.uid() or public.is_admin())
+    )
+  );
+create policy "admin manages plan exercises" on public.plan_exercises
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read own plan sets" on public.plan_sets
+  for select using (
+    exists (
+      select 1 from public.plan_exercises e
+      join public.plan_day_revisions r on r.id = e.revision_id
+      join public.plan_blocks b on b.id = r.block_id
+      where e.id = plan_exercise_id and (b.client_id = auth.uid() or public.is_admin())
+    )
+  );
+create policy "admin manages plan sets" on public.plan_sets
+  for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "read own plan meal slots" on public.plan_meal_slots
+  for select using (
+    exists (
+      select 1 from public.plan_day_revisions r
+      join public.plan_blocks b on b.id = r.block_id
+      where r.id = revision_id and (b.client_id = auth.uid() or public.is_admin())
+    )
+  );
+create policy "admin manages plan meal slots" on public.plan_meal_slots
   for all using (public.is_admin()) with check (public.is_admin());
 
 -- ---------------------------------------------------------------------------

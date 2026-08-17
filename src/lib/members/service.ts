@@ -6,6 +6,11 @@ import {
   DEMO_CLIENT_ID,
   demoCheckIns,
   demoComments,
+  demoExercises,
+  demoMeals,
+  demoMealLogs,
+  demoPlanBlocks,
+  demoPlanRevisions,
   demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
@@ -25,9 +30,17 @@ import type {
   CommentTarget,
   DashboardSummary,
   DayPlan,
+  Exercise,
   FoodLog,
   FoodPlan,
+  Meal,
+  MealLog,
+  PlanBlock,
+  PlanDay,
+  PlanKind,
+  PlanSet,
   Profile,
+  ScaledMeal,
   SessionPlan,
   SessionStatus,
   WeightEntry,
@@ -89,7 +102,9 @@ function toWorkout(row: any): Workout {
     suggestedTime: row.suggested_time ? String(row.suggested_time).slice(0, 5) : null,
     coachNotes: row.coach_notes ?? null,
     clientNote: row.client_note ?? null,
+    feeling: row.feeling ?? null,
     completedAt: row.completed_at ?? null,
+    fromPlan: false,
     items: (row.workout_items ?? [])
       .map((item: any) => ({
         id: item.id,
@@ -97,6 +112,22 @@ function toWorkout(row: any): Workout {
         position: item.position,
         label: item.label,
         target: item.target ?? null,
+        exerciseId: item.exercise_id ?? null,
+        muscleGroup: item.muscle_group ?? null,
+        equipment: item.equipment ?? null,
+        howTo: null,
+        skippedReason: item.skipped_reason ?? null,
+        sets: (item.workout_sets ?? [])
+          .map((set: any) => ({
+            id: set.id,
+            position: set.position,
+            targetWeightKg: set.target_weight_kg === null ? null : Number(set.target_weight_kg),
+            targetReps: set.target_reps ?? null,
+            actualWeightKg: set.actual_weight_kg === null ? null : Number(set.actual_weight_kg),
+            actualReps: set.actual_reps ?? null,
+            doneAt: set.done_at ?? null,
+          }))
+          .sort((a: any, b: any) => a.position - b.position),
         done: item.done,
         doneAt: item.done_at ?? null,
       }))
@@ -172,6 +203,104 @@ function toCheckIn(row: any): CheckIn {
     weeksPlanned: row.weeks_planned ?? 0,
     nextReviewOn: row.next_review_on,
     createdAt: row.created_at,
+  };
+}
+
+function toExercise(row: any): Exercise {
+  return {
+    id: row.id,
+    name: row.name,
+    muscleGroup: row.muscle_group ?? null,
+    equipment: row.equipment ?? null,
+    howTo: row.how_to ?? null,
+    archivedAt: row.archived_at ?? null,
+  };
+}
+
+function toMeal(row: any): Meal {
+  return {
+    id: row.id,
+    name: row.name,
+    tag: row.tag,
+    calories: row.calories ?? null,
+    proteinG: row.protein_g ?? null,
+    carbsG: row.carbs_g ?? null,
+    fatG: row.fat_g ?? null,
+    ingredients: (row.meal_ingredients ?? [])
+      .map((i: any) => ({
+        id: i.id,
+        position: i.position,
+        name: i.name,
+        quantity: i.quantity === null || i.quantity === undefined ? null : Number(i.quantity),
+        unit: i.unit ?? null,
+      }))
+      .sort((a: any, b: any) => a.position - b.position),
+    method: (row.meal_steps ?? [])
+      .slice()
+      .sort((a: any, b: any) => a.position - b.position)
+      .map((s: any) => s.body),
+    archivedAt: row.archived_at ?? null,
+  };
+}
+
+function toPlanBlock(row: any): PlanBlock {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    cycleWeeks: row.cycle_weeks,
+    startsOn: row.starts_on,
+  };
+}
+
+function toRevision(row: any): RawRevision {
+  return {
+    id: row.id,
+    blockId: row.block_id,
+    dayIndex: row.day_index,
+    kind: row.kind,
+    effectiveFrom: row.effective_from,
+    onlyOn: row.only_on ?? null,
+    title: row.title ?? null,
+    suggestedTime: row.suggested_time ? String(row.suggested_time).slice(0, 5) : null,
+    coachNotes: row.coach_notes ?? null,
+    calorieTarget: row.calorie_target ?? null,
+    proteinTarget: row.protein_target ?? null,
+    isRest: Boolean(row.is_rest),
+    exercises: (row.plan_exercises ?? []).map((e: any) => ({
+      id: e.id,
+      position: e.position,
+      exerciseId: e.exercise_id,
+      notes: e.notes ?? null,
+      sets: (e.plan_sets ?? []).map((set: any) => ({
+        id: set.id,
+        position: set.position,
+        targetWeightKg: set.target_weight_kg === null ? null : Number(set.target_weight_kg),
+        targetReps: set.target_reps ?? null,
+      })),
+    })),
+    meals: (row.plan_meal_slots ?? []).map((m: any) => ({
+      id: m.id,
+      slot: m.slot,
+      position: m.position,
+      mealId: m.meal_id,
+      multiplier: Number(m.multiplier),
+    })),
+  };
+}
+
+function toMealLog(row: any): MealLog {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    loggedFor: row.logged_for,
+    slot: row.slot,
+    mealId: row.meal_id ?? null,
+    name: row.name,
+    multiplier: Number(row.multiplier),
+    calories: row.calories ?? null,
+    proteinG: row.protein_g ?? null,
+    carbsG: row.carbs_g ?? null,
+    fatG: row.fat_g ?? null,
   };
 }
 
@@ -292,15 +421,93 @@ export async function getWorkouts(clientId: string): Promise<Workout[]> {
 
   const { data } = await supabase
     .from("workouts")
-    .select("*, workout_items(*)")
+    .select("*, workout_items(*, workout_sets(*))")
     .eq("client_id", clientId)
     .order("scheduled_for", { ascending: false });
   return (data ?? []).map(toWorkout);
 }
 
+/**
+ * The workout for a date.
+ *
+ * A logged row wins — once the client has touched a day, that day is what they
+ * did. Otherwise it is generated from the repeating plan. Dates before the
+ * block starts have no plan to generate from, which is how every day assigned
+ * under the old system stays exactly as it was.
+ */
 export async function getWorkoutFor(clientId: string, date: string): Promise<Workout | null> {
-  const workouts = await getWorkouts(clientId);
-  return workouts.find((w) => w.scheduledFor === date) ?? null;
+  const [workouts, block] = await Promise.all([getWorkouts(clientId), getPlanBlock(clientId)]);
+  const logged = workouts.find((w) => w.scheduledFor === date);
+  if (logged) return logged;
+  if (!block) return null;
+
+  const planned = await getPlanDay(block, date, "workout");
+  if (!planned || planned.isRest || planned.exercises.length === 0) return null;
+  return workoutFromPlan(clientId, date, planned);
+}
+
+/** A plan day rendered as a workout, before the client has started it. */
+export function workoutFromPlan(clientId: string, date: string, day: PlanDay): Workout {
+  const workoutId = `plan:${day.revisionId ?? "none"}:${date}`;
+  return {
+    id: workoutId,
+    clientId,
+    scheduledFor: date,
+    title: day.title ?? "Workout",
+    suggestedTime: day.suggestedTime,
+    coachNotes: day.coachNotes,
+    clientNote: null,
+    feeling: null,
+    completedAt: null,
+    fromPlan: true,
+    items: day.exercises.map((exercise) => ({
+      id: exercise.id,
+      workoutId,
+      position: exercise.position,
+      label: exercise.name,
+      target: null,
+      exerciseId: exercise.exerciseId,
+      muscleGroup: exercise.muscleGroup,
+      equipment: exercise.equipment,
+      howTo: exercise.howTo,
+      skippedReason: null,
+      sets: exercise.sets.map((set) => ({
+        id: set.id,
+        position: set.position,
+        targetWeightKg: set.targetWeightKg,
+        targetReps: set.targetReps,
+        actualWeightKg: null,
+        actualReps: null,
+        doneAt: null,
+      })),
+      done: false,
+      doneAt: null,
+    })),
+  };
+}
+
+/**
+ * Every date in a range the client has training on, logged or planned. Drives
+ * the calendars, which would otherwise show nothing past today now that the
+ * plan is generated rather than written out in advance.
+ */
+export async function getTrainingDates(clientId: string, from: string, to: string): Promise<string[]> {
+  const [workouts, block] = await Promise.all([getWorkouts(clientId), getPlanBlock(clientId)]);
+  const dates = new Set(
+    workouts.filter((w) => w.scheduledFor >= from && w.scheduledFor <= to).map((w) => w.scheduledFor),
+  );
+
+  if (block) {
+    const revisions = await loadRevisions(block.id);
+    for (let cursor = from; cursor <= to; cursor = shiftDate(cursor, 1)) {
+      const dayIndex = dayIndexFor(block, cursor);
+      if (dayIndex === null) continue;
+      const { revision } = pickRevision(revisions, dayIndex, "workout", cursor);
+      if (revision && !revision.isRest && revision.exercises.length > 0) dates.add(cursor);
+    }
+  }
+
+  return [...dates].sort();
 }
 
 // ---------------------------------------------------------------------------
@@ -844,4 +1051,264 @@ export async function getProfile(clientId: string): Promise<Profile | null> {
 
   const { data } = await supabase.from("profiles").select("*").eq("id", clientId).single();
   return data ? toProfile(data) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Libraries
+// ---------------------------------------------------------------------------
+
+export async function getExercises(includeArchived = false): Promise<Exercise[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoExercises
+      .filter((e) => includeArchived || !e.archivedAt)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  let query = supabase.from("exercises").select("*").order("name");
+  if (!includeArchived) query = query.is("archived_at", null);
+  const { data } = await query;
+  return (data ?? []).map(toExercise);
+}
+
+export async function getMeals(includeArchived = false): Promise<Meal[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoMeals
+      .filter((m) => includeArchived || !m.archivedAt)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  let query = supabase.from("meals").select("*, meal_ingredients(*), meal_steps(*)").order("name");
+  if (!includeArchived) query = query.is("archived_at", null);
+  const { data } = await query;
+  return (data ?? []).map(toMeal);
+}
+
+export async function getMeal(id: string): Promise<Meal | null> {
+  const supabase = await createClient();
+  if (!supabase) return demoMeals.find((m) => m.id === id) ?? null;
+
+  const { data } = await supabase
+    .from("meals")
+    .select("*, meal_ingredients(*), meal_steps(*)")
+    .eq("id", id)
+    .single();
+  return data ? toMeal(data) : null;
+}
+
+/**
+ * A meal at a client's multiplier: calories, macros and every ingredient
+ * quantity scaled, so what they read is what they cook.
+ */
+export function scaleMeal(meal: Meal, multiplier: number): ScaledMeal {
+  const scale = (value: number | null) => (value === null ? null : Math.round(value * multiplier));
+
+  return {
+    meal,
+    multiplier,
+    calories: scale(meal.calories),
+    proteinG: scale(meal.proteinG),
+    carbsG: scale(meal.carbsG),
+    fatG: scale(meal.fatG),
+    ingredients: meal.ingredients.map((ingredient) => ({
+      ...ingredient,
+      quantity: ingredient.quantity === null ? null : Number((ingredient.quantity * multiplier).toFixed(2)),
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The repeating plan
+// ---------------------------------------------------------------------------
+
+/** Whole days between two ISO dates, in UTC. */
+export function daysBetween(from: string, to: string): number {
+  const a = Date.UTC(Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1, Number(from.slice(8, 10)));
+  const b = Date.UTC(Number(to.slice(0, 4)), Number(to.slice(5, 7)) - 1, Number(to.slice(8, 10)));
+  return Math.round((b - a) / 86_400_000);
+}
+
+/**
+ * Which day of the cycle a date lands on. Negative dates — before the block
+ * starts — return null, because the block does not govern them.
+ */
+export function dayIndexFor(block: PlanBlock, date: string): number | null {
+  const offset = daysBetween(block.startsOn, date);
+  if (offset < 0) return null;
+  return offset % (block.cycleWeeks * 7);
+}
+
+export async function getPlanBlock(clientId: string): Promise<PlanBlock | null> {
+  const supabase = await createClient();
+  if (!supabase) return demoPlanBlocks.find((b) => b.clientId === clientId) ?? null;
+
+  const { data } = await supabase.from("plan_blocks").select("*").eq("client_id", clientId).maybeSingle();
+  return data ? toPlanBlock(data) : null;
+}
+
+/** Hydrate a revision's exercises and meals from the libraries. */
+function buildPlanDay(
+  revision: RawRevision | null,
+  dayIndex: number,
+  kind: PlanKind,
+  exercises: Exercise[],
+  meals: Meal[],
+  oneOff: boolean,
+): PlanDay {
+  const byExercise = new Map(exercises.map((e) => [e.id, e]));
+  const byMeal = new Map(meals.map((m) => [m.id, m]));
+
+  return {
+    revisionId: revision?.id ?? null,
+    dayIndex,
+    kind,
+    isRest: revision?.isRest ?? false,
+    oneOff,
+    title: revision?.title ?? null,
+    suggestedTime: revision?.suggestedTime ?? null,
+    coachNotes: revision?.coachNotes ?? null,
+    calorieTarget: revision?.calorieTarget ?? null,
+    proteinTarget: revision?.proteinTarget ?? null,
+    exercises: (revision?.exercises ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((entry) => {
+        const library = byExercise.get(entry.exerciseId);
+        return {
+          id: entry.id,
+          position: entry.position,
+          exerciseId: entry.exerciseId,
+          // Read live, so a rename or a corrected cue reaches every future day.
+          name: library?.name ?? "Removed exercise",
+          muscleGroup: library?.muscleGroup ?? null,
+          equipment: library?.equipment ?? null,
+          howTo: library?.howTo ?? null,
+          archived: !library || Boolean(library.archivedAt),
+          notes: entry.notes,
+          sets: entry.sets.slice().sort((a, b) => a.position - b.position),
+        };
+      }),
+    meals: (revision?.meals ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((entry) => {
+        const library = byMeal.get(entry.mealId);
+        return {
+          id: entry.id,
+          slot: entry.slot,
+          position: entry.position,
+          meal: library ?? {
+            id: entry.mealId,
+            name: "Removed meal",
+            tag: entry.slot,
+            calories: null,
+            proteinG: null,
+            carbsG: null,
+            fatG: null,
+            ingredients: [],
+            method: [],
+            archivedAt: new Date(0).toISOString(),
+          },
+          multiplier: entry.multiplier,
+          archived: !library || Boolean(library.archivedAt),
+        };
+      }),
+  };
+}
+
+/**
+ * Pick the revision that governs a date.
+ *
+ * A one-off for exactly this date wins; otherwise the newest revision for this
+ * weekday that has already come into effect. Because revisions are only ever
+ * inserted, and never dated before today, a past date always resolves to what
+ * was true at the time.
+ */
+function pickRevision(revisions: RawRevision[], dayIndex: number, kind: PlanKind, date: string) {
+  const forKind = revisions.filter((r) => r.kind === kind);
+
+  const oneOff = forKind.find((r) => r.onlyOn === date);
+  if (oneOff) return { revision: oneOff, oneOff: true };
+
+  const repeating = forKind
+    .filter((r) => !r.onlyOn && r.dayIndex === dayIndex && r.effectiveFrom <= date)
+    .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+
+  return { revision: repeating.at(-1) ?? null, oneOff: false };
+}
+
+async function loadRevisions(blockId: string): Promise<RawRevision[]> {
+  const supabase = await createClient();
+  if (!supabase) return demoPlanRevisions.filter((r) => r.blockId === blockId);
+
+  const { data } = await supabase
+    .from("plan_day_revisions")
+    .select("*, plan_exercises(*, plan_sets(*)), plan_meal_slots(*)")
+    .eq("block_id", blockId);
+  return (data ?? []).map(toRevision);
+}
+
+/** What the client is meant to do on a date, or null if the block predates it. */
+export async function getPlanDay(block: PlanBlock, date: string, kind: PlanKind): Promise<PlanDay | null> {
+  const dayIndex = dayIndexFor(block, date);
+  if (dayIndex === null) return null;
+
+  const [revisions, exercises, meals] = await Promise.all([
+    loadRevisions(block.id),
+    getExercises(true),
+    getMeals(true),
+  ]);
+
+  const { revision, oneOff } = pickRevision(revisions, dayIndex, kind, date);
+  return buildPlanDay(revision, dayIndex, kind, exercises, meals, oneOff);
+}
+
+/**
+ * The whole cycle as it stands on a date — what the editor shows. One entry per
+ * day of the block, in order.
+ */
+export async function getPlanCycle(block: PlanBlock, onDate: string, kind: PlanKind): Promise<PlanDay[]> {
+  const [revisions, exercises, meals] = await Promise.all([
+    loadRevisions(block.id),
+    getExercises(true),
+    getMeals(true),
+  ]);
+
+  return Array.from({ length: block.cycleWeeks * 7 }, (_, dayIndex) => {
+    // The cycle view is about the repeating shape, so one-off changes to a
+    // particular date are deliberately not folded in here.
+    const repeating = revisions
+      .filter((r) => r.kind === kind && !r.onlyOn && r.dayIndex === dayIndex && r.effectiveFrom <= onDate)
+      .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+
+    return buildPlanDay(repeating.at(-1) ?? null, dayIndex, kind, exercises, meals, false);
+  });
+}
+
+/**
+ * A plan revision before its library items are joined on. Shared between the
+ * Supabase mapper and the demo fixture so both feed the same resolver.
+ */
+export interface RawRevision {
+  id: string;
+  blockId: string;
+  dayIndex: number;
+  kind: PlanKind;
+  effectiveFrom: string;
+  onlyOn: string | null;
+  title: string | null;
+  suggestedTime: string | null;
+  coachNotes: string | null;
+  calorieTarget: number | null;
+  proteinTarget: number | null;
+  isRest: boolean;
+  exercises: Array<{
+    id: string;
+    position: number;
+    exerciseId: string;
+    notes: string | null;
+    sets: PlanSet[];
+  }>;
+  meals: Array<{ id: string; slot: Meal["tag"]; position: number; mealId: string; multiplier: number }>;
 }
