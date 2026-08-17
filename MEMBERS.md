@@ -36,7 +36,7 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | Tab | What it does |
 | --- | --- |
 | **Dashboard** `/app` | Next session, today's workout status, calories vs target, latest weight, new comments from Dean. Every card links to its tab, and there is always one clear next step. |
-| **Sessions** `/app/sessions` | Upcoming and past, with Dean's notes on past ones. |
+| **Sessions** `/app/sessions` | A month calendar marking sessions with Dean and workouts to complete, the picked day's detail, then upcoming and past with Dean's notes. |
 | **Workouts** `/app/workouts` | Today's workout as a checklist. Ticks apply optimistically; the client adds a note. Past workouts keep their completion state and notes. |
 | **Food** `/app/food` | Dean's assigned meals and/or calorie target. Log incrementally or as one end-of-day total, with a running total against target. |
 | **Weight** `/app/weight` | Daily entry plus a trend line and history. |
@@ -48,7 +48,26 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | **Clients** `/admin` | Every client with last activity, on/off track, and today's workout, calories and weight at a glance. |
 | **Client** `/admin/clients/[id]` | The same five tabs the client sees, but editable. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts assigns the checklist and shows what they ticked; Food sets targets and meals; Weight shows the trend and allows corrections. Dean can reply to any note from its tab. |
 | **Plans** `/admin/plans` | Reusable workout plans and food plans, built once and assigned to as many days as needed. Independent of any client. |
-| **Schedule** `/admin/schedule` | Every session across all clients, grouped by day. Anything added shows up in that client's Sessions tab. |
+| **Schedule** `/admin/schedule` | A month calendar of every session across all clients. Pick a day to see it and add to it — client, time, location picker with a free-text override. Anything added shows up in that client's Sessions tab. |
+
+## Calendars
+
+Two things get put on a date, and they are deliberately different.
+
+A **session** is time with Dean, so it is booked from Dean's own **Schedule**:
+pick the day, then the client, the time and where it is. It lands on the
+client's calendar as an accent dot.
+
+A **workout** is the client training alone, so it is assigned from that client's
+**Workouts** tab, which shows their calendar. Dean adds a one-off to the picked
+day, or uses **Plan ahead** to repeat a plan weekly on chosen weekdays. A
+suggested time is optional: give one and the client sees "Suggested 07:00";
+leave it blank and it is simply a workout to complete that day, whenever suits
+them. Workouts carry a muted dot.
+
+Every calendar is built from links, no client JavaScript. The picked day lives
+in the URL (`?month=&date=`), so it survives a refresh and is shareable. The
+selected day is filled, today is outlined.
 
 ## Planning ahead
 

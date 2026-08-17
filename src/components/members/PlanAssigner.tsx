@@ -38,14 +38,7 @@ interface PlanAssignerProps {
  * four weeks and it fills twelve days in one go. Individual days stay
  * editable afterwards.
  */
-export function PlanAssigner({
-  clientId,
-  today,
-  plans,
-  action,
-  noun,
-  emptyHint,
-}: PlanAssignerProps) {
+export function PlanAssigner({ clientId, today, plans, action, noun, emptyHint }: PlanAssignerProps) {
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(addDays(today, 27));
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]);
@@ -114,6 +107,18 @@ export function PlanAssigner({
           />
         </div>
       </div>
+
+      {noun === "workout" ? (
+        <div>
+          <label className={fieldLabel} htmlFor="suggested-time">
+            Suggested time (optional)
+          </label>
+          <input id="suggested-time" className={field} type="time" name="suggestedTime" />
+          <p className="mt-2 text-xs text-faint">
+            Leave empty and it is simply a workout to complete that day, whenever suits them.
+          </p>
+        </div>
+      ) : null}
 
       <fieldset>
         <legend className={fieldLabel}>On these days</legend>

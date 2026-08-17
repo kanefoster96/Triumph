@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getComments, getCurrentProfile, getWorkouts, commentsFor, today } from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
+import { Clock } from "lucide-react";
 import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
 import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
@@ -22,7 +23,17 @@ export default async function WorkoutsPage() {
       <ScreenTitle title="Workouts" subtitle="Tick each item off as you go, then leave Dean a note." />
 
       <div className="space-y-5">
-        <Panel title={todays ? `Today — ${todays.title}` : "Today"}>
+        <Panel
+          title={todays ? `Today — ${todays.title}` : "Today"}
+          action={
+            todays ? (
+              <Chip tone={todays.suggestedTime ? "accent" : "default"}>
+                <Clock className="h-3 w-3" />
+                {todays.suggestedTime ? `Suggested ${todays.suggestedTime}` : "Any time"}
+              </Chip>
+            ) : null
+          }
+        >
           {todays ? (
             <>
               {todays.coachNotes ? (

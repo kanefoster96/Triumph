@@ -2,8 +2,10 @@
 
 **Built so far:** layer 2 (templates) and layer 3 (assignment). Dean creates
 workout and food plans on `/admin/plans` and paints them across a date range
-with weekday selection from a client's Workouts or Food tab. Still to come:
-the libraries underneath them, calorie auto-fill, progression memory and
+with weekday selection from a client's Workouts or Food tab. Both ends are now
+calendar-driven — Dean books sessions from `/admin/schedule`, assigns workouts
+from a client's calendar, and clients see both on theirs. Still to come: the
+libraries underneath the templates, calorie auto-fill, progression memory and
 shopping lists.
 
 Agreed spec, not yet built. The principle: **build once, assign many times.**

@@ -82,6 +82,7 @@ function toWorkout(row: any): Workout {
     clientId: row.client_id,
     scheduledFor: row.scheduled_for,
     title: row.title,
+    suggestedTime: row.suggested_time ? String(row.suggested_time).slice(0, 5) : null,
     coachNotes: row.coach_notes ?? null,
     clientNote: row.client_note ?? null,
     completedAt: row.completed_at ?? null,
@@ -340,10 +341,7 @@ export async function getSessionPlans(): Promise<SessionPlan[]> {
   const supabase = await createClient();
   if (!supabase) return demoSessionPlans;
 
-  const { data } = await supabase
-    .from("session_plans")
-    .select("*, session_plan_items(*)")
-    .order("name");
+  const { data } = await supabase.from("session_plans").select("*, session_plan_items(*)").order("name");
 
   /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
   return (data ?? []).map((row: any) => ({
@@ -446,11 +444,7 @@ export async function getComments(clientId: string): Promise<Comment[]> {
   return (data ?? []).map(toComment);
 }
 
-export function commentsFor(
-  comments: Comment[],
-  targetType: CommentTarget,
-  targetId: string,
-): Comment[] {
+export function commentsFor(comments: Comment[], targetType: CommentTarget, targetId: string): Comment[] {
   return comments
     .filter((c) => c.targetType === targetType && c.targetId === targetId)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -504,8 +498,9 @@ export async function listClients(): Promise<ClientOverview[]> {
   const supabase = await createClient();
 
   const profiles = supabase
-    ? ((await supabase.from("profiles").select("*").eq("role", "client").order("full_name")).data ??
-      []).map(toProfile)
+    ? ((await supabase.from("profiles").select("*").eq("role", "client").order("full_name")).data ?? []).map(
+        toProfile,
+      )
     : demoProfiles.filter((p) => p.role === "client");
 
   return Promise.all(
@@ -548,6 +543,19 @@ export async function listClients(): Promise<ClientOverview[]> {
       };
     }),
   );
+}
+
+/** Just the clients, for pickers. Cheaper than listClients(). */
+export async function getClients(): Promise<Profile[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoProfiles
+      .filter((p) => p.role === "client")
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }
+
+  const { data } = await supabase.from("profiles").select("*").eq("role", "client").order("full_name");
+  return (data ?? []).map(toProfile);
 }
 
 export async function getProfile(clientId: string): Promise<Profile | null> {

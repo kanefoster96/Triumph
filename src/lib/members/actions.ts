@@ -138,9 +138,7 @@ export async function logFood(formData: FormData) {
       createdAt: new Date().toISOString(),
     });
   } else {
-    await supabase
-      .from("food_logs")
-      .insert({ client_id: clientId, logged_for: loggedFor, calories, note });
+    await supabase.from("food_logs").insert({ client_id: clientId, logged_for: loggedFor, calories, note });
   }
 
   refresh();
@@ -172,9 +170,7 @@ export async function logWeight(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoWeightEntries.find(
-      (w) => w.clientId === clientId && w.loggedFor === loggedFor,
-    );
+    const existing = demoWeightEntries.find((w) => w.clientId === clientId && w.loggedFor === loggedFor);
     if (existing) {
       existing.weightKg = weightKg;
       existing.note = note;
@@ -205,11 +201,7 @@ export async function markCommentsRead() {
       if (comment.clientId === profile.id && comment.readAt === null) comment.readAt = now;
     }
   } else {
-    await supabase
-      .from("comments")
-      .update({ read_at: now })
-      .eq("client_id", profile.id)
-      .is("read_at", null);
+    await supabase.from("comments").update({ read_at: now }).eq("client_id", profile.id).is("read_at", null);
   }
 
   refresh();
@@ -261,6 +253,7 @@ export async function saveWorkout(formData: FormData) {
   const clientId = String(formData.get("clientId") ?? "");
   const scheduledFor = String(formData.get("date") ?? today());
   const title = String(formData.get("title") ?? "Workout").trim() || "Workout";
+  const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
   const coachNotes = String(formData.get("coachNotes") ?? "").trim() || null;
   const parsed = parseChecklist(String(formData.get("items") ?? ""));
   if (!clientId || parsed.length === 0) return;
@@ -268,9 +261,7 @@ export async function saveWorkout(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoWorkouts.find(
-      (w) => w.clientId === clientId && w.scheduledFor === scheduledFor,
-    );
+    const existing = demoWorkouts.find((w) => w.clientId === clientId && w.scheduledFor === scheduledFor);
     const workoutId = existing?.id ?? crypto.randomUUID();
     const items = parsed.map((item) => ({
       id: crypto.randomUUID(),
@@ -285,6 +276,7 @@ export async function saveWorkout(formData: FormData) {
 
     if (existing) {
       existing.title = title;
+      existing.suggestedTime = suggestedTime;
       existing.coachNotes = coachNotes;
       existing.items = items;
     } else {
@@ -293,6 +285,7 @@ export async function saveWorkout(formData: FormData) {
         clientId,
         scheduledFor,
         title,
+        suggestedTime,
         coachNotes,
         clientNote: null,
         completedAt: null,
@@ -303,7 +296,13 @@ export async function saveWorkout(formData: FormData) {
     const { data: workout } = await supabase
       .from("workouts")
       .upsert(
-        { client_id: clientId, scheduled_for: scheduledFor, title, coach_notes: coachNotes },
+        {
+          client_id: clientId,
+          scheduled_for: scheduledFor,
+          title,
+          suggested_time: suggestedTime,
+          coach_notes: coachNotes,
+        },
         { onConflict: "client_id,scheduled_for" },
       )
       .select("id")
@@ -396,17 +395,18 @@ export async function saveFoodPlan(formData: FormData) {
 export async function saveSession(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   const clientId = String(formData.get("clientId") ?? "");
-  const startsAtLocal = String(formData.get("startsAt") ?? "");
+  const date = String(formData.get("date") ?? "").trim();
+  const time = String(formData.get("time") ?? "").trim();
+  const startsAtLocal = String(formData.get("startsAt") ?? "") || (date && time ? `${date}T${time}` : "");
   if (!clientId || !startsAtLocal) return;
 
   const startsAt = new Date(startsAtLocal).toISOString();
   const durationMinutes = Number(formData.get("duration") ?? 60) || 60;
-  const location = String(formData.get("location") ?? "Online").trim() || "Online";
+  // The picker offers presets; "locationOther" wins when it is filled in.
+  const other = String(formData.get("locationOther") ?? "").trim();
+  const location = other || String(formData.get("location") ?? "Online").trim() || "Online";
   const coachNotes = String(formData.get("coachNotes") ?? "").trim() || null;
-  const status = String(formData.get("status") ?? "scheduled") as
-    | "scheduled"
-    | "completed"
-    | "cancelled";
+  const status = String(formData.get("status") ?? "scheduled") as "scheduled" | "completed" | "cancelled";
 
   const supabase = await createClient();
 
@@ -633,16 +633,17 @@ function datesInRange(from: string, to: string, weekdays: number[]): string[] {
 function readAssignment(formData: FormData) {
   const clientId = String(formData.get("clientId") ?? "");
   const planId = String(formData.get("planId") ?? "");
+  const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
   const from = String(formData.get("from") ?? today());
   const to = String(formData.get("to") ?? from);
   const weekdays = formData.getAll("weekdays").map((v) => Number(v));
   const overwrite = formData.get("overwrite") === "on";
-  return { clientId, planId, dates: datesInRange(from, to, weekdays), overwrite };
+  return { clientId, planId, suggestedTime, dates: datesInRange(from, to, weekdays), overwrite };
 }
 
 /** Paint a session plan across every selected day. */
 export async function assignSessionPlan(formData: FormData) {
-  const { clientId, planId, dates, overwrite } = readAssignment(formData);
+  const { clientId, planId, suggestedTime, dates, overwrite } = readAssignment(formData);
   if (!clientId || !planId || dates.length === 0) return;
 
   const supabase = await createClient();
@@ -669,6 +670,7 @@ export async function assignSessionPlan(formData: FormData) {
 
       if (existing) {
         existing.title = plan.name;
+        existing.suggestedTime = suggestedTime;
         existing.coachNotes = plan.notes;
         existing.items = items;
         existing.completedAt = null;
@@ -678,6 +680,7 @@ export async function assignSessionPlan(formData: FormData) {
           clientId,
           scheduledFor: date,
           title: plan.name,
+          suggestedTime,
           coachNotes: plan.notes,
           clientNote: null,
           completedAt: null,
@@ -709,6 +712,7 @@ export async function assignSessionPlan(formData: FormData) {
             client_id: clientId,
             scheduled_for: date,
             title: plan.name,
+            suggested_time: suggestedTime,
             coach_notes: plan.notes,
             source_plan_id: plan.id,
             completed_at: null,

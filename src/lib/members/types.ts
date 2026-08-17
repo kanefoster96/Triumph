@@ -49,6 +49,8 @@ export interface Workout {
   /** ISO date, no time. */
   scheduledFor: string;
   title: string;
+  /** "18:00" when Dean suggested one, otherwise null — do it any time. */
+  suggestedTime: string | null;
   coachNotes: string | null;
   clientNote: string | null;
   completedAt: string | null;

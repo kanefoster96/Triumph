@@ -89,6 +89,9 @@ create table public.workouts (
   client_id     uuid not null references public.profiles(id) on delete cascade,
   scheduled_for date not null,
   title         text not null default 'Workout',
+  -- Optional. Set it and the client sees a suggested time; leave it null and
+  -- the workout is simply due that day, whenever suits them.
+  suggested_time time,
   coach_notes   text,
   -- The client's own note: how it felt, weights used.
   client_note   text,

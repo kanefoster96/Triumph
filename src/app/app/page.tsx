@@ -125,6 +125,9 @@ export default async function DashboardPage() {
                 <p className="mt-1 text-sm text-muted">
                   {summary.todaysWorkout.items.filter((i) => i.done).length} of{" "}
                   {summary.todaysWorkout.items.length} done
+                  {summary.todaysWorkout.suggestedTime
+                    ? ` · suggested ${summary.todaysWorkout.suggestedTime}`
+                    : ""}
                 </p>
                 <div className="mt-3">
                   {summary.todaysWorkout.completedAt ? (
