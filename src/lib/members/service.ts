@@ -456,8 +456,9 @@ export function commentsFor(comments: Comment[], targetType: CommentTarget, targ
 
 export async function getDashboard(profile: Profile): Promise<DashboardSummary> {
   const date = today();
-  const [sessions, workout, foodPlan, foodLogs, weights, comments] = await Promise.all([
+  const [sessions, workouts, workout, foodPlan, foodLogs, weights, comments] = await Promise.all([
     getSessions(profile.id),
+    getWorkouts(profile.id),
     getWorkoutFor(profile.id, date),
     getFoodPlan(profile.id),
     getFoodLogs(profile.id, date),
@@ -471,9 +472,16 @@ export async function getDashboard(profile: Profile): Promise<DashboardSummary> 
       .filter((s) => s.status === "scheduled" && new Date(s.startsAt).getTime() >= now)
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0] ?? null;
 
+  // Today's workout has its own card, so "coming up" means after today.
+  const nextWorkout =
+    workouts
+      .filter((w) => w.scheduledFor > date)
+      .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))[0] ?? null;
+
   return {
     profile,
     nextSession,
+    nextWorkout,
     todaysWorkout: workout,
     foodPlan,
     todaysCalories: sumCalories(foodLogs),

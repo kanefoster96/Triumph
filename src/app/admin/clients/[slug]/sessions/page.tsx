@@ -3,6 +3,7 @@ import { getProfile, getSessions, partitionSessions } from "@/lib/members/servic
 import { deleteSession, saveSession } from "@/lib/members/actions";
 import { EmptyState, Panel, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
+import { site } from "@/lib/data/site";
 
 export const dynamic = "force-dynamic";
 
@@ -57,8 +58,8 @@ export default async function AdminClientSessionsPage({
                 id="s-loc"
                 className={field}
                 name="location"
-                defaultValue="Online"
-                placeholder="Online or Newcastle"
+                defaultValue={site.inPersonArea}
+                placeholder="Where you're meeting"
               />
             </div>
             <div>

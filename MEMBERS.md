@@ -36,7 +36,7 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | Tab | What it does |
 | --- | --- |
 | **Dashboard** `/app` | Next session, today's workout status, calories vs target, latest weight, new comments from Dean. Every card links to its tab, and there is always one clear next step. |
-| **Sessions** `/app/sessions` | A month calendar marking sessions with Dean and workouts to complete, the picked day's detail, then upcoming and past with Dean's notes. |
+| **Sessions** `/app/sessions` | A month calendar of everything planned, the picked day's detail, then **Coming up** — workouts and any in-person sessions in one list. Past sessions and Dean's notes appear only for clients who train with him in person. |
 | **Workouts** `/app/workouts` | Today's workout as a checklist. Ticks apply optimistically; the client adds a note. Past workouts keep their completion state and notes. |
 | **Food** `/app/food` | Dean's assigned meals and/or calorie target. Log incrementally or as one end-of-day total, with a running total against target. |
 | **Weight** `/app/weight` | Daily entry plus a trend line and history. |
@@ -54,9 +54,12 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 
 Two things get put on a date, and they are deliberately different.
 
-A **session** is time with Dean, so it is booked from Dean's own **Schedule**:
-pick the day, then the client, the time and where it is. It lands on the
-client's calendar as an accent dot.
+A **session** is Dean in the room, so it only exists for the Newcastle clients
+and is booked from Dean's own **Schedule**: pick the day, then the client, the
+time and where it is. It lands on the client's calendar as an accent dot.
+Online coaching involves no video call, so an online client has no sessions at
+all — their location picker offers places, never "Online", and nothing in the
+client UI implies Dean will be on a screen.
 
 A **workout** is the client training alone, so it is assigned from that client's
 **Workouts** tab, which shows their calendar. Dean adds a one-off to the picked

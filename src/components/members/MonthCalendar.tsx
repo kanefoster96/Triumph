@@ -58,6 +58,10 @@ export function MonthCalendar({ month, selected, today, markers, basePath }: Mon
     return `${basePath}?${search.toString()}`;
   };
 
+  const all = Object.values(markers);
+  const hasSessions = all.some((m) => m.session);
+  const hasWorkouts = all.some((m) => m.workout);
+
   const monthLabel = first.toLocaleDateString("en-GB", {
     month: "long",
     year: "numeric",
@@ -135,16 +139,24 @@ export function MonthCalendar({ month, selected, today, markers, basePath }: Mon
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-faint">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Session with Dean
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-muted" />
-          Workout to complete
-        </span>
-      </div>
+      {/* Only legend what is actually on this calendar. An online client never
+          has a session with Dean, so explaining that dot would be noise. */}
+      {hasSessions || hasWorkouts ? (
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-faint">
+          {hasSessions ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Session with Dean
+            </span>
+          ) : null}
+          {hasWorkouts ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted" />
+              Workout to complete
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

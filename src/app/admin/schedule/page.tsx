@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Trash2, Video } from "lucide-react";
+import { MapPin, Trash2 } from "lucide-react";
 import { getAllSessions, getClients, today } from "@/lib/members/service";
 import { deleteSession, saveSession } from "@/lib/members/actions";
 import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
@@ -9,8 +9,11 @@ import { site } from "@/lib/data/site";
 
 export const dynamic = "force-dynamic";
 
-/** Presets for the location picker; anything else goes in the free-text box. */
-const LOCATIONS = ["Online", `${site.inPersonArea} — studio`, "Client's gym"];
+/**
+ * Presets for the location picker; anything else goes in the free-text box.
+ * Every one is a place — a session means Dean is there in person.
+ */
+const LOCATIONS = [`${site.inPersonArea} — studio`, "Client's gym", "Outdoors"];
 
 function timeOf(iso: string) {
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -50,7 +53,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
     <>
       <ScreenTitle
         title="Schedule"
-        subtitle="Every session across all clients. Pick a day to see it, or add one below."
+        subtitle="Your in-person sessions. Pick a day to see it, or add one below. Online clients are coached through their workouts and food, not from here."
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
@@ -87,11 +90,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
                           {/* Block-level: an inline-flex here would sit
                               alongside the client-name link above it. */}
                           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-faint">
-                            {session.location.toLowerCase() === "online" ? (
-                              <Video className="h-3 w-3" />
-                            ) : (
-                              <MapPin className="h-3 w-3" />
-                            )}
+                            <MapPin className="h-3 w-3" />
                             {session.location} · {session.durationMinutes} min
                           </p>
                         </div>
@@ -159,7 +158,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
                   <label className={fieldLabel} htmlFor="sch-loc">
                     Location
                   </label>
-                  <select id="sch-loc" className={field} name="location" defaultValue="Online">
+                  <select id="sch-loc" className={field} name="location" defaultValue={LOCATIONS[0]}>
                     {LOCATIONS.map((location) => (
                       <option key={location} value={location}>
                         {location}

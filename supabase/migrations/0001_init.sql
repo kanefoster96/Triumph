@@ -70,8 +70,9 @@ create table public.sessions (
   client_id        uuid not null references public.profiles(id) on delete cascade,
   starts_at        timestamptz not null,
   duration_minutes int not null default 60,
-  -- "Online" or a Newcastle address.
-  location         text not null default 'Online',
+  -- Sessions are Dean in the room. Online clients have none of these; their
+  -- coaching is the workouts and food plans assigned to them.
+  location         text not null default 'Newcastle upon Tyne',
   status           public.session_status not null default 'scheduled',
   coach_notes      text,
   created_at       timestamptz not null default now(),

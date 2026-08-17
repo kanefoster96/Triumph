@@ -83,56 +83,103 @@ export const demoProfiles: Profile[] = [
   },
 ];
 
+/**
+ * In-person sessions only, and only for the Newcastle clients.
+ *
+ * Priya is the client demo and is coached online, so she has none — her
+ * coaching is entirely the workouts and food plans Dean assigns her, which is
+ * what most clients see.
+ */
 export const demoSessions: CoachSession[] = [
   {
     id: "s-1",
-    clientId: DEMO_CLIENT_ID,
-    startsAt: isoTime(2, 18),
-    durationMinutes: 45,
-    location: "Online",
+    clientId: "demo-client-2",
+    startsAt: isoTime(1, 7),
+    durationMinutes: 60,
+    location: "Newcastle upon Tyne — studio",
     status: "scheduled",
     coachNotes: null,
   },
   {
     id: "s-2",
-    clientId: DEMO_CLIENT_ID,
-    startsAt: isoTime(-12, 18),
-    durationMinutes: 45,
-    location: "Online",
-    status: "completed",
-    coachNotes:
-      "Good check-in. Weight trending down about 0.4kg a week, which is where we want it. Agreed to add a fourth session while the evenings are quiet.",
-  },
-  {
-    id: "s-3",
-    clientId: DEMO_CLIENT_ID,
-    startsAt: isoTime(-33, 17),
-    durationMinutes: 60,
-    location: "Online",
-    status: "completed",
-    coachNotes: "Onboarding call. Set the starting calorie target at 1,950 and mapped out the week.",
-  },
-  {
-    id: "s-4",
     clientId: "demo-client-2",
-    startsAt: isoTime(1, 7),
+    startsAt: isoTime(4, 7),
     durationMinutes: 60,
-    location: "Newcastle upon Tyne",
+    location: "Newcastle upon Tyne — studio",
     status: "scheduled",
     coachNotes: null,
   },
   {
-    id: "s-5",
+    id: "s-3",
+    clientId: "demo-client-2",
+    startsAt: isoTime(-6, 7),
+    durationMinutes: 60,
+    location: "Newcastle upon Tyne — studio",
+    status: "completed",
+    coachNotes:
+      "Squat depth much better with the heels raised. Deadlift felt heavy off the floor after nights — moved it to the front of the session next time.",
+  },
+  {
+    id: "s-4",
     clientId: "demo-client-3",
     startsAt: isoTime(3, 11),
     durationMinutes: 45,
-    location: "Online",
+    location: "Client's gym",
     status: "scheduled",
     coachNotes: null,
   },
 ];
 
 export const demoWorkouts: Workout[] = [
+  // Planned ahead. An online client's whole coaching is this list, so the
+  // fixture carries a real week of it rather than only today.
+  {
+    id: "w-next-1",
+    clientId: DEMO_CLIENT_ID,
+    scheduledFor: isoDate(2),
+    title: "Upper body — push",
+    suggestedTime: "18:00",
+    coachNotes: null,
+    clientNote: null,
+    completedAt: null,
+    items: [
+      { id: "wi-20", workoutId: "w-next-1", position: 0, label: "Bench press", target: "4 × 6 @ 45kg", done: false, doneAt: null },
+      { id: "wi-21", workoutId: "w-next-1", position: 1, label: "Overhead press", target: "3 × 8 @ 25kg", done: false, doneAt: null },
+      { id: "wi-22", workoutId: "w-next-1", position: 2, label: "Incline dumbbell press", target: "3 × 10", done: false, doneAt: null },
+      { id: "wi-23", workoutId: "w-next-1", position: 3, label: "Cable fly", target: "3 × 12", done: false, doneAt: null },
+    ],
+  },
+  {
+    id: "w-next-2",
+    clientId: DEMO_CLIENT_ID,
+    scheduledFor: isoDate(4),
+    title: "Full body — conditioning",
+    suggestedTime: null,
+    coachNotes: "Do this one whenever it fits. Keep the rest short.",
+    clientNote: null,
+    completedAt: null,
+    items: [
+      { id: "wi-24", workoutId: "w-next-2", position: 0, label: "Goblet squat", target: "3 × 12", done: false, doneAt: null },
+      { id: "wi-25", workoutId: "w-next-2", position: 1, label: "Row machine", target: "5 × 250m", done: false, doneAt: null },
+      { id: "wi-26", workoutId: "w-next-2", position: 2, label: "Farmer's carry", target: "4 × 40m", done: false, doneAt: null },
+    ],
+  },
+  {
+    id: "w-next-3",
+    clientId: DEMO_CLIENT_ID,
+    scheduledFor: isoDate(7),
+    title: "Lower body — strength",
+    suggestedTime: "18:00",
+    coachNotes: null,
+    clientNote: null,
+    completedAt: null,
+    items: [
+      { id: "wi-27", workoutId: "w-next-3", position: 0, label: "Back squat", target: "4 × 5 @ 72.5kg", done: false, doneAt: null },
+      { id: "wi-28", workoutId: "w-next-3", position: 1, label: "Romanian deadlift", target: "3 × 8 @ 62.5kg", done: false, doneAt: null },
+      { id: "wi-29", workoutId: "w-next-3", position: 2, label: "Walking lunges", target: "3 × 10 each leg", done: false, doneAt: null },
+      { id: "wi-30", workoutId: "w-next-3", position: 3, label: "Leg curl", target: "3 × 12", done: false, doneAt: null },
+    ],
+  },
   {
     id: "w-today",
     clientId: DEMO_CLIENT_ID,

@@ -20,6 +20,15 @@ function formatSession(iso: string) {
   });
 }
 
+function formatPlannedDay(date: string) {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+}
+
 /** The one thing to do next, chosen in priority order. */
 function nextStep(summary: Awaited<ReturnType<typeof getDashboard>>) {
   if (summary.todaysWorkout && !summary.todaysWorkout.completedAt) {
@@ -87,25 +96,38 @@ export default async function DashboardPage() {
 
       <div className="grid gap-5 md:grid-cols-2">
         <Panel
-          title="Next session"
+          title="Coming up"
           action={
             <Link href="/app/sessions" className="text-xs font-semibold text-accent">
-              All sessions
+              See the plan
             </Link>
           }
         >
+          {/* An in-person session if there is one, otherwise the next workout —
+              most clients are coached online and never have a session. */}
           {summary.nextSession ? (
             <div className="flex items-start gap-4">
               <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
               <div>
                 <p className="text-base font-semibold">{formatSession(summary.nextSession.startsAt)}</p>
+                <p className="mt-1 text-sm text-muted">With Dean · {summary.nextSession.location}</p>
+              </div>
+            </div>
+          ) : summary.nextWorkout ? (
+            <div className="flex items-start gap-4">
+              <Dumbbell className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+              <div className="min-w-0">
+                <p className="text-base font-semibold">{summary.nextWorkout.title}</p>
                 <p className="mt-1 text-sm text-muted">
-                  {summary.nextSession.location} · {summary.nextSession.durationMinutes} minutes
+                  {formatPlannedDay(summary.nextWorkout.scheduledFor)}
+                  {summary.nextWorkout.suggestedTime
+                    ? ` · suggested ${summary.nextWorkout.suggestedTime}`
+                    : ""}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-faint">Nothing booked in. Message Dean to get one in the diary.</p>
+            <p className="text-sm text-faint">Nothing planned past today yet.</p>
           )}
         </Panel>
 

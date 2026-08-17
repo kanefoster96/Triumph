@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { site } from "@/lib/data/site";
 import {
   demoComments,
   demoDayPlans,
@@ -404,7 +405,7 @@ export async function saveSession(formData: FormData) {
   const durationMinutes = Number(formData.get("duration") ?? 60) || 60;
   // The picker offers presets; "locationOther" wins when it is filled in.
   const other = String(formData.get("locationOther") ?? "").trim();
-  const location = other || String(formData.get("location") ?? "Online").trim() || "Online";
+  const location = other || String(formData.get("location") ?? "").trim() || site.inPersonArea;
   const coachNotes = String(formData.get("coachNotes") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "scheduled") as "scheduled" | "completed" | "cancelled";
 

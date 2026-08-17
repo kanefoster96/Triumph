@@ -21,13 +21,18 @@ export interface Profile {
   startedOn: string;
 }
 
+/**
+ * Time with Dean, in person. Online clients do not have these — their coaching
+ * is the workouts and food Dean plans for them, so they only ever see
+ * `Workout` rows.
+ */
 export interface CoachSession {
   id: string;
   clientId: string;
   /** ISO timestamp. */
   startsAt: string;
   durationMinutes: number;
-  /** "Online" or a Newcastle address. */
+  /** Where they are meeting — always a real place. */
   location: string;
   status: SessionStatus;
   coachNotes: string | null;
@@ -136,7 +141,10 @@ export interface Comment {
 /** Everything the client dashboard needs, in one round trip. */
 export interface DashboardSummary {
   profile: Profile;
+  /** Only in-person clients ever have one of these. */
   nextSession: CoachSession | null;
+  /** The next workout after today — what an online client is looking for. */
+  nextWorkout: Workout | null;
   todaysWorkout: Workout | null;
   foodPlan: FoodPlan | null;
   todaysCalories: number;
