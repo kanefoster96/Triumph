@@ -8,6 +8,7 @@ import type {
   MealLog,
   PlanBlock,
   PlanSet,
+  ShoppingList,
   Comment,
   DayPlan,
   FoodLog,
@@ -1611,3 +1612,6 @@ export const demoPlanRevisions: RawRevision[] = [
 
 export const demoMealLogs: MealLog[] = [];
 export const demoFoodDayFeedback: FoodDayFeedback[] = [];
+
+/** Saved shopping lists. Empty to start — the client makes their own. */
+export const demoShoppingLists: ShoppingList[] = [];

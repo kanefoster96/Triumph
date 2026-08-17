@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ShoppingBasket } from "lucide-react";
-import { getCurrentProfile, getShoppingList, shiftDate, today } from "@/lib/members/service";
+import { ArrowLeft, ChevronRight, ShoppingBasket } from "lucide-react";
+import {
+  getCurrentProfile,
+  getShoppingList,
+  getShoppingLists,
+  shiftDate,
+  today,
+} from "@/lib/members/service";
+import { createShoppingList } from "@/lib/members/actions";
 import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { formatAmount } from "@/lib/members/types";
 
@@ -42,7 +49,10 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
     : 3;
 
   const to = shiftDate(from, days - 1);
-  const lines = await getShoppingList(profile.id, from, days);
+  const [lines, saved] = await Promise.all([
+    getShoppingList(profile.id, from, days),
+    getShoppingLists(profile.id),
+  ]);
 
   return (
     <>
@@ -64,7 +74,37 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
       />
 
       <div className="space-y-5">
-        <Panel title="What are you shopping for?">
+        {saved.length > 0 ? (
+          <Panel title="Your lists">
+            <ul className="space-y-2">
+              {saved.map((list) => {
+                const done = list.items.filter((item) => item.checkedAt).length;
+                return (
+                  <li key={list.id}>
+                    <Link
+                      href={`/app/food/shopping/${list.id}`}
+                      className="flex items-center gap-3 rounded-2xl border border-line bg-ink px-4 py-3 transition-colors hover:border-accent"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold">
+                          {list.fromDate === list.toDate
+                            ? dayLabel(list.fromDate)
+                            : `${dayLabel(list.fromDate)} to ${dayLabel(list.toDate)}`}
+                        </span>
+                        <span className="text-xs text-faint">
+                          {done} of {list.items.length} in the trolley
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-faint" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
+        ) : null}
+
+        <Panel title="Start a new list">
           {/* A plain GET form, so the chosen days live in the URL and the page
               can be reloaded or shared without picking them again. */}
           <form action="/app/food/shopping" className="flex flex-wrap items-end gap-3">
@@ -97,7 +137,20 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
           </p>
         </Panel>
 
-        <Panel title={`${lines.length} things to buy`}>
+        <Panel
+          title={`${lines.length} things to buy`}
+          action={
+            lines.length > 0 ? (
+              <form action={createShoppingList}>
+                <input type="hidden" name="from" value={from} />
+                <input type="hidden" name="days" value={days} />
+                <button type="submit" className={submitButton}>
+                  Create shopping list
+                </button>
+              </form>
+            ) : null
+          }
+        >
           {lines.length === 0 ? (
             <EmptyState>
               Nothing to buy — there are no meals planned between {dayLabel(from)} and {dayLabel(to)}.
@@ -122,7 +175,8 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
           <p className="mt-5 inline-flex items-start gap-2 text-xs text-faint">
             <ShoppingBasket className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             Totalled across every meal on those days, at your portion sizes. Anything measured differently is
-            listed separately rather than added together.
+            listed separately rather than added together. Create the list and it becomes a checklist you can
+            tick off and put in your own order.
           </p>
         </Panel>
       </div>

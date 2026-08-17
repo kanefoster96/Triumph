@@ -14,6 +14,7 @@ import {
   demoMeals,
   demoPlanBlocks,
   demoPlanRevisions,
+  demoShoppingLists,
   demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
@@ -29,7 +30,10 @@ import {
   getMeal,
   getMealLogs,
   getPlanBlock,
+  getLearnedOrder,
   getPlanCycle,
+  getShoppingList,
+  getShoppingListById,
   getWorkoutFor,
   scaleMeal,
   shiftDate,
@@ -1952,4 +1956,176 @@ export async function saveFoodDayFeedback(formData: FormData) {
   }
 
   refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Shopping lists
+// ---------------------------------------------------------------------------
+
+/**
+ * Turn the chosen days into a list the client can carry round a shop.
+ *
+ * A snapshot, deliberately: once it exists, editing the plan does not rewrite
+ * it. Items come out in the order the client left their last list in, so the
+ * layout of their supermarket carries over instead of being re-sorted weekly.
+ */
+export async function createShoppingList(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const from = String(formData.get("from") ?? today());
+  const days = Math.min(5, Math.max(1, Number(formData.get("days") ?? 3) || 3));
+  const to = shiftDate(from, days - 1);
+
+  const [lines, learned] = await Promise.all([
+    getShoppingList(profile.id, from, days),
+    getLearnedOrder(profile.id),
+  ]);
+  if (lines.length === 0) return;
+
+  // Anything the previous list did not contain goes to the end, alphabetically,
+  // rather than being scattered through an order it was never part of.
+  const ordered = [...lines].sort((a, b) => {
+    const left = learned.get(a.name.trim().toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+    const right = learned.get(b.name.trim().toLowerCase()) ?? Number.MAX_SAFE_INTEGER;
+    return left === right ? a.name.localeCompare(b.name) : left - right;
+  });
+
+  const supabase = await createClient();
+  let listId: string;
+
+  if (!supabase) {
+    listId = crypto.randomUUID();
+    demoShoppingLists.push({
+      id: listId,
+      clientId: profile.id,
+      fromDate: from,
+      toDate: to,
+      createdAt: new Date().toISOString(),
+      items: ordered.map((line, position) => ({
+        id: crypto.randomUUID(),
+        position,
+        name: line.name,
+        quantity: line.quantity,
+        unit: line.unit,
+        usedIn: line.usedIn.join(", "),
+        checkedAt: null,
+      })),
+    });
+  } else {
+    const { data } = await supabase
+      .from("shopping_lists")
+      .insert({ client_id: profile.id, from_date: from, to_date: to })
+      .select("id")
+      .single();
+    if (!data) return;
+    listId = data.id;
+
+    await supabase.from("shopping_list_items").insert(
+      ordered.map((line, position) => ({
+        list_id: listId,
+        position,
+        name: line.name,
+        quantity: line.quantity,
+        unit: line.unit,
+        used_in: line.usedIn.join(", "),
+      })),
+    );
+  }
+
+  refresh();
+  redirect(`/app/food/shopping/${listId}`);
+}
+
+/** Tick an item into the trolley, or back out of it. */
+export async function toggleShoppingItem(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const itemId = String(formData.get("itemId") ?? "");
+  if (!itemId) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    for (const list of demoShoppingLists) {
+      const item = list.items.find((entry) => entry.id === itemId);
+      if (item) item.checkedAt = item.checkedAt ? null : new Date().toISOString();
+    }
+  } else {
+    const { data } = await supabase
+      .from("shopping_list_items")
+      .select("checked_at")
+      .eq("id", itemId)
+      .single();
+    await supabase
+      .from("shopping_list_items")
+      .update({ checked_at: data?.checked_at ? null : new Date().toISOString() })
+      .eq("id", itemId);
+  }
+
+  refresh();
+}
+
+/**
+ * Move an item one place up or down.
+ *
+ * Two buttons rather than drag and drop: it works with no JavaScript, and it
+ * is the interaction that survives one thumb and a trolley.
+ */
+export async function moveShoppingItem(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const itemId = String(formData.get("itemId") ?? "");
+  const listId = String(formData.get("listId") ?? "");
+  const direction = formData.get("direction") === "up" ? -1 : 1;
+  if (!itemId || !listId) return;
+
+  const list = await getShoppingListById(listId);
+  if (!list || list.clientId !== profile.id) return;
+
+  const index = list.items.findIndex((item) => item.id === itemId);
+  const swapWith = index + direction;
+  if (index < 0 || swapWith < 0 || swapWith >= list.items.length) return;
+
+  const moving = list.items[index];
+  const displaced = list.items[swapWith];
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const stored = demoShoppingLists.find((entry) => entry.id === listId);
+    const a = stored?.items.find((item) => item.id === moving.id);
+    const b = stored?.items.find((item) => item.id === displaced.id);
+    if (a && b) {
+      const held = a.position;
+      a.position = b.position;
+      b.position = held;
+    }
+  } else {
+    await supabase.from("shopping_list_items").update({ position: displaced.position }).eq("id", moving.id);
+    await supabase.from("shopping_list_items").update({ position: moving.position }).eq("id", displaced.id);
+  }
+
+  refresh();
+}
+
+export async function deleteShoppingList(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const listId = String(formData.get("listId") ?? "");
+  if (!listId) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const index = demoShoppingLists.findIndex((list) => list.id === listId && list.clientId === profile.id);
+    if (index >= 0) demoShoppingLists.splice(index, 1);
+  } else {
+    await supabase.from("shopping_lists").delete().eq("id", listId).eq("client_id", profile.id);
+  }
+
+  refresh();
+  redirect("/app/food/shopping");
 }

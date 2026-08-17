@@ -300,6 +300,43 @@ create table public.food_day_feedback (
 );
 
 -- ---------------------------------------------------------------------------
+-- Shopping lists
+--
+-- A list is a snapshot taken when the client presses create, not a live view
+-- of the plan: they are standing in a shop, and the aisle they are in should
+-- not change because Dean edited next Tuesday.
+--
+-- Order is theirs to set — supermarkets are not laid out alphabetically — and
+-- the order they leave a list in is reused for the next one, so the layout of
+-- their shop is learned rather than re-entered.
+-- ---------------------------------------------------------------------------
+
+create table public.shopping_lists (
+  id         uuid primary key default gen_random_uuid(),
+  client_id  uuid not null references public.profiles(id) on delete cascade,
+  -- The stretch it was built to cover.
+  from_date  date not null,
+  to_date    date not null,
+  created_at timestamptz not null default now()
+);
+
+create index shopping_lists_client_idx on public.shopping_lists (client_id, created_at desc);
+
+create table public.shopping_list_items (
+  id         uuid primary key default gen_random_uuid(),
+  list_id    uuid not null references public.shopping_lists(id) on delete cascade,
+  position   int not null default 0,
+  name       text not null,
+  quantity   numeric(8, 2),
+  unit       text,
+  -- Which meals it is for, denormalised because the list is a snapshot.
+  used_in    text,
+  checked_at timestamptz
+);
+
+create index shopping_list_items_list_idx on public.shopping_list_items (list_id, position);
+
+-- ---------------------------------------------------------------------------
 -- Repeating plans
 --
 -- A client's plan is a one or two week block that repeats indefinitely, so it
@@ -561,6 +598,8 @@ alter table public.plan_day_revisions enable row level security;
 alter table public.plan_exercises     enable row level security;
 alter table public.plan_sets          enable row level security;
 alter table public.plan_meal_slots    enable row level security;
+alter table public.shopping_lists     enable row level security;
+alter table public.shopping_list_items enable row level security;
 alter table public.day_plan_meals     enable row level security;
 
 -- Profiles
@@ -797,6 +836,25 @@ create policy "read own plan meal slots" on public.plan_meal_slots
   );
 create policy "admin manages plan meal slots" on public.plan_meal_slots
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- A shopping list is the client's own. Dean can see one if he needs to, but it
+-- is not something he writes.
+create policy "own shopping lists" on public.shopping_lists
+  for all using (client_id = auth.uid() or public.is_admin())
+  with check (client_id = auth.uid());
+
+create policy "own shopping list items" on public.shopping_list_items
+  for all using (
+    exists (
+      select 1 from public.shopping_lists l
+      where l.id = list_id and (l.client_id = auth.uid() or public.is_admin())
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.shopping_lists l where l.id = list_id and l.client_id = auth.uid()
+    )
+  );
 
 -- ---------------------------------------------------------------------------
 -- Promoting Dean to admin

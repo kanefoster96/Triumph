@@ -17,6 +17,7 @@ import {
   demoProfiles,
   demoSessionPlans,
   demoSessions,
+  demoShoppingLists,
   demoWeightEntries,
   demoWorkouts,
 } from "./demo";
@@ -46,6 +47,7 @@ import type {
   ScaledMeal,
   SessionPlan,
   ShoppingLine,
+  ShoppingList,
   SessionStatus,
   WeightEntry,
   Workout,
@@ -289,6 +291,27 @@ function toRevision(row: any): RawRevision {
       mealId: m.meal_id,
       multiplier: Number(m.multiplier),
     })),
+  };
+}
+
+function toShoppingList(row: any): ShoppingList {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    fromDate: row.from_date,
+    toDate: row.to_date,
+    createdAt: row.created_at,
+    items: (row.shopping_list_items ?? [])
+      .map((item: any) => ({
+        id: item.id,
+        position: item.position,
+        name: item.name,
+        quantity: item.quantity === null || item.quantity === undefined ? null : Number(item.quantity),
+        unit: item.unit ?? null,
+        usedIn: item.used_in ?? null,
+        checkedAt: item.checked_at ?? null,
+      }))
+      .sort((a: any, b: any) => a.position - b.position),
   };
 }
 
@@ -1518,4 +1541,63 @@ export async function getAssignedPortion(
 ): Promise<number | null> {
   const planned = await getPlannedFood(clientId, date);
   return planned.meals.find((slot) => slot.meal.id === mealId)?.multiplier ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Saved shopping lists
+// ---------------------------------------------------------------------------
+
+/** Items always come back in position order — that order is the whole point. */
+function sortedItems(list: ShoppingList): ShoppingList {
+  return { ...list, items: [...list.items].sort((a, b) => a.position - b.position) };
+}
+
+export async function getShoppingLists(clientId: string): Promise<ShoppingList[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoShoppingLists
+      .filter((list) => list.clientId === clientId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(sortedItems);
+  }
+
+  const { data } = await supabase
+    .from("shopping_lists")
+    .select("*, shopping_list_items(*)")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toShoppingList);
+}
+
+export async function getShoppingListById(id: string): Promise<ShoppingList | null> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const stored = demoShoppingLists.find((list) => list.id === id);
+    return stored ? sortedItems(stored) : null;
+  }
+
+  const { data } = await supabase
+    .from("shopping_lists")
+    .select("*, shopping_list_items(*)")
+    .eq("id", id)
+    .maybeSingle();
+  return data ? toShoppingList(data) : null;
+}
+
+/**
+ * The order the client last left a list in, by ingredient name.
+ *
+ * Supermarkets are not laid out alphabetically, and nobody wants to re-sort
+ * the same thirty items every week — so the shape of their shop is learned
+ * from the last list rather than asked for again.
+ */
+export async function getLearnedOrder(clientId: string): Promise<Map<string, number>> {
+  const [previous] = await getShoppingLists(clientId);
+  if (!previous) return new Map();
+
+  return new Map(
+    [...previous.items]
+      .sort((a, b) => a.position - b.position)
+      .map((item, index) => [item.name.trim().toLowerCase(), index]),
+  );
 }

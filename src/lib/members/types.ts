@@ -460,6 +460,30 @@ export interface ShoppingLine {
   usedIn: string[];
 }
 
+export interface ShoppingItem {
+  id: string;
+  position: number;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  usedIn: string | null;
+  checkedAt: string | null;
+}
+
+/**
+ * A list as saved when the client pressed create — a snapshot, not a live view
+ * of the plan, so what they are holding in a shop cannot change underneath
+ * them.
+ */
+export interface ShoppingList {
+  id: string;
+  clientId: string;
+  fromDate: string;
+  toDate: string;
+  createdAt: string;
+  items: ShoppingItem[];
+}
+
 // ---------------------------------------------------------------------------
 // Review signals
 // ---------------------------------------------------------------------------
