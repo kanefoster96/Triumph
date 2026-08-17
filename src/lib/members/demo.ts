@@ -1615,3 +1615,10 @@ export const demoFoodDayFeedback: FoodDayFeedback[] = [];
 
 /** Saved shopping lists. Empty to start — the client makes their own. */
 export const demoShoppingLists: ShoppingList[] = [];
+
+/** Days the client has closed out. */
+export const demoDaySubmissions: Array<{
+  clientId: string;
+  onDate: string;
+  submittedAt: string;
+}> = [];

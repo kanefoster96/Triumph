@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentProfile, isDemoMode } from "@/lib/members/service";
+import { getCurrentProfile, getDayProgress, isDemoMode, today } from "@/lib/members/service";
 import { MemberTabBar, MemberTabsInline } from "@/components/members/MemberTabBar";
 import { DemoBanner } from "@/components/members/DemoBanner";
 import { Logo } from "@/components/layout/Logo";
@@ -13,6 +13,9 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
   if (!profile) redirect("/login");
   if (profile.role === "admin") redirect("/admin");
 
+  // Read once here so every tab bar on the page agrees about the day.
+  const progress = await getDayProgress(profile.id, today());
+
   return (
     <>
       {demo ? <DemoBanner role={profile.role} /> : null}
@@ -20,7 +23,7 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
       <header className="sticky top-0 z-40 border-b border-line bg-ink/90 supports-[backdrop-filter]:bg-ink/60 supports-[backdrop-filter]:backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <Logo href="/app" />
-          <MemberTabsInline />
+          <MemberTabsInline progress={progress} />
           <Link
             href="/logout"
             className="text-sm text-muted transition-colors hover:text-text"
@@ -35,7 +38,7 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
         {children}
       </main>
 
-      <MemberTabBar />
+      <MemberTabBar progress={progress} />
     </>
   );
 }

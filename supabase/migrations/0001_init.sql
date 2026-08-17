@@ -300,6 +300,25 @@ create table public.food_day_feedback (
 );
 
 -- ---------------------------------------------------------------------------
+-- Submitted days
+--
+-- The client's own full stop on a day: workout finished, meals ticked, weight
+-- in. Everything is already saved by the time they press it, so this stores
+-- nothing new — it is the moment they say "that is me done", and the thing
+-- Dean can scan at the weekly review to see who is closing their days out.
+-- ---------------------------------------------------------------------------
+
+create table public.day_submissions (
+  id           uuid primary key default gen_random_uuid(),
+  client_id    uuid not null references public.profiles(id) on delete cascade,
+  on_date      date not null,
+  submitted_at timestamptz not null default now(),
+  unique (client_id, on_date)
+);
+
+create index day_submissions_client_idx on public.day_submissions (client_id, on_date desc);
+
+-- ---------------------------------------------------------------------------
 -- Shopping lists
 --
 -- A list is a snapshot taken when the client presses create, not a live view
@@ -598,6 +617,7 @@ alter table public.plan_day_revisions enable row level security;
 alter table public.plan_exercises     enable row level security;
 alter table public.plan_sets          enable row level security;
 alter table public.plan_meal_slots    enable row level security;
+alter table public.day_submissions    enable row level security;
 alter table public.shopping_lists     enable row level security;
 alter table public.shopping_list_items enable row level security;
 alter table public.day_plan_meals     enable row level security;
@@ -836,6 +856,12 @@ create policy "read own plan meal slots" on public.plan_meal_slots
   );
 create policy "admin manages plan meal slots" on public.plan_meal_slots
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- Only the client closes their own day; Dean reads it.
+create policy "read own day submissions" on public.day_submissions
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "submit own day" on public.day_submissions
+  for all using (client_id = auth.uid()) with check (client_id = auth.uid());
 
 -- A shopping list is the client's own. Dean can see one if he needs to, but it
 -- is not something he writes.

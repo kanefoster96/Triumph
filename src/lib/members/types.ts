@@ -451,6 +451,27 @@ export interface FoodDayFeedback {
   note: string | null;
 }
 
+/**
+ * Whether a category has anything outstanding today.
+ *
+ * "none" means nothing was asked — a rest day, or a day with no meals set — so
+ * it neither nags nor counts towards finishing.
+ */
+export type DayTaskState = "none" | "todo" | "done";
+
+export interface DayProgress {
+  date: string;
+  workout: DayTaskState;
+  food: DayTaskState;
+  weight: DayTaskState;
+  /** Everything asked of them today is done. */
+  allDone: boolean;
+  submittedAt: string | null;
+  /** Filled in for the food tab: 3 of 4 meals ticked. */
+  mealsEaten: number;
+  mealsPlanned: number;
+}
+
 /** One line of a shopping list, merged across every meal that needs it. */
 export interface ShoppingLine {
   name: string;

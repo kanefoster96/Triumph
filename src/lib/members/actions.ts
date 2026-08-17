@@ -8,6 +8,7 @@ import { site } from "@/lib/data/site";
 import {
   demoCheckIns,
   demoComments,
+  demoDaySubmissions,
   demoExercises,
   demoFoodDayFeedback,
   demoMealLogs,
@@ -2128,4 +2129,62 @@ export async function deleteShoppingList(formData: FormData) {
 
   refresh();
   redirect("/app/food/shopping");
+}
+
+/**
+ * Close the day out.
+ *
+ * Everything is already saved by the time this is pressed — the ticks, the
+ * sets, the weight all wrote as they happened. This records the client saying
+ * they are finished, which is the bit that feels like something and the bit
+ * Dean can scan at the review.
+ */
+export async function submitDay(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const date = String(formData.get("date") ?? today());
+  const submittedAt = new Date().toISOString();
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = demoDaySubmissions.find(
+      (entry) => entry.clientId === profile.id && entry.onDate === date,
+    );
+    if (!existing) demoDaySubmissions.push({ clientId: profile.id, onDate: date, submittedAt });
+  } else {
+    await supabase
+      .from("day_submissions")
+      .upsert({ client_id: profile.id, on_date: date }, { onConflict: "client_id,on_date" });
+  }
+
+  refresh();
+}
+
+/**
+ * Set an item's state outright rather than flipping it.
+ *
+ * A toggle cannot be retried safely — a queued tick that fails, retries and
+ * lands twice would untick itself. The offline queue replays these, so they
+ * have to be idempotent.
+ */
+export async function setShoppingItemChecked(itemId: string, checked: boolean) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+  if (!itemId) return;
+
+  const checkedAt = checked ? new Date().toISOString() : null;
+  const supabase = await createClient();
+
+  if (!supabase) {
+    for (const list of demoShoppingLists) {
+      if (list.clientId !== profile.id) continue;
+      const item = list.items.find((entry) => entry.id === itemId);
+      if (item) item.checkedAt = checkedAt;
+    }
+  } else {
+    await supabase.from("shopping_list_items").update({ checked_at: checkedAt }).eq("id", itemId);
+  }
+
+  refresh();
 }

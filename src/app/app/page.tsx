@@ -3,14 +3,15 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   CalendarDays,
+  CheckCheck,
   ClipboardCheck,
   Dumbbell,
   LineChart,
   MessageCircle,
   Salad,
 } from "lucide-react";
-import { getCurrentProfile, getDashboard } from "@/lib/members/service";
-import { markCommentsRead } from "@/lib/members/actions";
+import { getCurrentProfile, getDashboard, getDayProgress, today } from "@/lib/members/service";
+import { markCommentsRead, submitDay } from "@/lib/members/actions";
 import { CalorieBar, Panel, ScreenTitle } from "@/components/members/ui";
 import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
@@ -56,25 +57,80 @@ export default async function DashboardPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
-  const summary = await getDashboard(profile);
+  const date = today();
+  const [summary, progress] = await Promise.all([
+    getDashboard(profile),
+    getDayProgress(profile.id, date),
+  ]);
   const step = nextStep(summary);
   const firstName = profile.fullName.split(" ")[0];
+
+  const outstanding = [
+    progress.workout === "todo" ? "today's workout" : null,
+    progress.food === "todo"
+      ? `${progress.mealsPlanned - progress.mealsEaten} more meal${
+          progress.mealsPlanned - progress.mealsEaten === 1 ? "" : "s"
+        }`
+      : null,
+    progress.weight === "todo" ? "your weight" : null,
+  ].filter(Boolean) as string[];
 
   return (
     <>
       <ScreenTitle title={`Morning, ${firstName}`} subtitle={profile.goal ?? undefined} />
 
-      {/* Always a clear next step. */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">Next step</p>
-          <p className="mt-1.5 text-lg font-semibold">{step.label}</p>
+      {/* The day is either asking for something or ready to be closed out.
+          Only one of those is ever true, so only one of these is shown. */}
+      {progress.submittedAt ? (
+        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[var(--radius-sheet)] border border-success/40 bg-success/[0.06] p-5">
+          <CheckCheck className="h-6 w-6 shrink-0 text-success" />
+          <div>
+            <p className="text-xs font-semibold tracking-[0.14em] text-success uppercase">
+              Day submitted
+            </p>
+            <p className="mt-1.5 text-lg font-semibold">
+              Everything Dean asked for, done. He&rsquo;ll see it at your next check-in.
+            </p>
+          </div>
         </div>
-        <Button href={step.href} size="sm">
-          {step.cta}
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      ) : progress.allDone ? (
+        <div className="mb-6 rounded-[var(--radius-sheet)] border border-accent/50 bg-accent/[0.08] p-5">
+          <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+            That&rsquo;s the lot
+          </p>
+          <p className="mt-1.5 text-lg font-semibold">
+            Workout in, meals ticked, weight logged. Nothing left today.
+          </p>
+          <form action={submitDay} className="mt-4">
+            <input type="hidden" name="date" value={date} />
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+            >
+              <CheckCheck className="h-4 w-4" />
+              Submit my day
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+              Next step
+            </p>
+            <p className="mt-1.5 text-lg font-semibold">{step.label}</p>
+            {outstanding.length > 0 ? (
+              <p className="mt-1 text-sm text-muted">
+                Left today: {outstanding.join(", ")}.
+              </p>
+            ) : null}
+          </div>
+          <Button href={step.href} size="sm">
+            {step.cta}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {summary.unreadComments.length > 0 ? (
         <div className="mb-6 rounded-[var(--radius-sheet)] border border-line bg-surface p-5">

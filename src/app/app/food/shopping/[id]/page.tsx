@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ChevronDown, ChevronUp, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { getCurrentProfile, getShoppingListById } from "@/lib/members/service";
-import { deleteShoppingList, moveShoppingItem, toggleShoppingItem } from "@/lib/members/actions";
+import { deleteShoppingList, moveShoppingItem } from "@/lib/members/actions";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
-import { formatAmount } from "@/lib/members/types";
-import { cn } from "@/lib/utils";
+import { ShoppingChecklist } from "@/components/members/ShoppingChecklist";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +25,7 @@ export default async function ShoppingListDetailPage({ params }: PageProps<"/app
   const list = await getShoppingListById(id);
   if (!list || list.clientId !== profile.id) notFound();
 
-  const done = list.items.filter((item) => item.checkedAt).length;
   const total = list.items.length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
     <>
@@ -50,96 +47,52 @@ export default async function ShoppingListDetailPage({ params }: PageProps<"/app
       />
 
       <div className="space-y-5">
-        <Panel title={`${done} of ${total} in the trolley`}>
-          <div className="h-1.5 overflow-hidden rounded-full bg-raised">
-            <div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${pct}%` }} />
-          </div>
-
+        <Panel title="In the trolley">
           {total === 0 ? (
             <EmptyState>This list is empty.</EmptyState>
           ) : (
-            <ul className="mt-5 space-y-2">
-              {list.items.map((item, index) => (
-                <li
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-2xl border border-line bg-ink p-3"
-                >
-                  <form action={toggleShoppingItem}>
+            <ShoppingChecklist
+              listId={list.id}
+              items={list.items}
+              /* Reordering is a before-you-go job and needs the server, so it
+                 stays a form. Ticking is the part that has to survive a dead
+                 signal, and that is handled on the device. */
+              controls={list.items.map((item, index) => (
+                <span key={item.id} className="flex shrink-0 flex-col">
+                  <form action={moveShoppingItem}>
                     <input type="hidden" name="itemId" value={item.id} />
+                    <input type="hidden" name="listId" value={list.id} />
+                    <input type="hidden" name="direction" value="up" />
                     <button
                       type="submit"
-                      aria-label={item.checkedAt ? `Put ${item.name} back` : `Tick ${item.name} off`}
-                      className={cn(
-                        "grid h-10 w-10 place-items-center rounded-full border transition-colors",
-                        item.checkedAt
-                          ? "border-accent bg-accent text-accent-ink"
-                          : "border-line text-faint hover:border-accent hover:text-accent",
-                      )}
+                      disabled={index === 0}
+                      aria-label={`Move ${item.name} up`}
+                      className="grid h-7 w-7 place-items-center rounded-lg text-faint transition-colors hover:bg-raised hover:text-text disabled:opacity-25 disabled:hover:bg-transparent"
                     >
-                      <Check className="h-5 w-5" />
+                      <ChevronUp className="h-4 w-4" />
                     </button>
                   </form>
-
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block text-sm font-semibold",
-                        item.checkedAt && "text-faint line-through",
-                      )}
+                  <form action={moveShoppingItem}>
+                    <input type="hidden" name="itemId" value={item.id} />
+                    <input type="hidden" name="listId" value={list.id} />
+                    <input type="hidden" name="direction" value="down" />
+                    <button
+                      type="submit"
+                      disabled={index === total - 1}
+                      aria-label={`Move ${item.name} down`}
+                      className="grid h-7 w-7 place-items-center rounded-lg text-faint transition-colors hover:bg-raised hover:text-text disabled:opacity-25 disabled:hover:bg-transparent"
                     >
-                      {item.name}
-                    </span>
-                    {item.usedIn ? (
-                      <span className="block truncate text-xs text-faint">{item.usedIn}</span>
-                    ) : null}
-                  </span>
-
-                  <span
-                    className={cn(
-                      "shrink-0 text-sm font-semibold tabular-nums",
-                      item.checkedAt ? "text-faint" : "text-accent",
-                    )}
-                  >
-                    {formatAmount(item.quantity, item.unit)}
-                  </span>
-
-                  {/* Up and down rather than drag: it needs no JavaScript, and
-                      it is the gesture that survives one thumb and a trolley. */}
-                  <span className="flex shrink-0 flex-col">
-                    <form action={moveShoppingItem}>
-                      <input type="hidden" name="itemId" value={item.id} />
-                      <input type="hidden" name="listId" value={list.id} />
-                      <input type="hidden" name="direction" value="up" />
-                      <button
-                        type="submit"
-                        disabled={index === 0}
-                        aria-label={`Move ${item.name} up`}
-                        className="grid h-7 w-7 place-items-center rounded-lg text-faint transition-colors hover:bg-raised hover:text-text disabled:opacity-25 disabled:hover:bg-transparent"
-                      >
-                        <ChevronUp className="h-4 w-4" />
-                      </button>
-                    </form>
-                    <form action={moveShoppingItem}>
-                      <input type="hidden" name="itemId" value={item.id} />
-                      <input type="hidden" name="listId" value={list.id} />
-                      <input type="hidden" name="direction" value="down" />
-                      <button
-                        type="submit"
-                        disabled={index === total - 1}
-                        aria-label={`Move ${item.name} down`}
-                        className="grid h-7 w-7 place-items-center rounded-lg text-faint transition-colors hover:bg-raised hover:text-text disabled:opacity-25 disabled:hover:bg-transparent"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </button>
-                    </form>
-                  </span>
-                </li>
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </form>
+                </span>
               ))}
-            </ul>
+            />
           )}
 
           <p className="mt-5 text-xs text-faint">
-            Put it in the order your shop is laid out — the next list you make comes out the same way.
+            Put it in the order your shop is laid out — the next list you make comes out the same
+            way. Ticking works with no signal; it saves as soon as you have one.
           </p>
         </Panel>
 

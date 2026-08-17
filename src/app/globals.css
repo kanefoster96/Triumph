@@ -143,6 +143,29 @@
   }
 }
 
+/*
+ * The home tab once everything is done: a slow breath rather than a blink, so
+ * it reads as an invitation and not an alarm. Reduced motion gets the colour
+ * without the pulse, which is the part that carries the meaning.
+ */
+@keyframes day-ready {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scaleX(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-day-ready {
+    animation: day-ready 1.8s var(--ease-out-app) infinite;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

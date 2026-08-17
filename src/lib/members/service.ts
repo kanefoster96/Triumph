@@ -6,6 +6,7 @@ import {
   DEMO_CLIENT_ID,
   demoCheckIns,
   demoComments,
+  demoDaySubmissions,
   demoExercises,
   demoMeals,
   demoMealLogs,
@@ -31,6 +32,8 @@ import type {
   CommentTarget,
   DashboardSummary,
   DayPlan,
+  DayProgress,
+  DayTaskState,
   Exercise,
   ExerciseTrend,
   LastEffort,
@@ -1600,4 +1603,73 @@ export async function getLearnedOrder(clientId: string): Promise<Map<string, num
       .sort((a, b) => a.position - b.position)
       .map((item, index) => [item.name.trim().toLowerCase(), index]),
   );
+}
+
+// ---------------------------------------------------------------------------
+// The day's progress
+// ---------------------------------------------------------------------------
+
+export async function getDaySubmission(clientId: string, date: string): Promise<string | null> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return (
+      demoDaySubmissions.find((entry) => entry.clientId === clientId && entry.onDate === date)
+        ?.submittedAt ?? null
+    );
+  }
+
+  const { data } = await supabase
+    .from("day_submissions")
+    .select("submitted_at")
+    .eq("client_id", clientId)
+    .eq("on_date", date)
+    .maybeSingle();
+  return data?.submitted_at ?? null;
+}
+
+/**
+ * What is left to do today, per tab.
+ *
+ * Only counts what was actually asked: a rest day is not an outstanding
+ * workout, and a day with no meals set is not an outstanding food day. That
+ * matters because the tab bar nags in orange, and nagging about something
+ * nobody asked for is how people stop reading it.
+ */
+export async function getDayProgress(clientId: string, date: string): Promise<DayProgress> {
+  const [workout, planned, mealLogs, weights, submittedAt] = await Promise.all([
+    getWorkoutFor(clientId, date),
+    getPlannedFood(clientId, date),
+    getMealLogs(clientId, date),
+    getWeightEntries(clientId),
+    getDaySubmission(clientId, date),
+  ]);
+
+  const workoutState: DayTaskState = !workout ? "none" : workout.completedAt ? "done" : "todo";
+
+  const mealsPlanned = planned.meals.length;
+  const eaten = new Set(mealLogs.map((log) => `${log.slot}:${log.mealId}`));
+  const mealsEaten = planned.meals.filter((slot) =>
+    eaten.has(`${slot.slot}:${slot.meal.id}`),
+  ).length;
+  const foodState: DayTaskState =
+    mealsPlanned === 0 ? "none" : mealsEaten === mealsPlanned ? "done" : "todo";
+
+  const weightState: DayTaskState = weights.some((entry) => entry.loggedFor === date)
+    ? "done"
+    : "todo";
+
+  const states = [workoutState, foodState, weightState];
+  const asked = states.filter((state) => state !== "none");
+  const allDone = asked.length > 0 && asked.every((state) => state === "done");
+
+  return {
+    date,
+    workout: workoutState,
+    food: foodState,
+    weight: weightState,
+    allDone,
+    submittedAt,
+    mealsEaten,
+    mealsPlanned,
+  };
 }
