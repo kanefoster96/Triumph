@@ -129,7 +129,14 @@ create table public.meals (
 create index meals_tag_idx on public.meals (tag, calories);
 
 -- Split into quantity and unit so a shopping list can scale by a client's
--- multiplier and merge the same ingredient across meals into one line.
+-- multiplier and merge the same ingredient across meals into one line. Both of
+-- those need the unit, so a quantity is never stored without one — the unit is
+-- a closed list in the app (see UNITS), with "whole" covering a banana or an
+-- egg. Rows that predate the rule are flagged in the library rather than
+-- silently dropped:
+--   select m.name, i.name from meal_ingredients i
+--     join meals m on m.id = i.meal_id
+--    where i.quantity is not null and i.unit is null;
 create table public.meal_ingredients (
   id       uuid primary key default gen_random_uuid(),
   meal_id  uuid not null references public.meals(id) on delete cascade,

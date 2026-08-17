@@ -24,8 +24,6 @@ import {
 import {
   DEMO_ROLE_COOKIE,
   getCurrentProfile,
-  getExercises,
-  getMeals,
   getPlanBlock,
   getPlanCycle,
   getWorkoutFor,
@@ -1155,22 +1153,31 @@ export async function recordCheckIn(formData: FormData) {
 // Libraries
 // ---------------------------------------------------------------------------
 
-/** "Porridge oats | 60 | g" — the unit is optional, the quantity nearly is. */
-function parseIngredients(input: string) {
-  return input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, position) => {
-      const [name, quantity, unit] = line.split("|").map((part) => part.trim());
-      const amount = quantity ? Number(quantity) : NaN;
+/**
+ * Ingredients arrive as three parallel lists, one entry per row.
+ *
+ * A quantity without a unit cannot be scaled or merged, so it is dropped back
+ * to null rather than stored as a bare number the shopping list would have to
+ * guess at. The form marks the unit required, so this is the backstop.
+ */
+function readIngredients(formData: FormData) {
+  const names = formData.getAll("ingName").map(String);
+  const quantities = formData.getAll("ingQuantity").map(String);
+  const units = formData.getAll("ingUnit").map(String);
+
+  return names
+    .map((name, index) => {
+      const amount = Number(quantities[index]);
+      const unit = (units[index] ?? "").trim() || null;
+      const quantity = Number.isFinite(amount) && quantities[index] !== "" ? amount : null;
       return {
-        position,
-        name: name || "Ingredient",
-        quantity: Number.isFinite(amount) ? amount : null,
-        unit: unit || null,
+        name: name.trim(),
+        quantity: unit ? quantity : null,
+        unit,
       };
-    });
+    })
+    .filter((entry) => entry.name !== "")
+    .map((entry, position) => ({ position, ...entry }));
 }
 
 export async function saveExercise(formData: FormData) {
@@ -1250,7 +1257,7 @@ export async function saveMeal(formData: FormData) {
   };
 
   const tag = String(formData.get("tag") ?? "lunch") as MealTag;
-  const ingredients = parseIngredients(String(formData.get("ingredients") ?? ""));
+  const ingredients = readIngredients(formData);
   const method = String(formData.get("method") ?? "")
     .split("\n")
     .map((line) => line.trim())
@@ -1537,69 +1544,61 @@ export async function finishWorkout(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 /**
- * "Back squat | 60x10, 65x8, 70x6 | keep the depth" — one exercise per line.
+ * Exercises come back as IDs from the library picker, never as typed names, so
+ * a plan can never reference something that does not exist.
  *
- * Text rather than a widget for the same reason the checklist always was: Dean
- * can paste a whole day in one go, and it works with no JavaScript. Names are
- * matched against the library, case-insensitively.
+ * Sets are flat lists — every set on the day in order — with one `setCount`
+ * per exercise saying how many belong to it. That keeps a nested structure
+ * expressible in a plain form post without smuggling JSON through a field.
  */
-function parsePlanExercises(input: string, library: Array<{ id: string; name: string }>) {
-  const byName = new Map(library.map((e) => [e.name.toLowerCase(), e.id]));
+function readPlanExercises(formData: FormData) {
+  const ids = formData.getAll("exerciseId").map(String);
+  const notes = formData.getAll("exerciseNotes").map(String);
+  const counts = formData.getAll("setCount").map((value) => Number(value) || 0);
+  const weights = formData.getAll("setWeight").map(String);
+  const reps = formData.getAll("setReps").map(String);
 
-  return input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, position) => {
-      const [name, setSpec, notes] = line.split("|").map((part) => part.trim());
-      const exerciseId = byName.get((name ?? "").toLowerCase());
-      if (!exerciseId) return null;
-
-      const sets = (setSpec ?? "")
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean)
-        .map((part, index) => {
-          const [weight, reps] = part.toLowerCase().split("x");
-          const weightKg = Number(weight);
-          const repCount = Number(reps);
-          return {
-            position: index,
-            targetWeightKg: Number.isFinite(weightKg) ? weightKg : null,
-            targetReps: Number.isFinite(repCount) ? repCount : null,
-          };
-        });
-
-      return { position, exerciseId, notes: notes || null, sets };
+  let cursor = 0;
+  return ids
+    .map((exerciseId, index) => {
+      const count = counts[index] ?? 0;
+      const sets = Array.from({ length: count }, (_, offset) => {
+        const weight = Number(weights[cursor + offset]);
+        const repCount = Number(reps[cursor + offset]);
+        return {
+          position: offset,
+          targetWeightKg: Number.isFinite(weight) && weights[cursor + offset] !== "" ? weight : null,
+          targetReps: Number.isFinite(repCount) && reps[cursor + offset] !== "" ? repCount : null,
+        };
+      });
+      cursor += count;
+      return { position: index, exerciseId, notes: notes[index]?.trim() || null, sets };
     })
-    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    .filter((entry) => entry.exerciseId !== "");
 }
 
-/** "breakfast | Peanut butter oats | 1" — slot, meal, multiplier. */
-function parsePlanMeals(input: string, library: Array<{ id: string; name: string }>) {
-  const byName = new Map(library.map((m) => [m.name.toLowerCase(), m.id]));
-  const slots: MealTag[] = ["breakfast", "lunch", "dinner", "snack"];
+/** Meals likewise: a library ID, a slot and a multiplier. */
+function readPlanMeals(formData: FormData) {
+  const slots = formData.getAll("mealSlot").map(String);
+  const ids = formData.getAll("mealId").map(String);
+  const multipliers = formData.getAll("mealMultiplier").map((value) => Number(value));
+  const valid: MealTag[] = ["breakfast", "lunch", "dinner", "snack"];
   const counters = new Map<MealTag, number>();
 
-  return input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [slotName, mealName, multiplier] = line.split("|").map((part) => part.trim());
-      const slot = slots.find((s) => s === (slotName ?? "").toLowerCase());
-      const mealId = byName.get((mealName ?? "").toLowerCase());
+  return ids
+    .map((mealId, index) => {
+      const slot = valid.find((entry) => entry === slots[index]);
       if (!slot || !mealId) return null;
 
-      const factor = Number(multiplier);
       const position = counters.get(slot) ?? 0;
       counters.set(slot, position + 1);
+      const multiplier = multipliers[index];
 
       return {
         slot,
         position,
         mealId,
-        multiplier: Number.isFinite(factor) && factor > 0 ? factor : 1,
+        multiplier: Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1,
       };
     })
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
@@ -1775,9 +1774,8 @@ export async function savePlanDay(formData: FormData) {
   const calorieTarget = Number(formData.get("calorieTarget")) || null;
   const proteinTarget = Number(formData.get("proteinTarget")) || null;
 
-  const [library, mealLibrary] = await Promise.all([getExercises(), getMeals()]);
-  const exercises = isRest ? [] : parsePlanExercises(String(formData.get("exercises") ?? ""), library);
-  const meals = isRest ? [] : parsePlanMeals(String(formData.get("meals") ?? ""), mealLibrary);
+  const exercises = isRest ? [] : readPlanExercises(formData);
+  const meals = isRest ? [] : readPlanMeals(formData);
 
   await writeRevision(block.id, dayIndex, kind, from, scope === "date" ? from : null, {
     title,

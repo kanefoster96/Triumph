@@ -272,13 +272,31 @@ export interface Exercise {
   archivedAt: string | null;
 }
 
+/**
+ * The units an ingredient can be measured in.
+ *
+ * A closed list rather than free text because the shopping list merges lines
+ * by name and unit — "200 g" and "200 grams" have to be the same thing or the
+ * list doubles up. "whole" covers a banana or an egg, which is why a quantity
+ * can always carry a unit.
+ */
+export const UNITS = ["g", "kg", "ml", "l", "whole", "slice", "clove", "tbsp", "tsp", "handful"] as const;
+
+export type Unit = (typeof UNITS)[number];
+
 export interface Ingredient {
   id: string;
   position: number;
   name: string;
   /** Kept apart from the unit so a shopping list can scale and merge. */
   quantity: number | null;
+  /** Required whenever there is a quantity; null only for "some parsley". */
   unit: string | null;
+}
+
+/** An ingredient with an amount but no unit cannot be scaled or merged. */
+export function needsUnit(ingredient: Pick<Ingredient, "quantity" | "unit">): boolean {
+  return ingredient.quantity !== null && !ingredient.unit;
 }
 
 export interface Meal {

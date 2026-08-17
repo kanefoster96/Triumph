@@ -14,7 +14,7 @@ import { bumpPlanWeights, createPlanBlock, savePlanDay } from "@/lib/members/act
 import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
 import { cn } from "@/lib/utils";
-import type { PlanDay } from "@/lib/members/types";
+import { ExercisePlanner, MealPlanner } from "@/components/members/PlanDayEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -24,20 +24,6 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 function dayLabel(startsOn: string, dayIndex: number, cycleWeeks: number): string {
   const weekday = WEEKDAYS[(new Date(`${startsOn}T00:00:00Z`).getUTCDay() + 6 + dayIndex) % 7];
   return cycleWeeks === 2 ? `${weekday} · week ${Math.floor(dayIndex / 7) + 1}` : weekday;
-}
-
-/** The text form of a day, which is also what Dean edits. */
-function exerciseLines(day: PlanDay): string {
-  return day.exercises
-    .map((exercise) => {
-      const sets = exercise.sets.map((set) => `${set.targetWeightKg ?? 0}x${set.targetReps ?? 0}`).join(", ");
-      return [exercise.name, sets, exercise.notes ?? ""].filter(Boolean).join(" | ");
-    })
-    .join("\n");
-}
-
-function mealLines(day: PlanDay): string {
-  return day.meals.map((slot) => `${slot.slot} | ${slot.meal.name} | ${slot.multiplier}`).join("\n");
 }
 
 export default async function AdminClientPlanPage({
@@ -249,31 +235,7 @@ export default async function AdminClientPlanPage({
                 </div>
               </div>
 
-              <div>
-                <label className={fieldLabel} htmlFor="pd-ex">
-                  Exercises — one per line, &ldquo;Name | 60x10, 65x8, 70x6 | note&rdquo;
-                </label>
-                <textarea
-                  id="pd-ex"
-                  className={field}
-                  name="exercises"
-                  rows={6}
-                  defaultValue={exerciseLines(day)}
-                  placeholder={"Back squat | 60x10, 65x8, 70x6\nRomanian deadlift | 60x8, 60x8, 60x8"}
-                />
-                <p className="mt-2 text-xs text-faint">
-                  Each set gets its own weight and reps. A line whose name is not in the library is ignored,
-                  so check it against the list if something does not appear after saving.
-                </p>
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-text">
-                    Exercise names ({exercises.length})
-                  </summary>
-                  <p className="mt-2 text-xs leading-relaxed text-faint">
-                    {exercises.map((e) => e.name).join(" · ")}
-                  </p>
-                </details>
-              </div>
+              <ExercisePlanner day={day} exercises={exercises} />
 
               <div>
                 <label className={fieldLabel} htmlFor="pd-notes">
@@ -307,58 +269,7 @@ export default async function AdminClientPlanPage({
               <input type="hidden" name="dayIndex" value={dayIndex as number} />
               <input type="hidden" name="kind" value="food" />
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className={fieldLabel} htmlFor="pf-kcal">
-                    Calorie target
-                  </label>
-                  <input
-                    id="pf-kcal"
-                    className={field}
-                    type="number"
-                    name="calorieTarget"
-                    defaultValue={foodDay.calorieTarget ?? ""}
-                  />
-                </div>
-                <div>
-                  <label className={fieldLabel} htmlFor="pf-protein">
-                    Protein target (g)
-                  </label>
-                  <input
-                    id="pf-protein"
-                    className={field}
-                    type="number"
-                    name="proteinTarget"
-                    defaultValue={foodDay.proteinTarget ?? ""}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={fieldLabel} htmlFor="pf-meals">
-                  Meals — one per line, &ldquo;slot | meal | multiplier&rdquo;
-                </label>
-                <textarea
-                  id="pf-meals"
-                  className={field}
-                  name="meals"
-                  rows={5}
-                  defaultValue={mealLines(foodDay)}
-                  placeholder={"breakfast | Peanut butter oats | 1\nlunch | Chicken and rice bowl | 1.5"}
-                />
-                <p className="mt-2 text-xs text-faint">
-                  Multiplier scales calories, macros and the shopping list. Leave the list empty for a
-                  target-only day. A line whose meal is not in the library is ignored.
-                </p>
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-text">
-                    Meal names ({meals.length})
-                  </summary>
-                  <p className="mt-2 text-xs leading-relaxed text-faint">
-                    {meals.map((m) => m.name).join(" · ")}
-                  </p>
-                </details>
-              </div>
+              <MealPlanner day={foodDay} meals={meals} calorieTarget={foodDay.calorieTarget} />
 
               <ScopeFields defaultFrom={now} />
 

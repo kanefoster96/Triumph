@@ -950,7 +950,7 @@ export const demoMeals: Meal[] = [
       { id: "in-1", position: 0, name: "Porridge oats", quantity: 60, unit: "g" },
       { id: "in-2", position: 1, name: "Semi-skimmed milk", quantity: 250, unit: "ml" },
       { id: "in-3", position: 2, name: "Peanut butter", quantity: 15, unit: "g" },
-      { id: "in-4", position: 3, name: "Banana", quantity: 1, unit: null },
+      { id: "in-4", position: 3, name: "Banana", quantity: 1, unit: "whole" },
     ],
     method: [
       "Put the oats and milk in a pan over a medium heat.",
@@ -969,8 +969,8 @@ export const demoMeals: Meal[] = [
     carbsG: 32,
     fatG: 18,
     ingredients: [
-      { id: "in-5", position: 0, name: "Eggs", quantity: 3, unit: null },
-      { id: "in-6", position: 1, name: "Wholemeal bread", quantity: 2, unit: "slices" },
+      { id: "in-5", position: 0, name: "Eggs", quantity: 3, unit: "whole" },
+      { id: "in-6", position: 1, name: "Wholemeal bread", quantity: 2, unit: "slice" },
       { id: "in-7", position: 2, name: "Butter", quantity: 5, unit: "g" },
     ],
     method: [
@@ -1012,7 +1012,7 @@ export const demoMeals: Meal[] = [
     carbsG: 66,
     fatG: 12,
     ingredients: [
-      { id: "in-13", position: 0, name: "Baking potato", quantity: 1, unit: null },
+      { id: "in-13", position: 0, name: "Baking potato", quantity: 1, unit: "whole" },
       { id: "in-14", position: 1, name: "Tuna in spring water", quantity: 145, unit: "g" },
       { id: "in-15", position: 2, name: "Light mayonnaise", quantity: 20, unit: "g" },
       { id: "in-16", position: 3, name: "Sweetcorn", quantity: 60, unit: "g" },
@@ -1037,7 +1037,7 @@ export const demoMeals: Meal[] = [
       { id: "in-18", position: 1, name: "New potatoes", quantity: 250, unit: "g" },
       { id: "in-19", position: 2, name: "Green beans", quantity: 120, unit: "g" },
       { id: "in-20", position: 3, name: "Olive oil", quantity: 10, unit: "ml" },
-      { id: "in-21", position: 4, name: "Lemon", quantity: 1, unit: null },
+      { id: "in-21", position: 4, name: "Lemon", quantity: 1, unit: "whole" },
     ],
     method: [
       "Boil the potatoes until tender.",
@@ -1059,8 +1059,8 @@ export const demoMeals: Meal[] = [
       { id: "in-22", position: 0, name: "Turkey mince", quantity: 150, unit: "g" },
       { id: "in-23", position: 1, name: "Wholewheat spaghetti", quantity: 80, unit: "g" },
       { id: "in-24", position: 2, name: "Chopped tomatoes", quantity: 200, unit: "g" },
-      { id: "in-25", position: 3, name: "Onion", quantity: 1, unit: null },
-      { id: "in-26", position: 4, name: "Garlic", quantity: 2, unit: "cloves" },
+      { id: "in-25", position: 3, name: "Onion", quantity: 1, unit: "whole" },
+      { id: "in-26", position: 4, name: "Garlic", quantity: 2, unit: "clove" },
       { id: "in-27", position: 5, name: "Olive oil", quantity: 10, unit: "ml" },
     ],
     method: [

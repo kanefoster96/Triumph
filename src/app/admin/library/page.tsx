@@ -6,7 +6,8 @@ import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from 
 import { IconTile } from "@/components/ui/IconTile";
 import { Chip } from "@/components/ui/Chip";
 import { cn } from "@/lib/utils";
-import type { Meal, MealTag } from "@/lib/members/types";
+import { needsUnit, type MealTag } from "@/lib/members/types";
+import { IngredientRows } from "@/components/members/IngredientRows";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +26,6 @@ function matches(haystack: Array<string | null>, query: string): boolean {
   if (!query) return true;
   const needle = query.toLowerCase();
   return haystack.some((value) => (value ?? "").toLowerCase().includes(needle));
-}
-
-function ingredientLines(meal: Meal): string {
-  return meal.ingredients
-    .map((i) => [i.name, i.quantity ?? "", i.unit ?? ""].filter(String).join(" | "))
-    .join("\n");
 }
 
 export default async function AdminLibraryPage({ searchParams }: PageProps<"/admin/library">) {
@@ -288,19 +283,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                 Per single serving. A client&rsquo;s multiplier scales these.
               </p>
 
-              <div>
-                <label className={fieldLabel} htmlFor="me-ing">
-                  Ingredients — one per line, &ldquo;Name | quantity | unit&rdquo;
-                </label>
-                <textarea
-                  id="me-ing"
-                  className={field}
-                  name="ingredients"
-                  rows={5}
-                  defaultValue={meal ? ingredientLines(meal) : ""}
-                  placeholder={"Chicken breast | 150 | g\nBasmati rice | 75 | g\nBanana | 1"}
-                />
-              </div>
+              <IngredientRows ingredients={meal?.ingredients ?? []} />
 
               <div>
                 <label className={fieldLabel} htmlFor="me-method">
@@ -343,6 +326,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
               <ul className="space-y-2">
                 {shownMeals.map((entry) => {
                   const suspect = entry.method.filter(looksLikeQuantity).length;
+                  const unitless = entry.ingredients.filter(needsUnit).length;
                   return (
                     <li key={entry.id} className="rounded-2xl border border-line bg-ink px-4 py-3">
                       <div className="flex items-center justify-between gap-3">
@@ -371,6 +355,14 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                           </button>
                         </form>
                       </div>
+
+                      {unitless > 0 ? (
+                        <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber">
+                          <TriangleAlert className="h-3.5 w-3.5" />
+                          {unitless} ingredient{unitless === 1 ? "" : "s"} have an amount but no unit — the
+                          shopping list cannot scale them until that is fixed.
+                        </p>
+                      ) : null}
 
                       {suspect > 0 ? (
                         <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber">
