@@ -94,31 +94,44 @@ export default async function FoodPage() {
             </p>
           ) : null}
 
-          <form action={logFood} className="mt-5 flex flex-wrap gap-3">
-            <input type="hidden" name="date" value={date} />
-            <input
-              name="calories"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              required
-              placeholder="Calories"
-              aria-label="Calories"
-              className="w-32 rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
-            />
-            <input
-              name="note"
-              placeholder="Note (optional)"
-              aria-label="Note"
-              className="min-w-0 flex-1 rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
-            >
-              Add
-            </button>
-          </form>
+          {/* Anything off the plan is logged here with a reason, rather than
+              by changing the portion Dean set. What he needs at the review is
+              why it happened, not a quietly bigger meal. */}
+          <div className="mt-5 rounded-2xl border border-line bg-ink p-4">
+            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+              Ate something else?
+            </p>
+            <p className="mt-1.5 text-sm text-muted">
+              Add it here with a quick why — a bigger portion, a meal out, a bad afternoon. Dean reads these
+              at your check-in.
+            </p>
+            <form action={logFood} className="mt-4 flex flex-wrap gap-3">
+              <input type="hidden" name="date" value={date} />
+              <input
+                name="calories"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                required
+                placeholder="Extra kcal"
+                aria-label="Extra calories"
+                className="w-32 rounded-2xl border border-line bg-surface px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+              />
+              <input
+                name="note"
+                required
+                placeholder="Why? Second helping at dinner"
+                aria-label="Why"
+                className="min-w-0 flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+              >
+                Add
+              </button>
+            </form>
+          </div>
 
           {todaysLogs.length > 0 ? (
             <ul className="mt-5 space-y-2">
@@ -203,13 +216,13 @@ export default async function FoodPage() {
                           </form>
 
                           <Link
-                            href={`/app/food/meal/${entry.meal.id}?x=${entry.multiplier}`}
+                            href={`/app/food/meal/${entry.meal.id}?date=${date}`}
                             className="flex min-w-0 flex-1 items-center gap-3"
                           >
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-semibold">{entry.meal.name}</span>
                               <span className="text-xs text-faint">
-                                {entry.multiplier !== 1 ? `${entry.multiplier}× · ` : ""}
+                                {entry.multiplier !== 1 ? `${entry.multiplier}× portion · ` : ""}
                                 {scaled.carbsG ?? 0}C · {scaled.fatG ?? 0}F · {scaled.proteinG ?? 0}P
                               </span>
                             </span>

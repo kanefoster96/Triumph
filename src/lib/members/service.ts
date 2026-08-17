@@ -1503,3 +1503,19 @@ export async function getShoppingList(clientId: string, from: string, days: numb
 
   return [...lines.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/**
+ * The portion Dean set for a meal on a date, or null when it is not on the
+ * client's plan that day.
+ *
+ * Read from the plan rather than taken from the URL: the portion is coaching,
+ * so a client must not be able to change it by editing a query string.
+ */
+export async function getAssignedPortion(
+  clientId: string,
+  date: string,
+  mealId: string,
+): Promise<number | null> {
+  const planned = await getPlannedFood(clientId, date);
+  return planned.meals.find((slot) => slot.meal.id === mealId)?.multiplier ?? null;
+}
