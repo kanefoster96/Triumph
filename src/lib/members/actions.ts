@@ -19,7 +19,7 @@ import {
   demoWeightEntries,
   demoWorkouts,
 } from "./demo";
-import { DEMO_ROLE_COOKIE, getCurrentProfile, shiftDate, today } from "./service";
+import { DEMO_ROLE_COOKIE, getCurrentProfile, getWorkoutFor, shiftDate, today } from "./service";
 import type { CommentTarget, MealTag } from "./types";
 
 /**
@@ -1317,4 +1317,205 @@ export async function archiveMeal(formData: FormData) {
   }
 
   refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Training
+// ---------------------------------------------------------------------------
+
+/**
+ * Turn a planned day into a logged one.
+ *
+ * The plan generates; this is the moment it becomes a record. Names, muscle
+ * groups and equipment are snapshotted here, so renaming a library exercise
+ * later tidies future days without rewriting this one. Idempotent — opening a
+ * workout twice does not start it twice.
+ */
+export async function startWorkout(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const clientId = String(formData.get("clientId") ?? profile.id);
+  const date = String(formData.get("date") ?? today());
+
+  const existing = await getWorkoutFor(clientId, date);
+  if (!existing || !existing.fromPlan) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const workoutId = crypto.randomUUID();
+    demoWorkouts.push({
+      ...existing,
+      id: workoutId,
+      fromPlan: false,
+      items: existing.items.map((item) => ({
+        ...item,
+        id: crypto.randomUUID(),
+        workoutId,
+        sets: item.sets.map((set) => ({ ...set, id: crypto.randomUUID() })),
+      })),
+    });
+  } else {
+    const { data: workout } = await supabase
+      .from("workouts")
+      .upsert(
+        {
+          client_id: clientId,
+          scheduled_for: date,
+          title: existing.title,
+          suggested_time: existing.suggestedTime,
+          coach_notes: existing.coachNotes,
+        },
+        { onConflict: "client_id,scheduled_for" },
+      )
+      .select("id")
+      .single();
+    if (!workout) return;
+
+    for (const item of existing.items) {
+      const { data: row } = await supabase
+        .from("workout_items")
+        .insert({
+          workout_id: workout.id,
+          position: item.position,
+          label: item.label,
+          exercise_id: item.exerciseId,
+          muscle_group: item.muscleGroup,
+          equipment: item.equipment,
+        })
+        .select("id")
+        .single();
+      if (!row || item.sets.length === 0) continue;
+
+      await supabase.from("workout_sets").insert(
+        item.sets.map((set) => ({
+          workout_item_id: row.id,
+          position: set.position,
+          target_weight_kg: set.targetWeightKg,
+          target_reps: set.targetReps,
+        })),
+      );
+    }
+  }
+
+  refresh();
+}
+
+/** Record what they actually lifted on one set. */
+export async function logSet(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const setId = String(formData.get("setId") ?? "");
+  if (!setId) return;
+
+  const number = (key: string) => {
+    const value = Number(formData.get(key));
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  };
+  const actualWeightKg = number("weight");
+  const actualReps = number("reps");
+  const doneAt = new Date().toISOString();
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    for (const workout of demoWorkouts) {
+      for (const item of workout.items) {
+        const set = item.sets.find((s) => s.id === setId);
+        if (set) {
+          set.actualWeightKg = actualWeightKg;
+          set.actualReps = actualReps;
+          set.doneAt = doneAt;
+          // An exercise counts as done once every set has been logged.
+          item.done = item.sets.every((s) => s.doneAt);
+          item.doneAt = item.done ? doneAt : null;
+        }
+      }
+    }
+  } else {
+    await supabase
+      .from("workout_sets")
+      .update({ actual_weight_kg: actualWeightKg, actual_reps: actualReps, done_at: doneAt })
+      .eq("id", setId);
+
+    const { data: set } = await supabase
+      .from("workout_sets")
+      .select("workout_item_id")
+      .eq("id", setId)
+      .single();
+    if (set) {
+      const { data: siblings } = await supabase
+        .from("workout_sets")
+        .select("done_at")
+        .eq("workout_item_id", set.workout_item_id);
+      const done = (siblings ?? []).every((s) => s.done_at);
+      await supabase
+        .from("workout_items")
+        .update({ done, done_at: done ? doneAt : null })
+        .eq("id", set.workout_item_id);
+    }
+  }
+
+  refresh();
+}
+
+/** Pass on an exercise, with the reason so Dean sees why. */
+export async function skipExercise(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const itemId = String(formData.get("itemId") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim() || "Skipped";
+  if (!itemId) return;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    for (const workout of demoWorkouts) {
+      const item = workout.items.find((i) => i.id === itemId);
+      if (item) {
+        item.skippedReason = reason;
+        item.done = false;
+      }
+    }
+  } else {
+    await supabase.from("workout_items").update({ skipped_reason: reason, done: false }).eq("id", itemId);
+  }
+
+  refresh();
+}
+
+/** "How did that go?" — the rating and note Dean reads at the weekly review. */
+export async function finishWorkout(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const workoutId = String(formData.get("workoutId") ?? "");
+  if (!workoutId) return;
+
+  const feelingValue = Number(formData.get("feeling"));
+  const feeling = feelingValue >= 1 && feelingValue <= 5 ? Math.round(feelingValue) : null;
+  const note = String(formData.get("note") ?? "").trim() || null;
+  const completedAt = new Date().toISOString();
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const workout = demoWorkouts.find((w) => w.id === workoutId);
+    if (workout) {
+      workout.feeling = feeling;
+      workout.clientNote = note;
+      workout.completedAt = completedAt;
+    }
+  } else {
+    await supabase
+      .from("workouts")
+      .update({ feeling, client_note: note, completed_at: completedAt })
+      .eq("id", workoutId);
+  }
+
+  refresh();
+  redirect("/app/workouts");
 }

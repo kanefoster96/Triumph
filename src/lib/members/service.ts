@@ -31,6 +31,8 @@ import type {
   DashboardSummary,
   DayPlan,
   Exercise,
+  ExerciseTrend,
+  LastEffort,
   FoodLog,
   FoodPlan,
   Meal,
@@ -1311,4 +1313,77 @@ export interface RawRevision {
     sets: PlanSet[];
   }>;
   meals: Array<{ id: string; slot: Meal["tag"]; position: number; mealId: string; multiplier: number }>;
+}
+
+/**
+ * What the client last did on an exercise, for the field beside the next
+ * target. Skipped and unlogged sessions are ignored — the last real effort is
+ * the useful one, not the last date.
+ */
+export async function getLastEfforts(clientId: string): Promise<Map<string, LastEffort>> {
+  const workouts = await getWorkouts(clientId);
+  const efforts = new Map<string, LastEffort>();
+
+  // Newest first, so the first hit for an exercise is the most recent.
+  for (const workout of [...workouts].sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor))) {
+    for (const item of workout.items) {
+      if (!item.exerciseId || efforts.has(item.exerciseId)) continue;
+      const logged = item.sets.filter((set) => set.doneAt);
+      if (logged.length === 0) continue;
+
+      efforts.set(item.exerciseId, {
+        on: workout.scheduledFor,
+        sets: logged.map((set) => ({ weightKg: set.actualWeightKg, reps: set.actualReps })),
+        feeling: workout.feeling,
+      });
+    }
+  }
+
+  return efforts;
+}
+
+/** Target against actual across recent sessions, per exercise. */
+export async function getExerciseTrends(clientId: string, since: string): Promise<ExerciseTrend[]> {
+  const workouts = (await getWorkouts(clientId))
+    .filter((w) => w.scheduledFor >= since)
+    .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+
+  const byExercise = new Map<string, ExerciseTrend>();
+
+  for (const workout of workouts) {
+    for (const item of workout.items) {
+      if (!item.exerciseId) continue;
+      const logged = item.sets.filter((set) => set.doneAt);
+      if (logged.length === 0) continue;
+
+      const trend = byExercise.get(item.exerciseId) ?? {
+        exerciseId: item.exerciseId,
+        name: item.label,
+        sessions: [],
+        slipping: false,
+      };
+
+      // The heaviest set is the one worth tracking; the rest are ramp-up.
+      const top = logged.reduce((best, set) =>
+        (set.actualWeightKg ?? 0) > (best.actualWeightKg ?? 0) ? set : best,
+      );
+
+      trend.sessions.push({
+        on: workout.scheduledFor,
+        targetReps: top.targetReps,
+        actualReps: top.actualReps,
+        targetWeightKg: top.targetWeightKg,
+        actualWeightKg: top.actualWeightKg,
+      });
+      byExercise.set(item.exerciseId, trend);
+    }
+  }
+
+  for (const trend of byExercise.values()) {
+    const last = trend.sessions.slice(-2);
+    trend.slipping =
+      last.length === 2 && last.every((s) => s.targetReps !== null && (s.actualReps ?? 0) < s.targetReps);
+  }
+
+  return [...byExercise.values()];
 }

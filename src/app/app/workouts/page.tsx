@@ -1,10 +1,18 @@
 import { redirect } from "next/navigation";
-import { getComments, getCurrentProfile, getWorkouts, commentsFor, today } from "@/lib/members/service";
+import {
+  commentsFor,
+  getComments,
+  getCurrentProfile,
+  getWorkoutFor,
+  getWorkouts,
+  today,
+} from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
-import { Clock } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
 import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
+import { Button } from "@/components/ui/Button";
 import { relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +21,14 @@ export default async function WorkoutsPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
 
-  const [workouts, comments] = await Promise.all([getWorkouts(profile.id), getComments(profile.id)]);
   const date = today();
-  const todays = workouts.find((w) => w.scheduledFor === date) ?? null;
+  // Today comes through the resolver, so a day the plan generates shows up
+  // before it has been started; the history list is what actually happened.
+  const [workouts, comments, todays] = await Promise.all([
+    getWorkouts(profile.id),
+    getComments(profile.id),
+    getWorkoutFor(profile.id, date),
+  ]);
   const past = workouts.filter((w) => w.scheduledFor !== date);
 
   return (
@@ -38,13 +51,42 @@ export default async function WorkoutsPage() {
             <>
               {todays.coachNotes ? (
                 <div className="mb-5 rounded-2xl bg-raised p-4">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-                    From Dean
-                  </p>
+                  <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">From Dean</p>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{todays.coachNotes}</p>
                 </div>
               ) : null}
-              <WorkoutChecklist workout={todays} />
+              {/* Days built from the library are stepped through set by set;
+                  legacy free-text days stay a simple tick list. */}
+              {todays.items.some((item) => item.sets.length > 0) ? (
+                <div className="space-y-4">
+                  <ul className="space-y-2">
+                    {todays.items.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-baseline justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">{item.label}</span>
+                          {item.skippedReason ? (
+                            <span className="text-xs text-amber">Skipped — {item.skippedReason}</span>
+                          ) : (
+                            <span className="text-xs text-faint">
+                              {item.sets.filter((set) => set.doneAt).length} of {item.sets.length} sets
+                            </span>
+                          )}
+                        </span>
+                        {item.done ? <Chip tone="accent">Done</Chip> : null}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button href={`/app/workouts/start?date=${todays.scheduledFor}`} size="sm">
+                    {todays.completedAt ? "Review workout" : todays.fromPlan ? "Start workout" : "Carry on"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <WorkoutChecklist workout={todays} />
+              )}
               <CommentThread
                 comments={commentsFor(comments, "workout", todays.id)}
                 clientId={profile.id}
