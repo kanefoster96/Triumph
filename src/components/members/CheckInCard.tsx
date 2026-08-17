@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, MessageSquareText, RefreshCw, SlidersHorizontal } from "lucide-react";
+import {
+  ArrowRight,
+  MessageSquareText,
+  RefreshCw,
+  SlidersHorizontal,
+  TriangleAlert,
+} from "lucide-react";
 import type { CheckInSummary, DayPlan, SessionPlan } from "@/lib/members/types";
 import { recordCheckIn } from "@/lib/members/actions";
 import { commentsFor } from "@/lib/members/service";
@@ -115,7 +121,9 @@ export function CheckInCard({
   sessionPlans: SessionPlan[];
   dayPlans: DayPlan[];
 }) {
-  const { profile, flags, lastCheckIn, notes, trainingDays, checkInComments, plannedAhead } = summary;
+  const { profile, flags, lastCheckIn, notes, trainingDays, checkInComments, plannedAhead } =
+    summary;
+  const missedDays = summary.missedDays;
   const earlier = summary.recentCheckIns.slice(1);
   const id = profile.id;
   const settled = flags.length === 0;
@@ -196,6 +204,35 @@ export function CheckInCard({
                 {flag}
               </Chip>
             ))}
+          </div>
+        ) : null}
+
+        {/* A day they finished with something outstanding. Amber rather than
+            red: they turned up and closed the day out honestly, which is the
+            behaviour worth keeping — the plan is what needs looking at. */}
+        {missedDays.length > 0 ? (
+          <div className="rounded-2xl border border-amber/30 bg-amber/[0.05] p-4">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-amber uppercase">
+              <TriangleAlert className="h-3.5 w-3.5" />
+              Finished, but missed something
+            </p>
+            <ul className="mt-3 space-y-3">
+              {missedDays.map((day) => (
+                <li key={day.onDate}>
+                  <p className="text-xs text-faint">
+                    {shortDate(day.onDate)} · {day.missed.join(", ")}
+                  </p>
+                  {day.note ? (
+                    <p className="mt-1 text-sm leading-relaxed text-text">
+                      &ldquo;{day.note}&rdquo;
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-faint">
+              The same meal twice over is a meal to swap, not a discipline problem.
+            </p>
           </div>
         ) : null}
 

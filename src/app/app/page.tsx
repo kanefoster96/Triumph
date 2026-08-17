@@ -10,13 +10,20 @@ import {
   MessageCircle,
   Salad,
 } from "lucide-react";
-import { getCurrentProfile, getDashboard, getDayProgress, today } from "@/lib/members/service";
+import {
+  getCurrentProfile,
+  getDashboard,
+  getDayProgress,
+  getDaySubmissionDetail,
+  today,
+} from "@/lib/members/service";
 import { markCommentsRead, submitDay } from "@/lib/members/actions";
 import { CalorieBar, Panel, ScreenTitle } from "@/components/members/ui";
 import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
-import { relativeDate } from "@/lib/utils";
+import { FinishAnyway } from "@/components/members/FinishAnyway";
+import { cn, relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +65,10 @@ export default async function DashboardPage() {
   if (!profile) redirect("/login");
 
   const date = today();
-  const [summary, progress] = await Promise.all([
+  const [summary, progress, submission] = await Promise.all([
     getDashboard(profile),
     getDayProgress(profile.id, date),
+    getDaySubmissionDetail(profile.id, date),
   ]);
   const step = nextStep(summary);
   const firstName = profile.fullName.split(" ")[0];
@@ -79,19 +87,53 @@ export default async function DashboardPage() {
     <>
       <ScreenTitle title={`Morning, ${firstName}`} subtitle={profile.goal ?? undefined} />
 
-      {/* The day is either asking for something or ready to be closed out.
-          Only one of those is ever true, so only one of these is shown. */}
-      {progress.submittedAt ? (
-        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[var(--radius-sheet)] border border-success/40 bg-success/[0.06] p-5">
-          <CheckCheck className="h-6 w-6 shrink-0 text-success" />
-          <div>
-            <p className="text-xs font-semibold tracking-[0.14em] text-success uppercase">
-              Day submitted
-            </p>
-            <p className="mt-1.5 text-lg font-semibold">
-              Everything Dean asked for, done. He&rsquo;ll see it at your next check-in.
-            </p>
+      {/* Three states, one shown: closed out, ready to close, or still asking
+          for something — and in that last case it can still be closed. */}
+      {submission ? (
+        <div
+          className={cn(
+            "mb-6 rounded-[var(--radius-sheet)] border p-5",
+            submission.missed.length > 0
+              ? "border-amber/40 bg-amber/[0.06]"
+              : "border-success/40 bg-success/[0.06]",
+          )}
+        >
+          <div className="flex flex-wrap items-center gap-4">
+            <CheckCheck
+              className={cn(
+                "h-6 w-6 shrink-0",
+                submission.missed.length > 0 ? "text-amber" : "text-success",
+              )}
+            />
+            <div>
+              <p
+                className={cn(
+                  "text-xs font-semibold tracking-[0.14em] uppercase",
+                  submission.missed.length > 0 ? "text-amber" : "text-success",
+                )}
+              >
+                Day submitted
+              </p>
+              <p className="mt-1.5 text-lg font-semibold">
+                {submission.missed.length > 0
+                  ? "Day closed. Dean has your note."
+                  : "Everything Dean asked for, done. He\u2019ll see it at your next check-in."}
+              </p>
+            </div>
           </div>
+          {submission.missed.length > 0 ? (
+            <div className="mt-4 rounded-2xl bg-raised p-4">
+              <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                Marked as missed
+              </p>
+              <p className="mt-1.5 text-sm text-muted">{submission.missed.join(" \u00b7 ")}</p>
+              {submission.note ? (
+                <p className="mt-3 text-sm leading-relaxed text-text">
+                  &ldquo;{submission.note}&rdquo;
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : progress.allDone ? (
         <div className="mb-6 rounded-[var(--radius-sheet)] border border-accent/50 bg-accent/[0.08] p-5">
@@ -113,23 +155,29 @@ export default async function DashboardPage() {
           </form>
         </div>
       ) : (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
-              Next step
-            </p>
-            <p className="mt-1.5 text-lg font-semibold">{step.label}</p>
-            {outstanding.length > 0 ? (
-              <p className="mt-1 text-sm text-muted">
-                Left today: {outstanding.join(", ")}.
+        <>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+                Next step
               </p>
-            ) : null}
+              <p className="mt-1.5 text-lg font-semibold">{step.label}</p>
+              {outstanding.length > 0 ? (
+                <p className="mt-1 text-sm text-muted">Left today: {outstanding.join(", ")}.</p>
+              ) : null}
+            </div>
+            <Button href={step.href} size="sm">
+              {step.cta}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
-          <Button href={step.href} size="sm">
-            {step.cta}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
+
+          {/* A day that did not go to plan still has to be closable. Making it
+              impossible would only teach them to tick what they did not eat. */}
+          {progress.missed.length > 0 ? (
+            <FinishAnyway date={date} missed={progress.missed} />
+          ) : null}
+        </>
       )}
 
       {summary.unreadComments.length > 0 ? (

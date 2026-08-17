@@ -8,26 +8,23 @@ import { site } from "@/lib/data/site";
 import {
   demoCheckIns,
   demoComments,
-  demoDaySubmissions,
   demoExercises,
-  demoFoodDayFeedback,
-  demoMealLogs,
   demoMeals,
   demoPlanBlocks,
   demoPlanRevisions,
-  demoShoppingLists,
   demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
   demoProfiles,
   demoSessionPlans,
   demoSessions,
-  demoWeightEntries,
   demoWorkouts,
 } from "./demo";
+import { writeDemoData } from "./demo-store";
 import {
   DEMO_ROLE_COOKIE,
   getCurrentProfile,
+  getDayProgress,
   getMeal,
   getMealLogs,
   getPlanBlock,
@@ -194,13 +191,17 @@ export async function logWeight(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoWeightEntries.find((w) => w.clientId === clientId && w.loggedFor === loggedFor);
-    if (existing) {
-      existing.weightKg = weightKg;
-      existing.note = note;
-    } else {
-      demoWeightEntries.push({ id: crypto.randomUUID(), clientId, loggedFor, weightKg, note });
-    }
+    await writeDemoData((data) => {
+      const existing = data.weightEntries.find(
+        (w) => w.clientId === clientId && w.loggedFor === loggedFor,
+      );
+      if (existing) {
+        existing.weightKg = weightKg;
+        existing.note = note;
+      } else {
+        data.weightEntries.push({ id: crypto.randomUUID(), clientId, loggedFor, weightKg, note });
+      }
+    });
   } else {
     await supabase
       .from("weight_entries")
@@ -1883,8 +1884,10 @@ export async function toggleMeal(formData: FormData) {
 
   if (existing) {
     if (!supabase) {
-      const index = demoMealLogs.findIndex((log) => log.id === existing.id);
-      if (index >= 0) demoMealLogs.splice(index, 1);
+      await writeDemoData((data) => {
+        const index = data.mealLogs.findIndex((log) => log.id === existing.id);
+        if (index >= 0) data.mealLogs.splice(index, 1);
+      });
     } else {
       await supabase.from("meal_logs").delete().eq("id", existing.id);
     }
@@ -1897,18 +1900,20 @@ export async function toggleMeal(formData: FormData) {
   const scaled = scaleMeal(meal, multiplier);
 
   if (!supabase) {
-    demoMealLogs.push({
-      id: crypto.randomUUID(),
-      clientId,
-      loggedFor,
-      slot,
-      mealId,
-      name: meal.name,
-      multiplier,
-      calories: scaled.calories,
-      proteinG: scaled.proteinG,
-      carbsG: scaled.carbsG,
-      fatG: scaled.fatG,
+    await writeDemoData((data) => {
+      data.mealLogs.push({
+        id: crypto.randomUUID(),
+        clientId,
+        loggedFor,
+        slot,
+        mealId,
+        name: meal.name,
+        multiplier,
+        calories: scaled.calories,
+        proteinG: scaled.proteinG,
+        carbsG: scaled.carbsG,
+        fatG: scaled.fatG,
+      });
     });
   } else {
     await supabase.from("meal_logs").insert({
@@ -1942,11 +1947,13 @@ export async function saveFoodDayFeedback(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoFoodDayFeedback.find(
-      (entry) => entry.clientId === clientId && entry.loggedFor === loggedFor,
-    );
-    if (existing) Object.assign(existing, { feeling, note });
-    else demoFoodDayFeedback.push({ clientId, loggedFor, feeling, note });
+    await writeDemoData((data) => {
+      const existing = data.foodDayFeedback.find(
+        (entry) => entry.clientId === clientId && entry.loggedFor === loggedFor,
+      );
+      if (existing) Object.assign(existing, { feeling, note });
+      else data.foodDayFeedback.push({ clientId, loggedFor, feeling, note });
+    });
   } else {
     await supabase
       .from("food_day_feedback")
@@ -1997,7 +2004,7 @@ export async function createShoppingList(formData: FormData) {
 
   if (!supabase) {
     listId = crypto.randomUUID();
-    demoShoppingLists.push({
+    const newList = {
       id: listId,
       clientId: profile.id,
       fromDate: from,
@@ -2012,7 +2019,8 @@ export async function createShoppingList(formData: FormData) {
         usedIn: line.usedIn.join(", "),
         checkedAt: null,
       })),
-    });
+    };
+    await writeDemoData((data) => data.shoppingLists.push(newList));
   } else {
     const { data } = await supabase
       .from("shopping_lists")
@@ -2049,10 +2057,12 @@ export async function toggleShoppingItem(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    for (const list of demoShoppingLists) {
-      const item = list.items.find((entry) => entry.id === itemId);
-      if (item) item.checkedAt = item.checkedAt ? null : new Date().toISOString();
-    }
+    await writeDemoData((data) => {
+      for (const list of data.shoppingLists) {
+        const item = list.items.find((entry) => entry.id === itemId);
+        if (item) item.checkedAt = item.checkedAt ? null : new Date().toISOString();
+      }
+    });
   } else {
     const { data } = await supabase
       .from("shopping_list_items")
@@ -2095,14 +2105,16 @@ export async function moveShoppingItem(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const stored = demoShoppingLists.find((entry) => entry.id === listId);
-    const a = stored?.items.find((item) => item.id === moving.id);
-    const b = stored?.items.find((item) => item.id === displaced.id);
-    if (a && b) {
-      const held = a.position;
-      a.position = b.position;
-      b.position = held;
-    }
+    await writeDemoData((data) => {
+      const stored = data.shoppingLists.find((entry) => entry.id === listId);
+      const a = stored?.items.find((item) => item.id === moving.id);
+      const b = stored?.items.find((item) => item.id === displaced.id);
+      if (a && b) {
+        const held = a.position;
+        a.position = b.position;
+        b.position = held;
+      }
+    });
   } else {
     await supabase.from("shopping_list_items").update({ position: displaced.position }).eq("id", moving.id);
     await supabase.from("shopping_list_items").update({ position: moving.position }).eq("id", displaced.id);
@@ -2121,8 +2133,12 @@ export async function deleteShoppingList(formData: FormData) {
   const supabase = await createClient();
 
   if (!supabase) {
-    const index = demoShoppingLists.findIndex((list) => list.id === listId && list.clientId === profile.id);
-    if (index >= 0) demoShoppingLists.splice(index, 1);
+    await writeDemoData((data) => {
+      const index = data.shoppingLists.findIndex(
+        (list) => list.id === listId && list.clientId === profile.id,
+      );
+      if (index >= 0) data.shoppingLists.splice(index, 1);
+    });
   } else {
     await supabase.from("shopping_lists").delete().eq("id", listId).eq("client_id", profile.id);
   }
@@ -2138,24 +2154,48 @@ export async function deleteShoppingList(formData: FormData) {
  * sets, the weight all wrote as they happened. This records the client saying
  * they are finished, which is the bit that feels like something and the bit
  * Dean can scan at the review.
+ *
+ * A day can be finished with things still outstanding. Life happens: the
+ * ingredients were not in, breakfast got skipped on the school run, they did
+ * not fancy the salmon. Refusing to let them finish would only teach them that
+ * the honest answer is to tick things they did not eat. So the day closes
+ * either way — but what was missed is recorded, and a reason is asked for, so
+ * Dean can tell "the plan is wrong for them" from "it was a hard week".
+ *
+ * What was missed is worked out here rather than taken from the form: the
+ * client's screen cannot be the authority on what they did.
  */
 export async function submitDay(formData: FormData) {
   const profile = await getCurrentProfile();
   if (!profile) return;
 
   const date = String(formData.get("date") ?? today());
+  const note = String(formData.get("note") ?? "").trim() || null;
   const submittedAt = new Date().toISOString();
+
+  const progress = await getDayProgress(profile.id, date);
+  const missed = progress.missed;
+  // A missed day without a reason is the one thing worth refusing — the reason
+  // is the entire value of letting it be submitted at all.
+  if (missed.length > 0 && !note) return;
+
   const supabase = await createClient();
 
   if (!supabase) {
-    const existing = demoDaySubmissions.find(
-      (entry) => entry.clientId === profile.id && entry.onDate === date,
-    );
-    if (!existing) demoDaySubmissions.push({ clientId: profile.id, onDate: date, submittedAt });
+    await writeDemoData((data) => {
+      const existing = data.daySubmissions.find(
+        (entry) => entry.clientId === profile.id && entry.onDate === date,
+      );
+      if (existing) Object.assign(existing, { submittedAt, missed, note });
+      else data.daySubmissions.push({ clientId: profile.id, onDate: date, submittedAt, missed, note });
+    });
   } else {
     await supabase
       .from("day_submissions")
-      .upsert({ client_id: profile.id, on_date: date }, { onConflict: "client_id,on_date" });
+      .upsert(
+        { client_id: profile.id, on_date: date, missed, note },
+        { onConflict: "client_id,on_date" },
+      );
   }
 
   refresh();
@@ -2177,11 +2217,13 @@ export async function setShoppingItemChecked(itemId: string, checked: boolean) {
   const supabase = await createClient();
 
   if (!supabase) {
-    for (const list of demoShoppingLists) {
-      if (list.clientId !== profile.id) continue;
-      const item = list.items.find((entry) => entry.id === itemId);
-      if (item) item.checkedAt = checkedAt;
-    }
+    await writeDemoData((data) => {
+      for (const list of data.shoppingLists) {
+        if (list.clientId !== profile.id) continue;
+        const item = list.items.find((entry) => entry.id === itemId);
+        if (item) item.checkedAt = checkedAt;
+      }
+    });
   } else {
     await supabase.from("shopping_list_items").update({ checked_at: checkedAt }).eq("id", itemId);
   }

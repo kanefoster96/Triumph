@@ -308,11 +308,23 @@ create table public.food_day_feedback (
 -- Dean can scan at the weekly review to see who is closing their days out.
 -- ---------------------------------------------------------------------------
 
+-- A day can be closed out with things still outstanding — the ingredients were
+-- not in, breakfast went on the school run. Refusing would only teach the
+-- client to tick what they did not eat, so the day closes either way and what
+-- was missed is recorded with it.
+--
+-- Both columns are a snapshot taken at the moment they pressed finish: ticking
+-- a meal the next morning must not rewrite what they told Dean.
 create table public.day_submissions (
   id           uuid primary key default gen_random_uuid(),
   client_id    uuid not null references public.profiles(id) on delete cascade,
   on_date      date not null,
   submitted_at timestamptz not null default now(),
+  missed       text[] not null default '{}',
+  note         text,
+  -- A reason is the whole point of allowing an incomplete day through.
+  constraint day_submissions_missed_needs_note
+    check (cardinality(missed) = 0 or note is not null),
   unique (client_id, on_date)
 );
 

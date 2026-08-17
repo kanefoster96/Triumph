@@ -63,6 +63,13 @@ The Plan tab owns the shape of the week; the Workouts tab owns one date. Both
 write through `savePlanDay` — the Plan tab defaulting to weekday-forward, the
 Workouts tab to that date alone.
 
+Demo writes go through `lib/members/demo-store.ts`, not module-level arrays.
+The site runs as serverless functions, so a module array is per-instance: a
+tick landed in one instance and the next request read another, and the tick
+appeared to undo itself. Anything written in demo mode belongs in that cookie
+— if you add a new demo write, add it there rather than to a `const` in
+`demo.ts`, which is now seed data only.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,

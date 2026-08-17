@@ -226,6 +226,12 @@ export interface CheckInSummary {
    * the shape "continue" repeats, so the UI can name it before Dean commits.
    */
   trainingDays: number[];
+  /**
+   * Days they closed out with something still outstanding, newest first. Each
+   * carries their own reason — the difference between a plan that does not fit
+   * and a week that was simply hard.
+   */
+  missedDays: DaySubmission[];
   /** Last date with a workout or food plan assigned; null when nothing is. */
   plannedThrough: string | null;
   /** What is already queued from tomorrow — what "adjust" would replace. */
@@ -470,6 +476,27 @@ export interface DayProgress {
   /** Filled in for the food tab: 3 of 4 meals ticked. */
   mealsEaten: number;
   mealsPlanned: number;
+  /**
+   * Exactly what is still outstanding, named the way the client would say it
+   * — "Breakfast — Peanut butter oats", not "food". A day can be finished with
+   * things on this list, but only with a reason attached.
+   */
+  missed: string[];
+}
+
+/**
+ * A day the client has closed out.
+ *
+ * `missed` and `note` are a snapshot taken at the moment they pressed finish.
+ * Ticking a meal the next morning does not rewrite what they told Dean, and a
+ * plan Dean changes later does not quietly make a missed day look complete.
+ */
+export interface DaySubmission {
+  clientId: string;
+  onDate: string;
+  submittedAt: string;
+  missed: string[];
+  note: string | null;
 }
 
 /** One line of a shopping list, merged across every meal that needs it. */

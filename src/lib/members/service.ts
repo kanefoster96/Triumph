@@ -6,10 +6,8 @@ import {
   DEMO_CLIENT_ID,
   demoCheckIns,
   demoComments,
-  demoDaySubmissions,
   demoExercises,
   demoMeals,
-  demoMealLogs,
   demoPlanBlocks,
   demoPlanRevisions,
   demoDayPlans,
@@ -18,12 +16,12 @@ import {
   demoProfiles,
   demoSessionPlans,
   demoSessions,
-  demoShoppingLists,
-  demoWeightEntries,
   demoWorkouts,
 } from "./demo";
+import { demoData, demoWeights } from "./demo-store";
 import type {
   CheckIn,
+  DaySubmission,
   CheckInSummary,
   ClientNote,
   ClientOverview,
@@ -667,7 +665,7 @@ export function sumCalories(logs: FoodLog[]): number {
 export async function getWeightEntries(clientId: string): Promise<WeightEntry[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoWeightEntries
+    return (await demoWeights())
       .filter((w) => w.clientId === clientId)
       .sort((a, b) => b.loggedFor.localeCompare(a.loggedFor));
   }
@@ -816,6 +814,7 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
         getCheckIns(profile.id),
         getComments(profile.id),
       ]);
+      const missedDays = await getMissedDays(profile.id, periodStart, periodEnd);
 
       const inWindow = (date: string) => date >= periodStart && date <= periodEnd;
 
@@ -904,6 +903,14 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
           flags.push(`Averaging ${Math.abs(off).toLocaleString("en-GB")} under target`);
         }
       }
+      // A finished day with something missed is the most actionable thing on
+      // this board: the client already told him why.
+      if (missedDays.length > 0) {
+        const items = new Set(missedDays.flatMap((d) => d.missed));
+        flags.push(
+          `${missedDays.length} day${missedDays.length === 1 ? "" : "s"} finished with ${items.size} thing${items.size === 1 ? "" : "s"} missed`,
+        );
+      }
       if (notes.length > 0) {
         flags.push(notes.length === 1 ? "Left a note" : `Left ${notes.length} notes`);
       }
@@ -930,6 +937,7 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
         weightChangeKg,
         notes,
         trainingDays,
+        missedDays,
         plannedThrough,
         plannedAhead,
         lastCheckIn,
@@ -1447,7 +1455,8 @@ export async function getPlannedFood(
 export async function getMealLogs(clientId: string, date?: string): Promise<MealLog[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoMealLogs.filter((log) => log.clientId === clientId && (!date || log.loggedFor === date));
+    const { mealLogs } = await demoData();
+    return mealLogs.filter((log) => log.clientId === clientId && (!date || log.loggedFor === date));
   }
 
   let query = supabase.from("meal_logs").select("*").eq("client_id", clientId);
@@ -1558,7 +1567,8 @@ function sortedItems(list: ShoppingList): ShoppingList {
 export async function getShoppingLists(clientId: string): Promise<ShoppingList[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoShoppingLists
+    const { shoppingLists } = await demoData();
+    return shoppingLists
       .filter((list) => list.clientId === clientId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map(sortedItems);
@@ -1575,7 +1585,8 @@ export async function getShoppingLists(clientId: string): Promise<ShoppingList[]
 export async function getShoppingListById(id: string): Promise<ShoppingList | null> {
   const supabase = await createClient();
   if (!supabase) {
-    const stored = demoShoppingLists.find((list) => list.id === id);
+    const { shoppingLists } = await demoData();
+    const stored = shoppingLists.find((list) => list.id === id);
     return stored ? sortedItems(stored) : null;
   }
 
@@ -1610,21 +1621,75 @@ export async function getLearnedOrder(clientId: string): Promise<Map<string, num
 // ---------------------------------------------------------------------------
 
 export async function getDaySubmission(clientId: string, date: string): Promise<string | null> {
+  return (await getDaySubmissionDetail(clientId, date))?.submittedAt ?? null;
+}
+
+/** The submission with what it recorded — what was missed, and why. */
+export async function getDaySubmissionDetail(
+  clientId: string,
+  date: string,
+): Promise<DaySubmission | null> {
   const supabase = await createClient();
   if (!supabase) {
-    return (
-      demoDaySubmissions.find((entry) => entry.clientId === clientId && entry.onDate === date)
-        ?.submittedAt ?? null
-    );
+    const { daySubmissions } = await demoData();
+    return daySubmissions.find((e) => e.clientId === clientId && e.onDate === date) ?? null;
   }
 
   const { data } = await supabase
     .from("day_submissions")
-    .select("submitted_at")
+    .select("*")
     .eq("client_id", clientId)
     .eq("on_date", date)
     .maybeSingle();
-  return data?.submitted_at ?? null;
+  return data
+    ? {
+        clientId,
+        onDate: date,
+        submittedAt: data.submitted_at,
+        missed: data.missed ?? [],
+        note: data.note ?? null,
+      }
+    : null;
+}
+
+/**
+ * Recent days the client closed out with something outstanding.
+ *
+ * This is the list Dean acts on: a finished day with a reason attached tells
+ * him whether the plan needs changing or the week was just a hard one.
+ */
+export async function getMissedDays(
+  clientId: string,
+  from: string,
+  to: string,
+): Promise<DaySubmission[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { daySubmissions } = await demoData();
+    return daySubmissions
+      .filter(
+        (e) =>
+          e.clientId === clientId && e.onDate >= from && e.onDate <= to && e.missed.length > 0,
+      )
+      .sort((a, b) => b.onDate.localeCompare(a.onDate));
+  }
+
+  const { data } = await supabase
+    .from("day_submissions")
+    .select("*")
+    .eq("client_id", clientId)
+    .gte("on_date", from)
+    .lte("on_date", to)
+    .order("on_date", { ascending: false });
+  return (data ?? [])
+    .map((row) => ({
+      clientId,
+      onDate: row.on_date,
+      submittedAt: row.submitted_at,
+      missed: (row.missed ?? []) as string[],
+      note: row.note ?? null,
+    }))
+    .filter((entry) => entry.missed.length > 0);
 }
 
 /**
@@ -1662,6 +1727,17 @@ export async function getDayProgress(clientId: string, date: string): Promise<Da
   const asked = states.filter((state) => state !== "none");
   const allDone = asked.length > 0 && asked.every((state) => state === "done");
 
+  // Named one by one rather than as "food", because "you missed breakfast" is
+  // something Dean can act on and "food incomplete" is not.
+  const missed: string[] = [];
+  if (workoutState === "todo") missed.push(workout?.title ?? "Today's workout");
+  for (const slot of planned.meals) {
+    if (eaten.has(`${slot.slot}:${slot.meal.id}`)) continue;
+    const label = slot.slot.charAt(0).toUpperCase() + slot.slot.slice(1);
+    missed.push(`${label} — ${slot.meal.name}`);
+  }
+  if (weightState === "todo") missed.push("Today's weight");
+
   return {
     date,
     workout: workoutState,
@@ -1671,5 +1747,6 @@ export async function getDayProgress(clientId: string, date: string): Promise<Da
     submittedAt,
     mealsEaten,
     mealsPlanned,
+    missed,
   };
 }
