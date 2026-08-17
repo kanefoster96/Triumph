@@ -64,6 +64,9 @@ function toMealRows(day: PlanDay): MealRow[] {
  */
 export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: Exercise[] }) {
   const domId = useId();
+  // Seeded once. Any caller that can swap `day` underneath this component
+  // must give it a `key` tied to that day, or the previous day's exercises
+  // stay in the form and get saved onto the new one.
   const [rows, setRows] = useState<ExerciseRow[]>(() => toExerciseRows(day));
 
   const update = (key: string, patch: Partial<ExerciseRow>) =>

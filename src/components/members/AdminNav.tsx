@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ClipboardCheck, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, Layers, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -10,6 +10,10 @@ const links = [
   { href: "/admin/checkin", label: "Check-ins", icon: ClipboardCheck },
   { href: "/admin/library", label: "Library", icon: BookOpen },
   { href: "/admin/schedule", label: "Schedule", icon: CalendarDays },
+  // Templates are the older way of assigning a day and are on their way out,
+  // but the check-in round and the Food tab still read from them, so the page
+  // that maintains them has to be reachable rather than URL-only.
+  { href: "/admin/plans", label: "Templates", icon: Layers },
 ];
 
 export function AdminNav() {

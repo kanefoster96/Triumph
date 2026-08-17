@@ -175,6 +175,21 @@ section disappears once the environment variables are set.
   for now).
 - Realtime push. Client actions appear on Dean's next page load, not by
   live subscription.
-- The rest of the planning tools — meal and exercise libraries, calorie
-  auto-fill, progression memory and shopping lists. Spec in ROADMAP.md.
-  Templates and range assignment are done.
+- An inbox for Dean. A client's replies on a food log, weight entry or
+  workout only show on that client's own tab — nothing counts them anywhere.
+  Replies to a check-in do surface, on the check-in board.
+- A password reset. The login form tells people to ask Dean, and there is no
+  route that does it.
+- An error boundary. Only `not-found.tsx` exists, so a server throw shows the
+  raw Next.js screen.
+
+## On its way out
+
+`/admin/plans` ("Templates") is the older way of assigning a day: free-text
+session and day plans, unconnected to the exercise and meal libraries. The
+repeating plan block replaces it, and the client Workouts tab has already been
+moved over. Two screens still read templates and have to be moved before the
+page can go:
+
+- the check-in round's **Adjust plan** fast path, and
+- a client's **Food** tab assigner.

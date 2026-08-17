@@ -54,7 +54,14 @@ the root layout is only the document shell.
 
 `/admin/clients/[slug]` is tabbed with the same five sections as the client's
 own app, one route each, sharing a layout. Keep the two in step: what Dean
-edits should map onto what the client is looking at.
+edits should map onto what the client is looking at. Concretely, that means
+any screen showing a day must resolve it the way the client's app does —
+`getWorkoutFor` and `getTrainingDates`, never a raw `getWorkouts`, which
+returns logged rows only and so reports planned days as empty.
+
+The Plan tab owns the shape of the week; the Workouts tab owns one date. Both
+write through `savePlanDay` — the Plan tab defaulting to weekday-forward, the
+Workouts tab to that date alone.
 
 ## Gotchas
 

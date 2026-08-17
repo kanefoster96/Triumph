@@ -235,7 +235,11 @@ export default async function AdminClientPlanPage({
                 </div>
               </div>
 
-              <ExercisePlanner day={day} exercises={exercises} />
+              {/* The planners seed their rows from props once, so moving to
+                  another day has to remount them. Without this, clicking Mon →
+                  Wed leaves Monday's exercises in the form and saving writes
+                  them onto Wednesday. */}
+              <ExercisePlanner key={`w-${dayIndex}`} day={day} exercises={exercises} />
 
               <div>
                 <label className={fieldLabel} htmlFor="pd-notes">
@@ -269,7 +273,12 @@ export default async function AdminClientPlanPage({
               <input type="hidden" name="dayIndex" value={dayIndex as number} />
               <input type="hidden" name="kind" value="food" />
 
-              <MealPlanner day={foodDay} meals={meals} calorieTarget={foodDay.calorieTarget} />
+              <MealPlanner
+                key={`f-${dayIndex}`}
+                day={foodDay}
+                meals={meals}
+                calorieTarget={foodDay.calorieTarget}
+              />
 
               <ScopeFields defaultFrom={now} />
 
