@@ -204,13 +204,15 @@ export function ShoppingChecklist({
                 aria-pressed={checked}
                 aria-label={checked ? `Put ${item.name} back` : `Tick ${item.name} off`}
                 className={cn(
-                  "grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors",
+                  "grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 transition-colors",
                   checked
                     ? "border-accent bg-accent text-accent-ink"
-                    : "border-line text-faint hover:border-accent hover:text-accent",
+                    : "border-faint bg-ink hover:border-accent",
                 )}
               >
-                <Check className="h-5 w-5" />
+                {/* Empty until it is in the trolley. A tick that is already
+                    drawn, only greyer, does not read as "not done yet". */}
+                {checked ? <Check className="h-5 w-5" strokeWidth={3} /> : null}
               </button>
 
               <span className="min-w-0 flex-1">

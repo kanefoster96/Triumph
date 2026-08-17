@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, ChevronRight, ShoppingBasket, Trash2 } from "lucide-react";
+import { Check, ShoppingBasket, Trash2 } from "lucide-react";
 import {
   commentsFor,
   getComments,
@@ -192,35 +192,14 @@ export default async function FoodPage() {
                             done ? "border-accent/40 bg-accent/[0.06]" : "border-line bg-ink",
                           )}
                         >
-                          {/* Ticking is the whole interaction, so it is the
-                              biggest target on the row. */}
-                          <form action={toggleMeal}>
-                            <input type="hidden" name="date" value={date} />
-                            <input type="hidden" name="slot" value={entry.slot} />
-                            <input type="hidden" name="mealId" value={entry.meal.id} />
-                            <input type="hidden" name="multiplier" value={entry.multiplier} />
-                            <button
-                              type="submit"
-                              aria-label={
-                                done ? `Untick ${entry.meal.name}` : `Tick ${entry.meal.name} as eaten`
-                              }
-                              className={cn(
-                                "grid h-10 w-10 place-items-center rounded-full border transition-colors",
-                                done
-                                  ? "border-accent bg-accent text-accent-ink"
-                                  : "border-line text-faint hover:border-accent hover:text-accent",
-                              )}
-                            >
-                              <Check className="h-5 w-5" />
-                            </button>
-                          </form>
-
                           <Link
                             href={`/app/food/meal/${entry.meal.id}?date=${date}`}
                             className="flex min-w-0 flex-1 items-center gap-3"
                           >
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold">{entry.meal.name}</span>
+                              {/* Wraps rather than truncates: "Cod, potatoes
+                                  and gr…" tells them nothing. */}
+                              <span className="block text-sm font-semibold">{entry.meal.name}</span>
                               <span className="text-xs text-faint">
                                 {entry.multiplier !== 1 ? `${entry.multiplier}× portion · ` : ""}
                                 {scaled.carbsG ?? 0}C · {scaled.fatG ?? 0}F · {scaled.proteinG ?? 0}P
@@ -229,8 +208,37 @@ export default async function FoodPage() {
                             <span className="shrink-0 text-sm text-muted tabular-nums">
                               {scaled.calories ?? "—"}
                             </span>
-                            <ChevronRight className="h-4 w-4 shrink-0 text-faint" />
                           </Link>
+
+                          {/* An empty box on the right, and a tick only once it
+                              has been ticked. A greyed-out tick sitting there
+                              from the start reads as a state rather than
+                              something to press. */}
+                          <form action={toggleMeal} className="shrink-0">
+                            <input type="hidden" name="date" value={date} />
+                            <input type="hidden" name="slot" value={entry.slot} />
+                            <input type="hidden" name="mealId" value={entry.meal.id} />
+                            <input type="hidden" name="multiplier" value={entry.multiplier} />
+                            <button
+                              type="submit"
+                              aria-pressed={done}
+                              aria-label={
+                                done ? `Untick ${entry.meal.name}` : `Tick ${entry.meal.name} as eaten`
+                              }
+                              className="group/tick grid h-11 w-11 place-items-center rounded-xl"
+                            >
+                              <span
+                                className={cn(
+                                  "grid h-7 w-7 place-items-center rounded-lg border-2 transition-colors",
+                                  done
+                                    ? "border-accent bg-accent text-accent-ink"
+                                    : "border-faint bg-ink group-hover/tick:border-accent",
+                                )}
+                              >
+                                {done ? <Check className="h-4.5 w-4.5" strokeWidth={3} /> : null}
+                              </span>
+                            </button>
+                          </form>
                         </li>
                       );
                     })}
@@ -240,8 +248,8 @@ export default async function FoodPage() {
             </div>
 
             <p className="mt-5 text-xs text-faint">
-              Tick a meal and its calories go on automatically. Tap the name for the amounts and how to make
-              it.
+              Tick the box on the right once you&rsquo;ve eaten it and the calories go on
+              automatically. Tap the meal name for the amounts and how to make it.
             </p>
           </Panel>
         ) : null}

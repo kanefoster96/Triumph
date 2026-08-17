@@ -1,5 +1,6 @@
 import { CheckCheck, TriangleAlert } from "lucide-react";
 import { submitDay } from "@/lib/members/actions";
+import { ReasonNote } from "./ReasonNote";
 
 /**
  * Closing out a day that did not go to plan.
@@ -39,23 +40,12 @@ export function FinishAnyway({ date, missed }: { date: string; missed: string[] 
 
         <form action={submitDay} className="mt-5">
           <input type="hidden" name="date" value={date} />
-          <label
-            htmlFor="finish-note"
-            className="mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase"
-          >
-            What happened?
-          </label>
-          <textarea
-            id="finish-note"
-            name="note"
-            rows={3}
-            required
-            placeholder="Didn't have the salmon in, and I was out at lunch."
-            className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
-          />
-          <p className="mt-2 text-xs text-faint">
-            This is not a telling off. Dean uses it to change the plan — if a meal keeps getting
-            missed, it is the wrong meal.
+          <ReasonNote id="finish-note" />
+          <p className="mt-2 text-xs leading-relaxed text-faint">
+            No wrong answer here. Dean is only working out whether it needs changing — a meal you
+            do not like, one that takes too long on a weeknight, or an ingredient that never makes
+            it into the trolley are three different fixes, and &ldquo;I forgot&rdquo; is a
+            perfectly good answer too.
           </p>
           <button
             type="submit"
