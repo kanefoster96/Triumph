@@ -7,7 +7,7 @@ export const field =
 export const fieldLabel =
   "mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase";
 export const submitButton =
-  "rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong";
+  "rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint";
 
 /** Page heading for a member or admin screen. */
 export function ScreenTitle({

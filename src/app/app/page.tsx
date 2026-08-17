@@ -7,6 +7,7 @@ import { CalorieBar, Panel, ScreenTitle } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { relativeDate } from "@/lib/utils";
+import type { CommentTarget } from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,11 @@ function formatPlannedDay(date: string) {
     month: "long",
     timeZone: "UTC",
   });
+}
+
+/** A check-in is Dean writing to them; everything else is a reply on a note. */
+function commentContext(target: CommentTarget) {
+  return target === "check_in" ? "Your weekly check-in" : `On your ${target.replace("_", " ")} note`;
 }
 
 /** The one thing to do next, chosen in priority order. */
@@ -84,8 +90,7 @@ export default async function DashboardPage() {
             {summary.unreadComments.map((comment) => (
               <li key={comment.id} className="rounded-2xl bg-raised p-4">
                 <p className="text-xs text-faint">
-                  On your {comment.targetType.replace("_", " ")} note ·{" "}
-                  {relativeDate(comment.createdAt.slice(0, 10))}
+                  {commentContext(comment.targetType)} · {relativeDate(comment.createdAt.slice(0, 10))}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-text">{comment.body}</p>
               </li>

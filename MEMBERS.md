@@ -47,6 +47,7 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | --- | --- |
 | **Clients** `/admin` | Every client with last activity, on/off track, and today's workout, calories and weight at a glance. |
 | **Client** `/admin/clients/[id]` | The same five tabs the client sees, but editable. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts assigns the checklist and shows what they ticked; Food sets targets and meals; Weight shows the trend and allows corrections. Dean can reply to any note from its tab. |
+| **Check-ins** `/admin/checkin` | The weekly round. Every active client with how their last stretch went, anything they wrote, and how far ahead they are planned — then continue the plan or adjust it, both with a note. |
 | **Plans** `/admin/plans` | Reusable workout plans and food plans, built once and assigned to as many days as needed. Independent of any client. |
 | **Schedule** `/admin/schedule` | A month calendar of every session across all clients. Pick a day to see it and add to it — client, time, location picker with a free-text override. Anything added shows up in that client's Sessions tab. |
 
@@ -71,6 +72,37 @@ them. Workouts carry a muted dot.
 Every calendar is built from links, no client JavaScript. The picked day lives
 in the URL (`?month=&date=`), so it survives a refresh and is shareable. The
 selected day is filled, today is outlined.
+
+## The weekly round
+
+Planning three or four weeks out only works if something brings Dean back
+weekly to check it is still right. **Check-ins** is that screen.
+
+Every active client gets a row: workouts finished against assigned, days food
+was logged, average calories against target, weight change, and — the point of
+it — everything they wrote in the window, in one place. Anyone with something
+worth looking at is flagged with the reason (`2 of 3 workouts not finished`,
+`Left a note`, `Plan runs out within a week`, `Review due`) and sorted to the
+top; the rest read **On track** and can be skimmed past.
+
+Two decisions, and both write the plan forward and send the client a note:
+
+- **Continue plan** repeats the training week they are already on. It reads the
+  last fortnight, keeps the most recent workout for each weekday, and clones
+  that shape forward up to four weeks. Days that already have a workout are
+  left alone, so continuing can only ever add. Food needs no writes — an
+  assigned target carries itself forward.
+- **Adjust plan** takes a workout plan, the weekdays it lands on and a food
+  plan, and applies them over the coming weeks. This is the one place both
+  halves of the week are set in a single pass.
+
+Either way Dean picks when to look again, the decision is stored against the
+client, and the note lands on their dashboard as **Your weekly check-in**.
+
+Today's workout is never counted as missed — the day is not over. A check-in
+records the weeks it actually wrote, so continuing a client who has no pattern
+yet does not claim four weeks are covered; that case disables **Continue** and
+points at **Adjust** instead.
 
 ## Planning ahead
 

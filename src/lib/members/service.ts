@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   DEMO_ADMIN_ID,
   DEMO_CLIENT_ID,
+  demoCheckIns,
   demoComments,
   demoDayPlans,
   demoFoodLogs,
@@ -15,6 +16,9 @@ import {
   demoWorkouts,
 } from "./demo";
 import type {
+  CheckIn,
+  CheckInSummary,
+  ClientNote,
   ClientOverview,
   CoachSession,
   Comment,
@@ -152,6 +156,21 @@ function toComment(row: any): Comment {
     targetId: row.target_id,
     body: row.body,
     readAt: row.read_at ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+function toCheckIn(row: any): CheckIn {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    coachId: row.coach_id,
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    outcome: row.outcome,
+    note: row.note,
+    weeksPlanned: row.weeks_planned ?? 0,
+    nextReviewOn: row.next_review_on,
     createdAt: row.created_at,
   };
 }
@@ -448,6 +467,222 @@ export function commentsFor(comments: Comment[], targetType: CommentTarget, targ
   return comments
     .filter((c) => c.targetType === targetType && c.targetId === targetId)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+// ---------------------------------------------------------------------------
+// Check-ins
+// ---------------------------------------------------------------------------
+
+/** An ISO date shifted by whole days, in UTC. */
+export function shiftDate(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function getCheckIns(clientId: string): Promise<CheckIn[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoCheckIns
+      .filter((c) => c.clientId === clientId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const { data } = await supabase
+    .from("check_ins")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toCheckIn);
+}
+
+/**
+ * The note on a food log doubles as a label — plenty of entries are just
+ * "Breakfast". A few words means they were telling Dean something; one or two
+ * means they were naming a meal, and putting those on the board is noise.
+ */
+function isMessage(note: string): boolean {
+  return note.trim().split(/\s+/).length >= 4;
+}
+
+/** Everything the client wrote in the window, newest first. */
+function gatherNotes(
+  workouts: Workout[],
+  foodLogs: FoodLog[],
+  weights: WeightEntry[],
+  start: string,
+  end: string,
+): ClientNote[] {
+  const inWindow = (date: string) => date >= start && date <= end;
+
+  const notes: ClientNote[] = [
+    ...workouts
+      .filter((w) => inWindow(w.scheduledFor) && w.clientNote)
+      .map((w) => ({
+        id: `w-${w.id}`,
+        kind: "workout" as const,
+        on: w.scheduledFor,
+        body: w.clientNote as string,
+        context: w.title,
+      })),
+    ...foodLogs
+      .filter((l) => inWindow(l.loggedFor) && l.note && isMessage(l.note))
+      .map((l) => ({
+        id: `f-${l.id}`,
+        kind: "food" as const,
+        on: l.loggedFor,
+        body: l.note as string,
+        context: `${l.calories.toLocaleString("en-GB")} kcal`,
+      })),
+    ...weights
+      .filter((w) => inWindow(w.loggedFor) && w.note)
+      .map((w) => ({
+        id: `we-${w.id}`,
+        kind: "weight" as const,
+        on: w.loggedFor,
+        body: w.note as string,
+        context: `${w.weightKg.toFixed(1)}kg`,
+      })),
+  ];
+
+  return notes.sort((a, b) => b.on.localeCompare(a.on));
+}
+
+/**
+ * Dean's weekly review: one row per client covering how the last stretch
+ * actually went, what they said about it, and how far ahead they are covered.
+ *
+ * Reads per client the same way `listClients` does. At Dean's scale that is
+ * fine; if the roster ever gets big this is the place to replace with a view.
+ */
+export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]> {
+  const periodEnd = today();
+  const periodStart = shiftDate(periodEnd, -(windowDays - 1));
+  // Paused clients are not being coached, so they are not waiting on a review.
+  const profiles = (await getClients()).filter((p) => p.status === "active");
+
+  const rows = await Promise.all(
+    profiles.map(async (profile): Promise<CheckInSummary> => {
+      const [workouts, foodLogs, weights, assignedFood, foodPlan, checkIns] = await Promise.all([
+        getWorkouts(profile.id),
+        getFoodLogs(profile.id),
+        getWeightEntries(profile.id),
+        getAssignedFoodDates(profile.id),
+        getFoodPlan(profile.id),
+        getCheckIns(profile.id),
+      ]);
+
+      const inWindow = (date: string) => date >= periodStart && date <= periodEnd;
+
+      const windowWorkouts = workouts.filter((w) => inWindow(w.scheduledFor));
+      const workoutsAssigned = windowWorkouts.length;
+      const workoutsCompleted = windowWorkouts.filter((w) => w.completedAt).length;
+      // Today's workout is not missed — the day is not over.
+      const workoutsMissed = windowWorkouts.filter(
+        (w) => w.scheduledFor < periodEnd && !w.completedAt,
+      ).length;
+
+      // What "continue" would repeat: the weekdays they have trained on lately.
+      const lookback = shiftDate(periodEnd, -13);
+      const trainingDays = [
+        ...new Set(
+          workouts
+            .filter((w) => w.scheduledFor >= lookback && w.scheduledFor <= periodEnd)
+            .map((w) => new Date(`${w.scheduledFor}T00:00:00Z`).getUTCDay()),
+        ),
+      ].sort();
+
+      const windowLogs = foodLogs.filter((l) => inWindow(l.loggedFor));
+      const loggedDays = [...new Set(windowLogs.map((l) => l.loggedFor))];
+      const averageCalories = loggedDays.length
+        ? Math.round(sumCalories(windowLogs) / loggedDays.length)
+        : null;
+
+      // Oldest to newest inside the window, so the change reads as a delta.
+      const windowWeights = weights.filter((w) => inWindow(w.loggedFor)).reverse();
+      const weightChangeKg =
+        windowWeights.length >= 2
+          ? Number((windowWeights[windowWeights.length - 1].weightKg - windowWeights[0].weightKg).toFixed(1))
+          : null;
+
+      const lastWorkoutDay =
+        workouts
+          .map((w) => w.scheduledFor)
+          .sort()
+          .at(-1) ?? null;
+      const lastFoodDay =
+        assignedFood
+          .map((p) => p.assignedFor)
+          .sort()
+          .at(-1) ?? null;
+      const plannedThrough =
+        [lastWorkoutDay, lastFoodDay]
+          .filter((d): d is string => Boolean(d))
+          .sort()
+          .at(-1) ?? null;
+
+      const notes = gatherNotes(workouts, foodLogs, weights, periodStart, periodEnd);
+      const lastCheckIn = checkIns[0] ?? null;
+      const calorieTarget = foodPlan?.calorieTarget ?? null;
+
+      // Every flag names something Dean would actually act on, so the card can
+      // say why it is asking for attention rather than just colouring itself.
+      const flags: string[] = [];
+      if (workoutsMissed > 0) {
+        flags.push(`${workoutsMissed} of ${workoutsAssigned} workouts not finished`);
+      }
+      if (loggedDays.length === 0) {
+        flags.push("No food logged");
+      } else if (loggedDays.length < Math.ceil(windowDays / 2)) {
+        flags.push(`Food logged on ${loggedDays.length} of ${windowDays} days`);
+      }
+      if (averageCalories && calorieTarget) {
+        const off = averageCalories - calorieTarget;
+        if (off > calorieTarget * 0.1) flags.push(`Averaging ${off.toLocaleString("en-GB")} over target`);
+        if (off < -calorieTarget * 0.15) {
+          flags.push(`Averaging ${Math.abs(off).toLocaleString("en-GB")} under target`);
+        }
+      }
+      if (notes.length > 0) {
+        flags.push(notes.length === 1 ? "Left a note" : `Left ${notes.length} notes`);
+      }
+      if (!plannedThrough) {
+        flags.push("Nothing assigned");
+      } else if (plannedThrough < shiftDate(periodEnd, 7)) {
+        flags.push("Plan runs out within a week");
+      }
+      if (lastCheckIn && lastCheckIn.nextReviewOn <= periodEnd) {
+        flags.push("Review due");
+      }
+
+      return {
+        profile,
+        periodStart,
+        periodEnd,
+        windowDays,
+        workoutsAssigned,
+        workoutsCompleted,
+        foodLoggedDays: loggedDays.length,
+        averageCalories,
+        calorieTarget,
+        weightChangeKg,
+        notes,
+        trainingDays,
+        plannedThrough,
+        lastCheckIn,
+        flags,
+      };
+    }),
+  );
+
+  // Anyone needing a look comes first, then whoever runs out of plan soonest.
+  return rows.sort((a, b) => {
+    if (Boolean(a.flags.length) !== Boolean(b.flags.length)) return a.flags.length ? -1 : 1;
+    const aThrough = a.plannedThrough ?? "";
+    const bThrough = b.plannedThrough ?? "";
+    if (aThrough !== bThrough) return aThrough.localeCompare(bThrough);
+    return a.profile.fullName.localeCompare(b.profile.fullName);
+  });
 }
 
 // ---------------------------------------------------------------------------

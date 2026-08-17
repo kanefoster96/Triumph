@@ -4,9 +4,10 @@
 workout and food plans on `/admin/plans` and paints them across a date range
 with weekday selection from a client's Workouts or Food tab. Both ends are now
 calendar-driven — Dean books sessions from `/admin/schedule`, assigns workouts
-from a client's calendar, and clients see both on theirs. Still to come: the
-libraries underneath the templates, calorie auto-fill, progression memory and
-shopping lists.
+from a client's calendar, and clients see both on theirs. `/admin/checkin` adds
+the weekly round on top: read how everyone is doing, then continue or adjust
+their plan up to four weeks out. Still to come: the libraries underneath the
+templates, calorie auto-fill, progression memory and shopping lists.
 
 Agreed spec, not yet built. The principle: **build once, assign many times.**
 Three layers, so the daily job takes seconds rather than minutes.

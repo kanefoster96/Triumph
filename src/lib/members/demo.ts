@@ -1,4 +1,5 @@
 import type {
+  CheckIn,
   CoachSession,
   Comment,
   DayPlan,
@@ -278,7 +279,49 @@ export const demoFoodPlans: FoodPlan[] = [
     notes: "Night shifts: keep the big meal before you leave, not at 3am.",
     meals: [],
   },
+  {
+    id: "fp-3",
+    clientId: "demo-client-3",
+    assignedFor: isoDate(-6),
+    calorieTarget: 1700,
+    proteinTarget: 120,
+    notes: null,
+    meals: [],
+  },
 ];
+
+/**
+ * Danny's completed week, plus the block he is planned into. He is the client
+ * who needs nothing changing, so the check-in board has an "on track" row.
+ */
+function dannyWorkout(offset: number, title: string, completed: boolean): Workout {
+  const id = `w-c2-${offset}`;
+  return {
+    id,
+    clientId: "demo-client-2",
+    scheduledFor: isoDate(offset),
+    title,
+    suggestedTime: "07:00",
+    coachNotes: null,
+    clientNote: null,
+    completedAt: completed ? isoTime(offset, 8) : null,
+    items: [
+      { id: `${id}-a`, workoutId: id, position: 0, label: "Trap bar deadlift", target: "4 × 5 @ 120kg", done: completed, doneAt: completed ? isoTime(offset, 8) : null },
+      { id: `${id}-b`, workoutId: id, position: 1, label: "Bench press", target: "4 × 6 @ 80kg", done: completed, doneAt: completed ? isoTime(offset, 8) : null },
+      { id: `${id}-c`, workoutId: id, position: 2, label: "Pull-ups", target: "4 × 8", done: completed, doneAt: completed ? isoTime(offset, 8) : null },
+    ],
+  };
+}
+
+demoWorkouts.push(
+  dannyWorkout(-1, "Full body — heavy", true),
+  dannyWorkout(-3, "Full body — volume", true),
+  dannyWorkout(-6, "Full body — heavy", true),
+  dannyWorkout(4, "Full body — heavy", false),
+  dannyWorkout(6, "Full body — volume", false),
+  dannyWorkout(11, "Full body — heavy", false),
+  dannyWorkout(13, "Full body — volume", false),
+);
 
 export const demoFoodLogs: FoodLog[] = [
   { id: "fl-1", clientId: DEMO_CLIENT_ID, loggedFor: isoDate(0), calories: 420, note: "Breakfast", createdAt: isoTime(0, 8) },
@@ -286,6 +329,17 @@ export const demoFoodLogs: FoodLog[] = [
   { id: "fl-3", clientId: DEMO_CLIENT_ID, loggedFor: isoDate(-1), calories: 1890, note: "End of day total. Felt easy.", createdAt: isoTime(-1, 21) },
   { id: "fl-4", clientId: DEMO_CLIENT_ID, loggedFor: isoDate(-2), calories: 2210, note: "Meal out — went over.", createdAt: isoTime(-2, 22) },
   { id: "fl-5", clientId: "demo-client-2", loggedFor: isoDate(0), calories: 1450, note: null, createdAt: isoTime(0, 12) },
+  // Danny logs every day and lands near target — the "on track" case on the
+  // check-in board, so both states are visible in the demo.
+  { id: "fl-6", clientId: "demo-client-2", loggedFor: isoDate(-1), calories: 2580, note: null, createdAt: isoTime(-1, 21) },
+  { id: "fl-7", clientId: "demo-client-2", loggedFor: isoDate(-2), calories: 2640, note: null, createdAt: isoTime(-2, 21) },
+  { id: "fl-8", clientId: "demo-client-2", loggedFor: isoDate(-3), calories: 2510, note: null, createdAt: isoTime(-3, 20) },
+  { id: "fl-9", clientId: "demo-client-2", loggedFor: isoDate(-4), calories: 2700, note: null, createdAt: isoTime(-4, 22) },
+  { id: "fl-10", clientId: "demo-client-2", loggedFor: isoDate(-5), calories: 2555, note: null, createdAt: isoTime(-5, 21) },
+  { id: "fl-11", clientId: "demo-client-2", loggedFor: isoDate(-6), calories: 2620, note: null, createdAt: isoTime(-6, 20) },
+  // Sofia has just started and is already telling Dean something.
+  { id: "fl-12", clientId: "demo-client-3", loggedFor: isoDate(-1), calories: 1620, note: "Struggled with the salmon again — is there something else I can swap it for?", createdAt: isoTime(-1, 19) },
+  { id: "fl-13", clientId: "demo-client-3", loggedFor: isoDate(-2), calories: 1710, note: null, createdAt: isoTime(-2, 20) },
 ];
 
 export const demoWeightEntries: WeightEntry[] = [
@@ -430,5 +484,36 @@ export const demoComments: Comment[] = [
     body: "Skipping the carries is fine when time is tight — always drop the last accessory first.",
     readAt: isoTime(-3, 12),
     createdAt: isoTime(-3, 11),
+  },
+];
+
+/**
+ * Past check-ins, so the board has history to show. Priya was reviewed a week
+ * ago and is due again; Danny was adjusted after missing sessions.
+ */
+export const demoCheckIns: CheckIn[] = [
+  {
+    id: "ci-1",
+    clientId: DEMO_CLIENT_ID,
+    coachId: DEMO_ADMIN_ID,
+    periodStart: isoDate(-13),
+    periodEnd: isoDate(-7),
+    outcome: "continued",
+    note: "Really consistent fortnight — weight is coming down at the rate we want and the sessions are all getting finished. Nothing to change. Same plan for the next four weeks, I'll look again in a week.",
+    weeksPlanned: 4,
+    nextReviewOn: isoDate(0),
+    createdAt: isoTime(-7, 9),
+  },
+  {
+    id: "ci-2",
+    clientId: "demo-client-2",
+    coachId: DEMO_ADMIN_ID,
+    periodStart: isoDate(-20),
+    periodEnd: isoDate(-14),
+    outcome: "adjusted",
+    note: "Nights knocked two sessions out, so I've moved the heavy work to the front and dropped you to three days instead of four. Easier to hit, and we lose nothing.",
+    weeksPlanned: 3,
+    nextReviewOn: isoDate(4),
+    createdAt: isoTime(-14, 8),
   },
 ];

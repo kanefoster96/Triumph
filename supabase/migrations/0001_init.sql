@@ -207,6 +207,37 @@ alter table public.workouts   add column source_plan_id uuid references public.s
 alter table public.food_plans add column source_plan_id uuid references public.day_plans(id)     on delete set null;
 
 -- ---------------------------------------------------------------------------
+-- Check-ins
+--
+-- The weekly rhythm. Dean reviews a client's last stretch, decides whether the
+-- plan carries on or changes, writes them a note, and sets when to look again.
+-- One row per decision, so the history of a client's coaching is readable.
+-- ---------------------------------------------------------------------------
+
+create type public.check_in_outcome as enum ('continued', 'adjusted');
+
+create table public.check_ins (
+  id             uuid primary key default gen_random_uuid(),
+  client_id      uuid not null references public.profiles(id) on delete cascade,
+  coach_id       uuid not null references public.profiles(id) on delete cascade,
+  -- The stretch Dean was looking at when he made the call.
+  period_start   date not null,
+  period_end     date not null,
+  outcome        public.check_in_outcome not null,
+  -- What he told the client. Also copied into `comments` so it lands in their
+  -- "new from Dean" alongside everything else he writes.
+  note           text not null,
+  -- How many weeks forward this check-in wrote. 0 when nothing needed adding.
+  weeks_planned  int not null default 0,
+  -- Drives the board's ordering: whoever is due soonest sits at the top.
+  next_review_on date not null,
+  created_at     timestamptz not null default now()
+);
+
+create index check_ins_client_idx on public.check_ins (client_id, created_at desc);
+create index check_ins_due_idx    on public.check_ins (next_review_on);
+
+-- ---------------------------------------------------------------------------
 -- Weight
 -- ---------------------------------------------------------------------------
 
@@ -226,7 +257,9 @@ create index weight_entries_client_date_idx on public.weight_entries (client_id,
 -- Comments — Dean replying to any client note
 -- ---------------------------------------------------------------------------
 
-create type public.comment_target as enum ('workout', 'food_log', 'weight_entry', 'session');
+create type public.comment_target as enum (
+  'workout', 'food_log', 'weight_entry', 'session', 'check_in'
+);
 
 create table public.comments (
   id          uuid primary key default gen_random_uuid(),
@@ -282,6 +315,7 @@ alter table public.comments        enable row level security;
 alter table public.session_plans      enable row level security;
 alter table public.session_plan_items enable row level security;
 alter table public.day_plans          enable row level security;
+alter table public.check_ins          enable row level security;
 alter table public.day_plan_meals     enable row level security;
 
 -- Profiles
@@ -392,6 +426,13 @@ create policy "admin manages session plan items" on public.session_plan_items
 create policy "admin manages day plans" on public.day_plans
   for all using (public.is_admin()) with check (public.is_admin());
 create policy "admin manages day plan meals" on public.day_plan_meals
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- Check-ins: the client reads their own history — the note is written to them —
+-- but only Dean records one.
+create policy "read own check ins" on public.check_ins
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "admin records check ins" on public.check_ins
   for all using (public.is_admin()) with check (public.is_admin());
 
 -- ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/data/site";
 import {
+  demoCheckIns,
   demoComments,
   demoDayPlans,
   demoFoodLogs,
@@ -16,7 +17,7 @@ import {
   demoWeightEntries,
   demoWorkouts,
 } from "./demo";
-import { DEMO_ROLE_COOKIE, getCurrentProfile, today } from "./service";
+import { DEMO_ROLE_COOKIE, getCurrentProfile, shiftDate, today } from "./service";
 import type { CommentTarget } from "./types";
 
 /**
@@ -832,4 +833,245 @@ export async function assignDayPlan(formData: FormData) {
 
   revalidatePath("/admin", "layout");
   revalidatePath("/app", "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Check-ins
+// ---------------------------------------------------------------------------
+
+/** Every date from tomorrow up to `weeks` weeks out. */
+function datesAhead(from: string, weeks: number): string[] {
+  return Array.from({ length: weeks * 7 }, (_, i) => shiftDate(from, i + 1));
+}
+
+const weekdayOf = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay();
+
+/**
+ * Repeat the client's current training week forward.
+ *
+ * Takes the last fortnight of assigned workouts, keeps the most recent one for
+ * each weekday, and clones that shape across the coming weeks. Days that
+ * already have a workout are left alone, so continuing can only ever add.
+ *
+ * Food needs no writes at all — an assigned target carries forward on its own
+ * until Dean changes it.
+ */
+async function repeatCurrentWeek(clientId: string, weeks: number): Promise<number> {
+  const from = today();
+  const lookback = shiftDate(from, -13);
+  const dates = datesAhead(from, weeks);
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const recent = demoWorkouts
+      .filter((w) => w.clientId === clientId && w.scheduledFor >= lookback && w.scheduledFor <= from)
+      .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+
+    const pattern = new Map<number, (typeof recent)[number]>();
+    for (const workout of recent) pattern.set(weekdayOf(workout.scheduledFor), workout);
+
+    let written = 0;
+    for (const date of dates) {
+      const template = pattern.get(weekdayOf(date));
+      if (!template) continue;
+      if (demoWorkouts.some((w) => w.clientId === clientId && w.scheduledFor === date)) continue;
+
+      const id = crypto.randomUUID();
+      demoWorkouts.push({
+        id,
+        clientId,
+        scheduledFor: date,
+        title: template.title,
+        suggestedTime: template.suggestedTime,
+        coachNotes: template.coachNotes,
+        clientNote: null,
+        completedAt: null,
+        items: template.items.map((item) => ({
+          id: crypto.randomUUID(),
+          workoutId: id,
+          position: item.position,
+          label: item.label,
+          target: item.target,
+          done: false,
+          doneAt: null,
+        })),
+      });
+      written += 1;
+    }
+    return written;
+  }
+
+  const { data: recent } = await supabase
+    .from("workouts")
+    .select("*, workout_items(*)")
+    .eq("client_id", clientId)
+    .gte("scheduled_for", lookback)
+    .lte("scheduled_for", from)
+    .order("scheduled_for", { ascending: true });
+
+  /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
+  const pattern = new Map<number, any>();
+  for (const row of (recent ?? []) as any[]) pattern.set(weekdayOf(row.scheduled_for), row);
+  if (pattern.size === 0) return 0;
+
+  const { data: existing } = await supabase
+    .from("workouts")
+    .select("scheduled_for")
+    .eq("client_id", clientId)
+    .in("scheduled_for", dates);
+  const taken = new Set((existing ?? []).map((row) => row.scheduled_for));
+
+  let written = 0;
+  for (const date of dates) {
+    const template = pattern.get(weekdayOf(date));
+    if (!template || taken.has(date)) continue;
+
+    const { data: workout } = await supabase
+      .from("workouts")
+      .insert({
+        client_id: clientId,
+        scheduled_for: date,
+        title: template.title,
+        suggested_time: template.suggested_time,
+        coach_notes: template.coach_notes,
+        source_plan_id: template.source_plan_id,
+      })
+      .select("id")
+      .single();
+
+    if (!workout) continue;
+
+    const items = (template.workout_items ?? []) as any[];
+    if (items.length > 0) {
+      await supabase.from("workout_items").insert(
+        items.map((item) => ({
+          workout_id: workout.id,
+          position: item.position,
+          label: item.label,
+          target: item.target,
+        })),
+      );
+    }
+    written += 1;
+  }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  return written;
+}
+
+/** Hand a set of fields to the existing assigners, which read FormData. */
+function assignmentForm(fields: {
+  clientId: string;
+  planId: string;
+  from: string;
+  to: string;
+  weekdays: number[];
+  suggestedTime?: string | null;
+}): FormData {
+  const form = new FormData();
+  form.set("clientId", fields.clientId);
+  form.set("planId", fields.planId);
+  form.set("from", fields.from);
+  form.set("to", fields.to);
+  // Adjusting is a deliberate replacement of what is already queued, and only
+  // ever touches days from tomorrow onwards, so nothing worked through is lost.
+  form.set("overwrite", "on");
+  if (fields.suggestedTime) form.set("suggestedTime", fields.suggestedTime);
+  for (const day of fields.weekdays) form.append("weekdays", String(day));
+  return form;
+}
+
+/**
+ * Record a weekly check-in.
+ *
+ * "Continue" repeats what the client is already doing; "adjust" paints the
+ * chosen plans over the coming weeks instead, both halves of the week in one
+ * pass. Either way the decision is stored with Dean's note, the note is
+ * delivered to the client, and the next review is dated.
+ */
+export async function recordCheckIn(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (!coach || coach.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  if (!clientId || !note) return;
+
+  const outcome = formData.get("outcome") === "adjusted" ? "adjusted" : "continued";
+  const weeks = Math.min(4, Math.max(0, Number(formData.get("weeks") ?? 4) || 0));
+  const reviewInDays = Math.min(28, Math.max(1, Number(formData.get("reviewInDays") ?? 7) || 7));
+
+  const periodEnd = today();
+  const periodStart = shiftDate(periodEnd, -6);
+  const nextReviewOn = shiftDate(periodEnd, reviewInDays);
+
+  // Recorded as what was actually written, not what was asked for: continuing
+  // a client who has no pattern yet writes nothing, and the history should say
+  // so rather than claim four weeks are covered.
+  let weeksPlanned = 0;
+
+  if (weeks > 0) {
+    if (outcome === "adjusted") {
+      const workoutPlanId = String(formData.get("workoutPlanId") ?? "");
+      const dayPlanId = String(formData.get("dayPlanId") ?? "");
+      const weekdays = formData.getAll("weekdays").map((v) => Number(v));
+      const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
+      const from = shiftDate(periodEnd, 1);
+      const to = shiftDate(periodEnd, weeks * 7);
+
+      if (workoutPlanId) {
+        await assignSessionPlan(
+          assignmentForm({ clientId, planId: workoutPlanId, from, to, weekdays, suggestedTime }),
+        );
+      }
+      // Food is set for every day of the range, not just training days.
+      if (dayPlanId) {
+        await assignDayPlan(assignmentForm({ clientId, planId: dayPlanId, from, to, weekdays: [] }));
+      }
+      if (workoutPlanId || dayPlanId) weeksPlanned = weeks;
+    } else if ((await repeatCurrentWeek(clientId, weeks)) > 0) {
+      weeksPlanned = weeks;
+    }
+  }
+
+  const supabase = await createClient();
+  let checkInId: string;
+
+  if (!supabase) {
+    checkInId = crypto.randomUUID();
+    demoCheckIns.push({
+      id: checkInId,
+      clientId,
+      coachId: coach.id,
+      periodStart,
+      periodEnd,
+      outcome,
+      note,
+      weeksPlanned,
+      nextReviewOn,
+      createdAt: new Date().toISOString(),
+    });
+  } else {
+    const { data } = await supabase
+      .from("check_ins")
+      .insert({
+        client_id: clientId,
+        coach_id: coach.id,
+        period_start: periodStart,
+        period_end: periodEnd,
+        outcome,
+        note,
+        weeks_planned: weeksPlanned,
+        next_review_on: nextReviewOn,
+      })
+      .select("id")
+      .single();
+    if (!data) return;
+    checkInId = data.id;
+  }
+
+  // The client reads the note where they read everything else from Dean.
+  await addComment(clientId, "check_in", checkInId, note);
+
+  refresh();
 }
