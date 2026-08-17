@@ -11,7 +11,6 @@ import {
   demoExercises,
   demoMeals,
   demoPlanBlocks,
-  demoPlanRevisions,
   demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
@@ -23,9 +22,11 @@ import {
 import { writeDemoData } from "./demo-store";
 import {
   DEMO_ROLE_COOKIE,
+  dayIndexFor,
   getCurrentProfile,
   getDayProgress,
   getMeal,
+  getPlanDay,
   getMealLogs,
   getPlanBlock,
   getLearnedOrder,
@@ -37,7 +38,7 @@ import {
   shiftDate,
   today,
 } from "./service";
-import type { CommentTarget, EditScope, MealTag } from "./types";
+import type { CommentTarget, EditScope, FoodMode, MealTag } from "./types";
 
 /**
  * Writes for the members' area and Dean's admin.
@@ -1644,7 +1645,7 @@ async function writeRevision(
   const supabase = await createClient();
 
   if (!supabase) {
-    demoPlanRevisions.push({
+    const revision = {
       id: crypto.randomUUID(),
       blockId,
       dayIndex,
@@ -1665,6 +1666,11 @@ async function writeRevision(
         sets: entry.sets.map((set) => ({ id: crypto.randomUUID(), ...set })),
       })),
       meals: body.meals.map((entry) => ({ id: crypto.randomUUID(), ...entry })),
+    };
+    // Appended, never reordered — the newest edit to a date is the one that
+    // counts, and that is decided by position in this list.
+    await writeDemoData((data) => {
+      data.planRevisions.push(revision);
     });
     return;
   }
@@ -1797,6 +1803,72 @@ export async function savePlanDay(formData: FormData) {
     isRest,
     exercises,
     meals,
+  });
+
+  refresh();
+}
+
+/**
+ * Who plans this client's food. Dean's call, and only Dean's.
+ *
+ * Switching mode changes who may edit from here on and nothing else. The plan
+ * already written stays exactly as it is — nobody's week is cleared or
+ * regenerated, because a client who has shopped for Thursday should still be
+ * cooking on Thursday whichever way the switch went.
+ */
+export async function setFoodMode(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  const mode: FoodMode = formData.get("foodMode") === "self" ? "self" : "coach";
+  if (!clientId) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoData((data) => {
+      data.foodModes[clientId] = mode;
+    });
+  } else {
+    await supabase.from("profiles").update({ food_mode: mode }).eq("id", clientId);
+  }
+
+  refresh();
+}
+
+/**
+ * A self-planning client writing one of their own days.
+ *
+ * Deliberately not `savePlanDay` with the role check loosened. This can only
+ * ever write food, only for the person signed in, only on a date that has not
+ * happened, and only when Dean has put them in self-planned mode — none of
+ * which are things a shared function should be trusted to remember. The
+ * targets are read from the plan rather than the form, so a posted field
+ * cannot move the goalposts Dean set.
+ */
+export async function saveMyFoodDay(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "client" || profile.foodMode !== "self") return;
+
+  const date = String(formData.get("date") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today()) return;
+
+  const block = await getPlanBlock(profile.id);
+  if (!block) return;
+  const dayIndex = dayIndexFor(block, date);
+  if (dayIndex === null) return;
+
+  const existing = await getPlanDay(block, date, "food");
+
+  await writeRevision(block.id, dayIndex, "food", date, date, {
+    title: existing?.title ?? null,
+    suggestedTime: existing?.suggestedTime ?? null,
+    coachNotes: existing?.coachNotes ?? null,
+    calorieTarget: existing?.calorieTarget ?? null,
+    proteinTarget: existing?.proteinTarget ?? null,
+    isRest: false,
+    exercises: [],
+    meals: readPlanMeals(formData),
   });
 
   refresh();

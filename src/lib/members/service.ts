@@ -18,7 +18,7 @@ import {
   demoSessions,
   demoWorkouts,
 } from "./demo";
-import { demoData, demoWeights } from "./demo-store";
+import { demoData, demoWeights, withFoodMode } from "./demo-store";
 import type {
   CheckIn,
   DaySubmission,
@@ -85,6 +85,7 @@ function toProfile(row: any): Profile {
     status: row.status,
     goal: row.goal ?? null,
     startedOn: row.started_on,
+    foodMode: row.food_mode ?? "coach",
   };
 }
 
@@ -349,7 +350,8 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     const role = store.get(DEMO_ROLE_COOKIE)?.value;
     if (role !== "client" && role !== "admin") return null;
     const id = role === "admin" ? DEMO_ADMIN_ID : DEMO_CLIENT_ID;
-    return demoProfiles.find((p) => p.id === id) ?? null;
+    const seeded = demoProfiles.find((p) => p.id === id);
+    return seeded ? await withFoodMode(seeded) : null;
   }
 
   const {
@@ -1026,7 +1028,7 @@ export async function listClients(): Promise<ClientOverview[]> {
     ? ((await supabase.from("profiles").select("*").eq("role", "client").order("full_name")).data ?? []).map(
         toProfile,
       )
-    : demoProfiles.filter((p) => p.role === "client");
+    : await Promise.all(demoProfiles.filter((p) => p.role === "client").map(withFoodMode));
 
   return Promise.all(
     profiles.map(async (profile) => {
@@ -1074,9 +1076,9 @@ export async function listClients(): Promise<ClientOverview[]> {
 export async function getClients(): Promise<Profile[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoProfiles
-      .filter((p) => p.role === "client")
-      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    return (
+      await Promise.all(demoProfiles.filter((p) => p.role === "client").map(withFoodMode))
+    ).sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
 
   const { data } = await supabase.from("profiles").select("*").eq("role", "client").order("full_name");
@@ -1085,7 +1087,10 @@ export async function getClients(): Promise<Profile[]> {
 
 export async function getProfile(clientId: string): Promise<Profile | null> {
   const supabase = await createClient();
-  if (!supabase) return demoProfiles.find((p) => p.id === clientId) ?? null;
+  if (!supabase) {
+    const seeded = demoProfiles.find((p) => p.id === clientId);
+    return seeded ? await withFoodMode(seeded) : null;
+  }
 
   const { data } = await supabase.from("profiles").select("*").eq("id", clientId).single();
   return data ? toProfile(data) : null;
@@ -1266,8 +1271,12 @@ function buildPlanDay(
 function pickRevision(revisions: RawRevision[], dayIndex: number, kind: PlanKind, date: string) {
   const forKind = revisions.filter((r) => r.kind === kind);
 
-  const oneOff = forKind.find((r) => r.onlyOn === date);
-  if (oneOff) return { revision: oneOff, oneOff: true };
+  // The LAST one written for that date, not the first. Editing the same day
+  // twice is ordinary — Dean correcting himself, or overriding what a
+  // self-planning client chose — and `find` would have kept the earliest
+  // version forever while appearing to save the new one.
+  const oneOffs = forKind.filter((r) => r.onlyOn === date);
+  if (oneOffs.length > 0) return { revision: oneOffs[oneOffs.length - 1], oneOff: true };
 
   const repeating = forKind
     .filter((r) => !r.onlyOn && r.dayIndex === dayIndex && r.effectiveFrom <= date)
@@ -1276,14 +1285,24 @@ function pickRevision(revisions: RawRevision[], dayIndex: number, kind: PlanKind
   return { revision: repeating.at(-1) ?? null, oneOff: false };
 }
 
+/**
+ * Every revision for a block, oldest first.
+ *
+ * The order carries meaning — the newest edit to a date wins — so it is
+ * asked for explicitly rather than left to whatever the database returns.
+ */
 async function loadRevisions(blockId: string): Promise<RawRevision[]> {
   const supabase = await createClient();
-  if (!supabase) return demoPlanRevisions.filter((r) => r.blockId === blockId);
+  if (!supabase) {
+    const { planRevisions } = await demoData();
+    return [...demoPlanRevisions, ...planRevisions].filter((r) => r.blockId === blockId);
+  }
 
   const { data } = await supabase
     .from("plan_day_revisions")
     .select("*, plan_exercises(*, plan_sets(*)), plan_meal_slots(*)")
-    .eq("block_id", blockId);
+    .eq("block_id", blockId)
+    .order("created_at", { ascending: true });
   return (data ?? []).map(toRevision);
 }
 

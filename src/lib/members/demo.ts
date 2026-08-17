@@ -53,6 +53,7 @@ export const demoProfiles: Profile[] = [
     status: "active",
     goal: null,
     startedOn: isoDate(-900),
+    foodMode: "coach",
   },
   {
     id: DEMO_CLIENT_ID,
@@ -62,6 +63,7 @@ export const demoProfiles: Profile[] = [
     status: "active",
     goal: "Fat loss without losing strength",
     startedOn: isoDate(-84),
+    foodMode: "coach",
   },
   {
     id: "demo-client-2",
@@ -71,6 +73,9 @@ export const demoProfiles: Profile[] = [
     status: "active",
     goal: "Get strong around night shifts",
     startedOn: isoDate(-240),
+    // Shift work makes a fixed week useless, so Danny plans his own food to
+    // the targets Dean sets. Gives the demo one of each mode.
+    foodMode: "self",
   },
   {
     id: "demo-client-3",
@@ -80,6 +85,7 @@ export const demoProfiles: Profile[] = [
     status: "active",
     goal: "Back to training after two kids",
     startedOn: isoDate(-31),
+    foodMode: "coach",
   },
   {
     id: "demo-client-4",
@@ -89,6 +95,7 @@ export const demoProfiles: Profile[] = [
     status: "paused",
     goal: "Maintain through a house move",
     startedOn: isoDate(-410),
+    foodMode: "coach",
   },
 ];
 

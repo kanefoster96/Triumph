@@ -174,9 +174,9 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
 
           <p className="mt-5 inline-flex items-start gap-2 text-xs text-faint">
             <ShoppingBasket className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Totalled across every meal on those days, at your portion sizes. Anything measured differently is
-            listed separately rather than added together. Create the list and it becomes a checklist you can
-            tick off and put in your own order.
+            Totalled across every meal on those days. Anything measured differently is listed separately
+            rather than added together. Create the list and it becomes a checklist you can tick off and put
+            in your own order.
           </p>
         </Panel>
       </div>

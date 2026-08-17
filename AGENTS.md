@@ -70,6 +70,11 @@ appeared to undo itself. Anything written in demo mode belongs in that cookie
 — if you add a new demo write, add it there rather than to a `const` in
 `demo.ts`, which is now seed data only.
 
+Scaled meal amounts are presented to the client as the meal, full stop. No
+client-facing text may explain, justify or hint at scaling — no "multiplier",
+no "1.5×", no "base amount". Where a client is allowed to choose, it is
+labelled **Portion** with fractions.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,

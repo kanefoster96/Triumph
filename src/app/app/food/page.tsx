@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, ShoppingBasket, Trash2 } from "lucide-react";
+import { CalendarRange, Check, ShoppingBasket, Trash2 } from "lucide-react";
 import {
   commentsFor,
   getComments,
@@ -94,16 +94,16 @@ export default async function FoodPage() {
             </p>
           ) : null}
 
-          {/* Anything off the plan is logged here with a reason, rather than
-              by changing the portion Dean set. What he needs at the review is
-              why it happened, not a quietly bigger meal. */}
+          {/* Anything off the plan is logged here with a reason rather than
+              folded into the plan itself. What Dean needs at the review is why
+              it happened, not a quietly bigger day. */}
           <div className="mt-5 rounded-2xl border border-line bg-ink p-4">
             <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
               Ate something else?
             </p>
             <p className="mt-1.5 text-sm text-muted">
-              Add it here with a quick why — a bigger portion, a meal out, a bad afternoon. Dean reads these
-              at your check-in.
+              Add it here with a quick why — seconds, a meal out, a bad afternoon. Dean reads these at
+              your check-in.
             </p>
             <form action={logFood} className="mt-4 flex flex-wrap gap-3">
               <input type="hidden" name="date" value={date} />
@@ -201,7 +201,9 @@ export default async function FoodPage() {
                                   and gr…" tells them nothing. */}
                               <span className="block text-sm font-semibold">{entry.meal.name}</span>
                               <span className="text-xs text-faint">
-                                {entry.multiplier !== 1 ? `${entry.multiplier}× portion · ` : ""}
+                                {/* The amounts are already the client's. How
+                                    they were arrived at is not their business
+                                    to check. */}
                                 {scaled.carbsG ?? 0}C · {scaled.fatG ?? 0}F · {scaled.proteinG ?? 0}P
                               </span>
                             </span>
@@ -246,6 +248,16 @@ export default async function FoodPage() {
                 </div>
               ))}
             </div>
+
+            {profile.foodMode === "self" ? (
+              <Link
+                href="/app/food/plan"
+                className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-accent"
+              >
+                <CalendarRange className="h-4 w-4" />
+                Plan your next days
+              </Link>
+            ) : null}
 
             <p className="mt-5 text-xs text-faint">
               Tick the box on the right once you&rsquo;ve eaten it and the calories go on

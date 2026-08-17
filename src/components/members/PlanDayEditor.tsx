@@ -7,7 +7,19 @@ import { field, fieldLabel } from "./ui";
 import { cn } from "@/lib/utils";
 
 const SLOTS: MealTag[] = ["breakfast", "lunch", "dinner", "snack"];
-const MULTIPLIERS = [0.5, 1, 1.5, 2];
+/**
+ * The portion sizes a meal can be planned at.
+ *
+ * Written as fractions because that is how someone thinks about food — half a
+ * portion, one and a half. The word "multiplier" never appears in front of a
+ * client, and there is no reason for Dean to see it either.
+ */
+const PORTIONS: Array<{ value: number; label: string }> = [
+  { value: 0.5, label: "\u00bd" },
+  { value: 1, label: "1" },
+  { value: 1.5, label: "1\u00bd" },
+  { value: 2, label: "2" },
+];
 
 interface SetRow {
   key: string;
@@ -131,7 +143,7 @@ export function ExercisePlanner({ day, exercises }: { day: PlanDay; exercises: E
             {row.sets.map((set, setIndex) => (
               <li key={set.key} className="flex flex-wrap items-end gap-2">
                 <span className="w-12 shrink-0 text-xs font-semibold text-faint">Set {setIndex + 1}</span>
-                <div className="w-24">
+                <div className="w-32">
                   <label className="sr-only" htmlFor={`${domId}-w-${index}-${setIndex}`}>
                     Set {setIndex + 1} weight in kg
                   </label>
@@ -256,10 +268,17 @@ export function MealPlanner({
   day,
   meals,
   calorieTarget,
+  lockTargets = false,
 }: {
   day: PlanDay;
   meals: Meal[];
   calorieTarget: number | null;
+  /**
+   * Show the targets rather than offer them. Dean sets what the client is
+   * aiming at in either mode; a self-planning client fills the day to hit it,
+   * they do not get to move the goalposts.
+   */
+  lockTargets?: boolean;
 }) {
   const domId = useId();
   const [rows, setRows] = useState<MealRow[]>(() => toMealRows(day));
@@ -294,33 +313,47 @@ export function MealPlanner({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className={fieldLabel} htmlFor="pf-kcal">
-            Calorie target
-          </label>
-          <input
-            id="pf-kcal"
-            className={field}
-            type="number"
-            name="calorieTarget"
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-          />
+      {lockTargets ? (
+        <div className="rounded-2xl border border-line bg-ink p-4">
+          <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+            What Dean has you aiming at
+          </p>
+          <p className="mt-1.5 text-sm text-muted">
+            {targetValue > 0 ? `${targetValue.toLocaleString("en-GB")} kcal` : "No calorie target"}
+            {day.proteinTarget ? ` \u00b7 ${day.proteinTarget}g protein` : ""}
+          </p>
+          <input type="hidden" name="calorieTarget" value={target} />
+          <input type="hidden" name="proteinTarget" value={day.proteinTarget ?? ""} />
         </div>
-        <div>
-          <label className={fieldLabel} htmlFor="pf-protein">
-            Protein target (g)
-          </label>
-          <input
-            id="pf-protein"
-            className={field}
-            type="number"
-            name="proteinTarget"
-            defaultValue={day.proteinTarget ?? ""}
-          />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={fieldLabel} htmlFor="pf-kcal">
+              Calorie target
+            </label>
+            <input
+              id="pf-kcal"
+              className={field}
+              type="number"
+              name="calorieTarget"
+              value={target}
+              onChange={(event) => setTarget(event.target.value)}
+            />
+          </div>
+          <div>
+            <label className={fieldLabel} htmlFor="pf-protein">
+              Protein target (g)
+            </label>
+            <input
+              id="pf-protein"
+              className={field}
+              type="number"
+              name="proteinTarget"
+              defaultValue={day.proteinTarget ?? ""}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* The number Dean is aiming at, moving as meals go on. */}
       <div className="rounded-2xl border border-line bg-ink p-4">
@@ -395,7 +428,8 @@ export function MealPlanner({
                 </select>
               </div>
 
-              <div className="w-24">
+              {/* Wide enough for "Portion: 1½" — the label is the point of it. */}
+              <div className="w-40">
                 <label className="sr-only" htmlFor={`${domId}-mult-${index}`}>
                   Portion for meal {index + 1}
                 </label>
@@ -406,9 +440,9 @@ export function MealPlanner({
                   value={row.multiplier}
                   onChange={(event) => update(row.key, { multiplier: Number(event.target.value) })}
                 >
-                  {MULTIPLIERS.map((value) => (
-                    <option key={value} value={value}>
-                      {value}×
+                  {PORTIONS.map((portion) => (
+                    <option key={portion.value} value={portion.value}>
+                      Portion: {portion.label}
                     </option>
                   ))}
                 </select>
@@ -446,8 +480,9 @@ export function MealPlanner({
       </div>
 
       <p className="text-xs text-faint">
-        Leave the list empty for a target-only day. The multiplier scales calories, macros and the shopping
-        list.
+        {lockTargets
+          ? "Add meals until the bar reaches your target. Portion sets how much of it you are having."
+          : "Leave the list empty for a target-only day. Portion carries through to calories, macros and the shopping list."}
       </p>
     </div>
   );

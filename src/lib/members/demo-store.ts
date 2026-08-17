@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { demoWeightEntries } from "./demo";
+import type { RawRevision } from "./service";
 import type {
   DaySubmission,
   FoodDayFeedback,
+  FoodMode,
   MealLog,
+  Profile,
   ShoppingList,
   WeightEntry,
 } from "./types";
@@ -34,6 +37,13 @@ export interface DemoData {
   weightEntries: WeightEntry[];
   shoppingLists: ShoppingList[];
   daySubmissions: DaySubmission[];
+  /** Food mode overrides, by client id — Dean's switch is a write like any other. */
+  foodModes: Record<string, FoodMode>;
+  /**
+   * Plan edits, appended to the seeded ones. Order matters: the newest edit to
+   * a date is the one that counts, so these are never reordered.
+   */
+  planRevisions: RawRevision[];
 }
 
 function empty(): DemoData {
@@ -43,6 +53,8 @@ function empty(): DemoData {
     weightEntries: [],
     shoppingLists: [],
     daySubmissions: [],
+    foodModes: {},
+    planRevisions: [],
   };
 }
 
@@ -122,6 +134,9 @@ function prune(data: DemoData): string {
       data.foodDayFeedback = data.foodDayFeedback.filter(
         (entry) => entry.loggedFor !== oldestMealDay,
       );
+    } else if (data.planRevisions.length > 1) {
+      // Plan edits are the actual coaching, so they go last of all.
+      data.planRevisions = data.planRevisions.slice(1);
     } else if (data.weightEntries.length > 1) {
       const oldest = [...data.weightEntries].sort((a, b) => byDateDesc(b.loggedFor, a.loggedFor))[0];
       data.weightEntries = data.weightEntries.filter((w) => w !== oldest);
@@ -139,6 +154,13 @@ function prune(data: DemoData): string {
 /** Whether the store is close enough to full that the next write may not fit. */
 export async function demoStoreIsFull(): Promise<boolean> {
   return JSON.stringify(await demoData()).length > MAX_BYTES;
+}
+
+/** A seeded profile with any mode Dean has since switched it to. */
+export async function withFoodMode<T extends Profile>(profile: T): Promise<T> {
+  const { foodModes } = await demoData();
+  const mode = foodModes[profile.id];
+  return mode ? { ...profile, foodMode: mode } : profile;
 }
 
 /**

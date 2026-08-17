@@ -11,6 +11,13 @@
 create type public.user_role as enum ('client', 'admin');
 create type public.client_status as enum ('active', 'paused');
 
+-- Who builds this client's food week. 'coach' is the default and how most
+-- clients are coached: Dean assigns the meals and they follow the plan. 'self'
+-- hands the slot editor to the client, still against the targets Dean sets.
+-- The mode decides who may edit and nothing else — every downstream read is
+-- identical either way.
+create type public.food_mode as enum ('coach', 'self');
+
 create table public.profiles (
   id          uuid primary key references auth.users on delete cascade,
   full_name   text not null default '',
@@ -19,6 +26,7 @@ create table public.profiles (
   status      public.client_status not null default 'active',
   goal        text,
   started_on  date not null default current_date,
+  food_mode   public.food_mode not null default 'coach',
   created_at  timestamptz not null default now()
 );
 

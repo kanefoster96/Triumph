@@ -1,16 +1,24 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   commentsFor,
+  dayIndexFor,
   getAssignedFoodDates,
   getComments,
   getDayPlans,
   getFoodLogs,
   getFoodPlan,
+  getMeals,
+  getPlanBlock,
+  getPlanDay,
   getProfile,
+  shiftDate,
   sumCalories,
   today,
 } from "@/lib/members/service";
-import { assignDayPlan, saveFoodPlan } from "@/lib/members/actions";
+import { assignDayPlan, savePlanDay, saveFoodPlan, setFoodMode } from "@/lib/members/actions";
+import { MealPlanner } from "@/components/members/PlanDayEditor";
+import { cn } from "@/lib/utils";
 import { PlanAssigner } from "@/components/members/PlanAssigner";
 import {
   CalorieBar,
@@ -24,22 +32,55 @@ import { CommentThread } from "@/components/members/Comments";
 
 export const dynamic = "force-dynamic";
 
+/** Today plus a fortnight — the stretch worth looking at in a review. */
+const HORIZON = 14;
+
+function shortLabel(date: string) {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+function longLabel(date: string) {
+  return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+}
+
 export default async function AdminClientFoodPage({
   params,
+  searchParams,
 }: PageProps<"/admin/clients/[slug]/food">) {
   const { slug } = await params;
+  const query = await searchParams;
   const profile = await getProfile(slug);
   if (!profile) notFound();
 
   const date = today();
-  const [plan, todaysLogs, allLogs, comments, dayPlans, assignedDates] = await Promise.all([
-    getFoodPlan(profile.id, date),
-    getFoodLogs(profile.id, date),
-    getFoodLogs(profile.id),
-    getComments(profile.id),
-    getDayPlans(),
-    getAssignedFoodDates(profile.id),
-  ]);
+  const requested = typeof query.date === "string" ? query.date : date;
+  const selected = /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested >= date ? requested : date;
+
+  const [plan, todaysLogs, allLogs, comments, dayPlans, assignedDates, block, meals] =
+    await Promise.all([
+      getFoodPlan(profile.id, date),
+      getFoodLogs(profile.id, date),
+      getFoodLogs(profile.id),
+      getComments(profile.id),
+      getDayPlans(),
+      getAssignedFoodDates(profile.id),
+      getPlanBlock(profile.id),
+      getMeals(),
+    ]);
+
+  const planDay = block ? await getPlanDay(block, selected, "food") : null;
+  const dayIndex = block ? dayIndexFor(block, selected) : null;
+  const days = Array.from({ length: HORIZON }, (_, i) => shiftDate(date, i));
 
   const upcoming = assignedDates.filter((p) => p.assignedFor > date);
 
@@ -49,6 +90,105 @@ export default async function AdminClientFoodPage({
 
   return (
     <div className="space-y-5">
+      {/* Who holds the pen. Switching it never touches the plan already
+          written — it only changes who may edit from here on. */}
+      <Panel title="Who plans the food">
+        <form action={setFoodMode} className="space-y-3">
+          <input type="hidden" name="clientId" value={profile.id} />
+          {(
+            [
+              [
+                "coach",
+                "You do",
+                "You assign the meals. They see the finished plan and follow it.",
+              ],
+              [
+                "self",
+                "They do",
+                "They build their own week from the meal library, to the targets you set. You can still see and edit it.",
+              ],
+            ] as const
+          ).map(([value, label, blurb]) => (
+            <label key={value} className="flex gap-3 rounded-2xl border border-line bg-ink p-4">
+              <input
+                type="radio"
+                name="foodMode"
+                value={value}
+                defaultChecked={profile.foodMode === value}
+                className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
+              />
+              <span>
+                <span className="block text-sm font-semibold">{label}</span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-muted">{blurb}</span>
+              </span>
+            </label>
+          ))}
+          <button type="submit" className={submitButton}>
+            Save
+          </button>
+          <p className="text-xs text-faint">
+            Changing this leaves the plan exactly as it is. Nobody&rsquo;s week gets cleared.
+          </p>
+        </form>
+      </Panel>
+
+      {/* A date-first view of the food week. Necessary whoever planned it, and
+          the only way to see a self-planning client's actual choices — the
+          Plan tab shows the repeating week, not what landed on a Thursday. */}
+      <Panel
+        title={profile.foodMode === "self" ? "Their food week" : "The food week"}
+        action={
+          <span className="text-xs text-faint">
+            {profile.foodMode === "self" ? "They planned this — your edits win" : "You planned this"}
+          </span>
+        }
+      >
+        <div className="no-scrollbar -mx-1 overflow-x-auto px-1">
+          <ul className="flex w-max gap-2">
+            {days.map((entry) => (
+              <li key={entry}>
+                <Link
+                  href={`/admin/clients/${profile.id}/food?date=${entry}`}
+                  aria-current={entry === selected ? "page" : undefined}
+                  className={cn(
+                    "block rounded-2xl border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
+                    entry === selected
+                      ? "border-accent bg-accent text-accent-ink"
+                      : "border-line bg-ink text-muted hover:text-text",
+                  )}
+                >
+                  {entry === date ? "Today" : shortLabel(entry)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-5">
+          {!block || !planDay || dayIndex === null ? (
+            <EmptyState>
+              No repeating plan yet — start one on the Plan tab and the days show up here.
+            </EmptyState>
+          ) : (
+            <form action={savePlanDay} className="space-y-4">
+              <input type="hidden" name="clientId" value={profile.id} />
+              <input type="hidden" name="dayIndex" value={dayIndex} />
+              <input type="hidden" name="kind" value="food" />
+              <input type="hidden" name="from" value={selected} />
+              <input type="hidden" name="scope" value="date" />
+              <p className="text-sm font-semibold">{longLabel(selected)}</p>
+              <MealPlanner key={selected} day={planDay} meals={meals} calorieTarget={planDay.calorieTarget} />
+              <button type="submit" className={submitButton}>
+                Save {longLabel(selected)}
+              </button>
+              <p className="text-xs text-faint">
+                Saves this date only. Use the Plan tab to change the shape of every week.
+              </p>
+            </form>
+          )}
+        </div>
+      </Panel>
+
       <Panel title="Today">
         <CalorieBar total={sumCalories(todaysLogs)} target={plan?.calorieTarget ?? null} />
 

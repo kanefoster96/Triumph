@@ -183,6 +183,27 @@ section disappears once the environment variables are set.
 - An error boundary. Only `not-found.tsx` exists, so a server throw shows the
   raw Next.js screen.
 
+## Who plans the food
+
+Each client carries a `foodMode`, set by Dean on their Food tab.
+
+- **coach** (default) — Dean assigns the meals; the client sees the finished
+  plan and follows it. `/app/food/plan` redirects away.
+- **self** — the client builds their own days from the meal library, to the
+  targets Dean sets. Reads through `getPlanDay`, writes through
+  `saveMyFoodDay`, which only ever writes food, only for the signed-in client,
+  only on a date that has not happened, and only in self mode.
+
+Dean sees and edits either mode's days on the Food tab's date picker, which
+writes a one-off revision through `savePlanDay`. Switching mode never touches
+the plan — it only changes who may edit.
+
+Portions are shown to the client as **Portion: ½ / 1 / 1½ / 2** and never
+explained. Nothing on any client screen mentions a multiplier, a base amount,
+or a portion having been adjusted: the scaled amounts are simply the meal. A
+sweep of every client page checks for this — see `pickRevision` in
+`service.ts` for the other half of the rule.
+
 ## On its way out
 
 `/admin/plans` ("Templates") is the older way of assigning a day: free-text

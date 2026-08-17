@@ -9,11 +9,6 @@ import { Chip } from "@/components/ui/Chip";
 
 export const dynamic = "force-dynamic";
 
-const PORTIONS = [0.5, 1, 1.5, 2];
-
-/** "1.5" reads better than "1.50", and "1" better than "1.0". */
-const portion = (value: number) => (Number.isInteger(value) ? String(value) : String(value));
-
 export default async function MealPage({ params, searchParams }: PageProps<"/app/food/meal/[id]">) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
@@ -25,19 +20,16 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
   if (!meal) notFound();
 
   /*
-   * The portion is coaching, not a preference.
+   * This page is the meal, not the arithmetic behind it.
    *
-   * When Dean has put this meal on the client's day he has already picked the
-   * amount to make the calories and macros land, so it is shown and not
-   * offered as a choice — eating more than planned is logged as extra, with a
-   * reason, rather than quietly rescaled into the plan. The picker only
-   * appears for a meal that is not on their plan, which is the case where they
-   * are working to a calorie target and choosing food themselves.
+   * The amounts are resolved for the day's portion and then simply presented:
+   * what to buy and what to cook. Nothing here mentions scaling, a base
+   * recipe, or a portion having been adjusted — the client is being handed a
+   * meal, and a footnote explaining the multiplication would only invite them
+   * to second-guess the numbers. Choosing a portion, where they are allowed
+   * to, belongs in the plan editor.
    */
-  const requested = Number(typeof query.x === "string" ? query.x : "");
-  const chosen = PORTIONS.includes(requested) ? requested : 1;
-  const multiplier = assigned ?? chosen;
-  const scaled = scaleMeal(meal, multiplier);
+  const scaled = scaleMeal(meal, assigned ?? 1);
 
   return (
     <>
@@ -49,37 +41,10 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
         Food
       </Link>
 
-      <ScreenTitle
-        title={meal.name}
-        subtitle={multiplier === 1 ? meal.tag : `${meal.tag} · ${portion(multiplier)} portions`}
-      />
+      <ScreenTitle title={meal.name} subtitle={meal.tag} />
 
       <div className="space-y-5">
-        <Panel
-          title={assigned ? "Your portion" : "Pick your portion"}
-          action={
-            assigned ? (
-              <Chip tone="accent">Set by Dean</Chip>
-            ) : (
-              <nav aria-label="Portion" className="flex items-center gap-1">
-                {PORTIONS.map((value) => (
-                  <Link
-                    key={value}
-                    href={`/app/food/meal/${meal.id}?x=${value}`}
-                    aria-current={value === multiplier ? "page" : undefined}
-                    className={
-                      value === multiplier
-                        ? "rounded-full bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent"
-                        : "rounded-full px-3 py-1.5 text-xs font-semibold text-muted hover:text-text"
-                    }
-                  >
-                    {portion(value)}×
-                  </Link>
-                ))}
-              </nav>
-            )
-          }
-        >
+        <Panel title="What's in it">
           <MacroRing
             calories={scaled.calories}
             proteinG={scaled.proteinG}
@@ -103,11 +68,6 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
               ))}
             </ul>
           )}
-          <p className="mt-4 text-xs text-faint">
-            {assigned
-              ? `Dean set this at ${portion(multiplier)}×, so the amounts above are what to make. Eat more than this and log the extra on your food day with a note.`
-              : `Amounts shown at ${portion(multiplier)}×.`}
-          </p>
         </Panel>
 
         <Panel title="How to make it">

@@ -12,6 +12,20 @@ export type SessionStatus = "scheduled" | "completed" | "cancelled";
 export type CommentTarget = "workout" | "food_log" | "weight_entry" | "session" | "check_in";
 export type CheckInOutcome = "continued" | "adjusted";
 
+/**
+ * Who builds a client's food week.
+ *
+ * "coach" is the default and how Dean works with most people: he assigns the
+ * meals and the client simply follows the finished plan. "self" is for a
+ * client who plans their own food to the targets Dean sets — they get the same
+ * slot editor he has, against a read-only meal library.
+ *
+ * The mode only decides who may edit. Everything downstream — shopping lists,
+ * method pages, tick-offs, adherence, check-in flags — reads the same plan and
+ * does not care who wrote it.
+ */
+export type FoodMode = "coach" | "self";
+
 export interface Profile {
   id: string;
   fullName: string;
@@ -20,6 +34,7 @@ export interface Profile {
   status: ClientStatus;
   goal: string | null;
   startedOn: string;
+  foodMode: FoodMode;
 }
 
 /**
