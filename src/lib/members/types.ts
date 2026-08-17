@@ -299,6 +299,22 @@ export function needsUnit(ingredient: Pick<Ingredient, "quantity" | "unit">): bo
   return ingredient.quantity !== null && !ingredient.unit;
 }
 
+/** Units that are counted rather than measured, so they take a plural. */
+const COUNTABLE = new Set(["slice", "clove", "handful"]);
+
+/**
+ * An amount as a person would write it: "2 slices", "250 ml", and a bare "3"
+ * for whole things, because nobody says "3 whole eggs" on a shopping list.
+ */
+export function formatAmount(quantity: number | null, unit: string | null): string {
+  if (quantity === null) return "—";
+  const value = Number.isInteger(quantity) ? String(quantity) : String(Number(quantity.toFixed(2)));
+
+  if (!unit || unit === "whole") return value;
+  if (COUNTABLE.has(unit)) return `${value} ${unit}${quantity === 1 ? "" : "s"}`;
+  return `${value} ${unit}`;
+}
+
 export interface Meal {
   id: string;
   name: string;

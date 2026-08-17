@@ -45,6 +45,7 @@ import type {
   Profile,
   ScaledMeal,
   SessionPlan,
+  ShoppingLine,
   SessionStatus,
   WeightEntry,
   Workout,
@@ -1450,4 +1451,55 @@ export async function getMealAdherence(
 
   const eaten = logs.filter((log) => log.loggedFor >= from && log.loggedFor <= to).length;
   return { assigned, eaten };
+}
+
+/**
+ * What to buy for the next few days.
+ *
+ * Walks each day's planned meals, scales every ingredient by that meal's
+ * multiplier, then merges lines that are the same ingredient in the same unit.
+ * The unit has to match to merge — 200g and 2 whole are different things, and
+ * adding them would be worse than listing them twice.
+ */
+export async function getShoppingList(clientId: string, from: string, days: number): Promise<ShoppingLine[]> {
+  const block = await getPlanBlock(clientId);
+  if (!block) return [];
+
+  const [revisions, meals] = await Promise.all([loadRevisions(block.id), getMeals(true)]);
+  const byMeal = new Map(meals.map((meal) => [meal.id, meal]));
+  const lines = new Map<string, ShoppingLine>();
+
+  for (let offset = 0; offset < days; offset += 1) {
+    const date = shiftDate(from, offset);
+    const dayIndex = dayIndexFor(block, date);
+    if (dayIndex === null) continue;
+
+    const { revision } = pickRevision(revisions, dayIndex, "food", date);
+    for (const slot of revision?.meals ?? []) {
+      const meal = byMeal.get(slot.mealId);
+      if (!meal) continue;
+
+      for (const ingredient of scaleMeal(meal, slot.multiplier).ingredients) {
+        const key = `${ingredient.name.trim().toLowerCase()}|${ingredient.unit ?? ""}`;
+        const existing = lines.get(key);
+
+        if (existing) {
+          existing.quantity =
+            existing.quantity === null || ingredient.quantity === null
+              ? existing.quantity
+              : Number((existing.quantity + ingredient.quantity).toFixed(2));
+          if (!existing.usedIn.includes(meal.name)) existing.usedIn.push(meal.name);
+        } else {
+          lines.set(key, {
+            name: ingredient.name.trim(),
+            unit: ingredient.unit,
+            quantity: ingredient.quantity,
+            usedIn: [meal.name],
+          });
+        }
+      }
+    }
+  }
+
+  return [...lines.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

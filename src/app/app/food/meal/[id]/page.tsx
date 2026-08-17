@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ChefHat } from "lucide-react";
 import { getCurrentProfile, getMeal, scaleMeal } from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
+import { formatAmount } from "@/lib/members/types";
 import { MacroRing } from "@/components/members/MacroRing";
 import { Chip } from "@/components/ui/Chip";
 
@@ -11,9 +12,7 @@ export const dynamic = "force-dynamic";
 const PORTIONS = [0.5, 1, 1.5, 2];
 
 /** "1.5" reads better than "1.50", and "1" better than "1.0". */
-function amount(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
-}
+const portion = (value: number) => (Number.isInteger(value) ? String(value) : String(value));
 
 export default async function MealPage({ params, searchParams }: PageProps<"/app/food/meal/[id]">) {
   const profile = await getCurrentProfile();
@@ -42,7 +41,7 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
 
       <ScreenTitle
         title={meal.name}
-        subtitle={multiplier === 1 ? meal.tag : `${meal.tag} · ${amount(multiplier)} portions`}
+        subtitle={multiplier === 1 ? meal.tag : `${meal.tag} · ${portion(multiplier)} portions`}
       />
 
       <div className="space-y-5">
@@ -61,7 +60,7 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
                       : "rounded-full px-3 py-1.5 text-xs font-semibold text-muted hover:text-text"
                   }
                 >
-                  {amount(value)}×
+                  {portion(value)}×
                 </Link>
               ))}
             </nav>
@@ -84,18 +83,14 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
                 <li key={ingredient.id} className="flex items-baseline justify-between gap-4 py-3">
                   <span className="min-w-0 text-sm font-semibold">{ingredient.name}</span>
                   <span className="shrink-0 text-sm text-muted tabular-nums">
-                    {ingredient.quantity === null
-                      ? "—"
-                      : ingredient.unit === "whole"
-                        ? amount(ingredient.quantity)
-                        : `${amount(ingredient.quantity)}${ingredient.unit ? ` ${ingredient.unit}` : ""}`}
+                    {formatAmount(ingredient.quantity, ingredient.unit)}
                   </span>
                 </li>
               ))}
             </ul>
           )}
           {multiplier !== 1 ? (
-            <p className="mt-4 text-xs text-faint">Scaled to your {amount(multiplier)}× portion.</p>
+            <p className="mt-4 text-xs text-faint">Scaled to your {portion(multiplier)}× portion.</p>
           ) : null}
         </Panel>
 

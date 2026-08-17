@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, ChevronRight, Trash2 } from "lucide-react";
+import { Check, ChevronRight, ShoppingBasket, Trash2 } from "lucide-react";
 import {
   commentsFor,
   getComments,
@@ -57,7 +57,19 @@ export default async function FoodPage() {
 
   return (
     <>
-      <ScreenTitle title="Food" subtitle="Log as you go, or drop in one total at the end of the day." />
+      <ScreenTitle
+        title="Food"
+        subtitle="Tick your meals off, or drop in one total at the end of the day."
+        action={
+          <Link
+            href="/app/food/shopping"
+            className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+          >
+            <ShoppingBasket className="h-4 w-4" />
+            Shopping list
+          </Link>
+        }
+      />
 
       <div className="space-y-5">
         <Panel title="Today">
