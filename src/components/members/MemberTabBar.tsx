@@ -18,13 +18,18 @@ export interface MemberTab {
 /**
  * The five member tabs. This array is the app's navigation too — a React
  * Navigation tab navigator can be built from it directly.
+ *
+ * The order is the day, left to right: home, then the three things that are
+ * asked of them, then the schedule. Sessions is the one tab that never turns
+ * green, so it sits at the end rather than punching a blank hole through the
+ * middle of a row that is filling up.
  */
 export const memberTabs: MemberTab[] = [
   { href: "/app", label: "Home", icon: Home },
-  { href: "/app/sessions", label: "Sessions", icon: CalendarDays },
   { href: "/app/workouts", label: "Workouts", icon: Dumbbell, task: "workout" },
   { href: "/app/food", label: "Food", icon: Salad, task: "food" },
   { href: "/app/weight", label: "Weight", icon: LineChart, task: "weight" },
+  { href: "/app/sessions", label: "Sessions", icon: CalendarDays },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -52,7 +57,9 @@ function stateLabel(state: DayTaskState | undefined): string {
 /** Bottom tab bar on mobile. */
 export function MemberTabBar({ progress }: { progress?: DayProgress }) {
   const pathname = usePathname();
-  // Everything is in: the home tab pulses until they close the day out.
+  // Everything is in: the home tab pulses green until they close the day out,
+  // so the whole row reads as one finished thing rather than three greens and
+  // a fourth colour asking for something else.
   const readyToSubmit = Boolean(progress?.allDone && !progress.submittedAt);
 
   return (
@@ -74,14 +81,14 @@ export function MemberTabBar({ progress }: { progress?: DayProgress }) {
                 className={cn(
                   "relative flex flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors duration-200",
                   active ? "text-accent" : state === "done" ? "text-success" : "text-faint",
-                  pulsing && "text-accent",
+                  pulsing && "text-success",
                 )}
               >
                 <span
                   aria-hidden="true"
                   className={cn(
                     "absolute -top-2 h-0.5 w-8 rounded-full transition-all duration-300 ease-[var(--ease-out-app)]",
-                    pulsing ? "animate-day-ready bg-accent opacity-100" : barTone(state, active),
+                    pulsing ? "animate-day-ready bg-success opacity-100" : barTone(state, active),
                   )}
                 />
                 <tab.icon className="h-5 w-5 shrink-0" />
@@ -122,14 +129,14 @@ export function MemberTabsInline({ progress }: { progress?: DayProgress }) {
               "relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200",
               active ? "bg-accent/10 text-accent" : "text-muted hover:text-text",
               !active && state === "done" && "text-success",
-              !active && pulsing && "text-accent",
+              !active && pulsing && "text-success",
             )}
           >
             <span
               aria-hidden="true"
               className={cn(
                 "absolute inset-x-4 top-0 h-0.5 rounded-full transition-all duration-300",
-                pulsing ? "animate-day-ready bg-accent opacity-100" : barTone(state, false),
+                pulsing ? "animate-day-ready bg-success opacity-100" : barTone(state, false),
               )}
             />
             <tab.icon className="h-4 w-4" />

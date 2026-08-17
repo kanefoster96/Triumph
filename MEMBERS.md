@@ -152,7 +152,13 @@ policies at the bottom of the migration.
 - `src/components/members/*` — the UI
 
 `memberTabs` in `MemberTabBar.tsx` is the app's navigation too — a React
-Navigation tab navigator can be built from that array directly.
+Navigation tab navigator can be built from that array directly. Its order is
+deliberate: home, then the three tabs the day asks something of (workout, food,
+weight), then sessions. The bar above each tab goes amber while that job is
+outstanding and green once it is in, so the three sit together and fill up left
+to right; sessions is the one tab that never turns green, which is why it sits
+at the end rather than leaving a gap in the middle of the run. When all three
+are green the home tab pulses green and the home screen offers **Submit my day**.
 
 ## Demo logins
 
