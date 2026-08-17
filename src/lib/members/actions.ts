@@ -9,6 +9,8 @@ import {
   demoCheckIns,
   demoComments,
   demoExercises,
+  demoFoodDayFeedback,
+  demoMealLogs,
   demoMeals,
   demoPlanBlocks,
   demoPlanRevisions,
@@ -24,9 +26,12 @@ import {
 import {
   DEMO_ROLE_COOKIE,
   getCurrentProfile,
+  getMeal,
+  getMealLogs,
   getPlanBlock,
   getPlanCycle,
   getWorkoutFor,
+  scaleMeal,
   shiftDate,
   today,
 } from "./service";
@@ -1842,6 +1847,108 @@ export async function bumpPlanWeights(formData: FormData) {
       exercises: bumped,
       meals: [],
     });
+  }
+
+  refresh();
+}
+
+/**
+ * Tick a planned meal as eaten, or untick it.
+ *
+ * The row is a snapshot: name, portion, calories and macros as they were on the
+ * day. Editing the meal in the library afterwards never rewrites what somebody
+ * ate — only the method is read live, because a corrected instruction should
+ * reach everyone.
+ */
+export async function toggleMeal(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const clientId = String(formData.get("clientId") ?? profile.id);
+  const loggedFor = String(formData.get("date") ?? today());
+  const mealId = String(formData.get("mealId") ?? "");
+  const slot = String(formData.get("slot") ?? "lunch") as MealTag;
+  const multiplier = Number(formData.get("multiplier") ?? 1) || 1;
+  if (!mealId) return;
+
+  const supabase = await createClient();
+  const existing = (await getMealLogs(clientId, loggedFor)).find(
+    (log) => log.mealId === mealId && log.slot === slot,
+  );
+
+  if (existing) {
+    if (!supabase) {
+      const index = demoMealLogs.findIndex((log) => log.id === existing.id);
+      if (index >= 0) demoMealLogs.splice(index, 1);
+    } else {
+      await supabase.from("meal_logs").delete().eq("id", existing.id);
+    }
+    refresh();
+    return;
+  }
+
+  const meal = await getMeal(mealId);
+  if (!meal) return;
+  const scaled = scaleMeal(meal, multiplier);
+
+  if (!supabase) {
+    demoMealLogs.push({
+      id: crypto.randomUUID(),
+      clientId,
+      loggedFor,
+      slot,
+      mealId,
+      name: meal.name,
+      multiplier,
+      calories: scaled.calories,
+      proteinG: scaled.proteinG,
+      carbsG: scaled.carbsG,
+      fatG: scaled.fatG,
+    });
+  } else {
+    await supabase.from("meal_logs").insert({
+      client_id: clientId,
+      logged_for: loggedFor,
+      slot,
+      meal_id: mealId,
+      name: meal.name,
+      multiplier,
+      calories: scaled.calories,
+      protein_g: scaled.proteinG,
+      carbs_g: scaled.carbsG,
+      fat_g: scaled.fatG,
+    });
+  }
+
+  refresh();
+}
+
+/** How the eating went — the food day's counterpart to a workout's rating. */
+export async function saveFoodDayFeedback(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const clientId = String(formData.get("clientId") ?? profile.id);
+  const loggedFor = String(formData.get("date") ?? today());
+  const value = Number(formData.get("feeling"));
+  const feeling = value >= 1 && value <= 5 ? Math.round(value) : null;
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    const existing = demoFoodDayFeedback.find(
+      (entry) => entry.clientId === clientId && entry.loggedFor === loggedFor,
+    );
+    if (existing) Object.assign(existing, { feeling, note });
+    else demoFoodDayFeedback.push({ clientId, loggedFor, feeling, note });
+  } else {
+    await supabase
+      .from("food_day_feedback")
+      .upsert(
+        { client_id: clientId, logged_for: loggedFor, feeling, note },
+        { onConflict: "client_id,logged_for" },
+      );
   }
 
   refresh();

@@ -429,6 +429,8 @@ export interface MealLog {
 }
 
 export interface FoodDayFeedback {
+  clientId: string;
+  loggedFor: string;
   feeling: number | null;
   note: string | null;
 }

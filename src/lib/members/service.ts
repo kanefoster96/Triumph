@@ -40,6 +40,7 @@ import type {
   PlanBlock,
   PlanDay,
   PlanKind,
+  PlanMealSlot,
   PlanSet,
   Profile,
   ScaledMeal,
@@ -1386,4 +1387,67 @@ export async function getExerciseTrends(clientId: string, since: string): Promis
   }
 
   return [...byExercise.values()];
+}
+
+/**
+ * The food plan for a date: from the repeating block when it governs, falling
+ * back to the old per-date rows before the block starts. Mirrors how workouts
+ * resolve, so the two halves of a day behave the same way.
+ */
+export async function getPlannedFood(
+  clientId: string,
+  date: string,
+): Promise<{ calorieTarget: number | null; proteinTarget: number | null; meals: PlanMealSlot[] }> {
+  const block = await getPlanBlock(clientId);
+  const planned = block ? await getPlanDay(block, date, "food") : null;
+
+  if (planned && (planned.meals.length > 0 || planned.calorieTarget !== null)) {
+    return {
+      calorieTarget: planned.calorieTarget,
+      proteinTarget: planned.proteinTarget,
+      meals: planned.meals,
+    };
+  }
+
+  const legacy = await getFoodPlan(clientId, date);
+  return {
+    calorieTarget: legacy?.calorieTarget ?? null,
+    proteinTarget: legacy?.proteinTarget ?? null,
+    meals: [],
+  };
+}
+
+export async function getMealLogs(clientId: string, date?: string): Promise<MealLog[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    return demoMealLogs.filter((log) => log.clientId === clientId && (!date || log.loggedFor === date));
+  }
+
+  let query = supabase.from("meal_logs").select("*").eq("client_id", clientId);
+  if (date) query = query.eq("logged_for", date);
+  const { data } = await query;
+  return (data ?? []).map(toMealLog);
+}
+
+/** How much of what Dean assigned actually got eaten, over a window. */
+export async function getMealAdherence(
+  clientId: string,
+  from: string,
+  to: string,
+): Promise<{ assigned: number; eaten: number }> {
+  const block = await getPlanBlock(clientId);
+  if (!block) return { assigned: 0, eaten: 0 };
+
+  const [revisions, logs] = await Promise.all([loadRevisions(block.id), getMealLogs(clientId)]);
+  let assigned = 0;
+
+  for (let cursor = from; cursor <= to; cursor = shiftDate(cursor, 1)) {
+    const dayIndex = dayIndexFor(block, cursor);
+    if (dayIndex === null) continue;
+    const { revision } = pickRevision(revisions, dayIndex, "food", cursor);
+    assigned += revision?.meals.length ?? 0;
+  }
+
+  const eaten = logs.filter((log) => log.loggedFor >= from && log.loggedFor <= to).length;
+  return { assigned, eaten };
 }
