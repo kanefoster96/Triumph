@@ -3,6 +3,7 @@ import { cache } from "react";
 import { demoWeightEntries } from "./demo";
 import type { RawRevision } from "./service";
 import type {
+  Application,
   DaySubmission,
   PlanBlock,
   FoodDayFeedback,
@@ -43,6 +44,16 @@ const COOKIE = "triumph-demo-data";
 const PLAN_COOKIE = "triumph-demo-plan";
 
 /**
+ * People, in a third cookie.
+ *
+ * Accounts and applications are not day-to-day data and not the plan: they are
+ * written once at signup and read for as long as the demo lasts, so putting
+ * them alongside either would mean a week of meal ticks eventually pruning
+ * away somebody's account. Their own cookie keeps them out of that fight.
+ */
+const PEOPLE_COOKIE = "triumph-demo-people";
+
+/**
  * The browser's per-cookie ceiling is about 4KB, and it applies to the value
  * *as sent* — which is percent-encoded, so every quote and brace in the JSON
  * costs three bytes rather than one. Measuring the raw string let the encoded
@@ -58,6 +69,21 @@ const MAX_BYTES = 3600;
  * 4KB — its name and attributes come to about seventy bytes.
  */
 const MAX_PLAN_BYTES = 3950;
+
+/** Same again for people — its own cookie, its own near-4KB ceiling. */
+const MAX_PEOPLE_BYTES = 3950;
+
+/**
+ * Accounts made through the public signup, and what they applied with.
+ *
+ * `profiles` here are additions to the seeded cast in demo.ts, not a copy of
+ * it: somebody who signs up is a real profile that Dean can enrol, and the
+ * demo pair stay exactly where they were.
+ */
+export interface DemoPeople {
+  profiles: Profile[];
+  applications: Application[];
+}
 
 /** What this value will actually weigh in the header. */
 const wireSize = (value: string) => encodeURIComponent(value).length;
@@ -370,4 +396,49 @@ export function unpackRevision(p: PackedRevision, seq: number): RawRevision {
       multiplier,
     })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// People — accounts made through the public signup, and their applications
+// ---------------------------------------------------------------------------
+
+/** Read once per request, like the other two. */
+export const demoPeople = cache(async (): Promise<DemoPeople> => {
+  try {
+    const store = await cookies();
+    const raw = store.get(PEOPLE_COOKIE)?.value;
+    if (!raw) return { profiles: [], applications: [] };
+    const parsed = JSON.parse(raw) as Partial<DemoPeople>;
+    return { profiles: parsed.profiles ?? [], applications: parsed.applications ?? [] };
+  } catch {
+    // No cookie jar, or a cookie from an older shape. Neither is worth an
+    // error page in a demo.
+    return { profiles: [], applications: [] };
+  }
+});
+
+export async function writeDemoPeople(mutate: (people: DemoPeople) => void): Promise<void> {
+  const people = await demoPeople();
+  mutate(people);
+
+  // Oldest application first out. An account is never dropped: somebody who
+  // signed up and then could not sign in again would be the worst thing this
+  // store could do.
+  let value = JSON.stringify(people);
+  while (people.applications.length > 1 && wireSize(value) > MAX_PEOPLE_BYTES) {
+    people.applications.shift();
+    value = JSON.stringify(people);
+  }
+
+  try {
+    const store = await cookies();
+    store.set(PEOPLE_COOKIE, value, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax" as const,
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  } catch {
+    /* Called outside a request that can set cookies — nothing to persist to. */
+  }
 }

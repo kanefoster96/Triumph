@@ -47,7 +47,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm text-muted">
               <li className="flex gap-2.5">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
-                <span>Online UK-wide · in person in {site.inPersonArea}</span>
+                <span>Online coaching, UK-wide</span>
               </li>
               <li className="flex gap-2.5">
                 <Mail className="mt-0.5 h-4 w-4 shrink-0 text-faint" />

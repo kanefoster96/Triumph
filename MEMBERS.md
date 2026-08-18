@@ -45,6 +45,7 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 
 | Screen | What it does |
 | --- | --- |
+| **Requests** `/admin/requests` | People who applied through the website, with everything they sent. Enrolling one makes them a client and opens their week. Taking payment is a separate, clearly-stubbed step. |
 | **Clients** `/admin` | A grid of everyone's week: one row per client, one column per day, three marks a day for training, food and weight, sorted by who needs looking at first. Pending day-swap requests sit above it. A card view with today's numbers is behind a toggle. |
 | **Client** `/admin/clients/[id]` | The same tabs the client sees, but editable. Plan is the week board — seven day cards with the editor for the open day underneath, one save for training and food together. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts owns one date with its history; Food sets targets and meals; Weight shows the trend. Dean can reply to any note from its tab. |
 | **Check-ins** `/admin/checkin` | The weekly round. Every active client with how their last stretch went, anything they wrote, and how far ahead they are planned — then continue the plan or adjust it, both with a note. |
@@ -207,6 +208,22 @@ explained. Nothing on any client screen mentions a multiplier, a base amount,
 or a portion having been adjusted: the scaled amounts are simply the meal. A
 sweep of every client page checks for this — see `pickRevision` in
 `service.ts` for the other half of the rule.
+
+## Getting in
+
+`/join` is the public signup: three screens, one question each. Name and photo,
+then what they weigh and what they are after, then a summary, the confirmation
+that this is online coaching, and the account. Submitting creates the account
+and an application, and lands them on a thank-you that says Dean will come back
+to them.
+
+Nothing is chosen and nothing is charged. There is no plan to pick because Dean
+builds one per person, and payment is a separate step he takes after enrolling
+— stubbed today behind a button that says so.
+
+Somebody who has applied has a real account with `status = 'applicant'`. They
+can sign in and see their own dashboard, which tells them they are waiting.
+They are in no client list and no compliance grid until Dean enrols them.
 
 ## Building a week
 

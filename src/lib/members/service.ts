@@ -16,8 +16,9 @@ import {
   demoSessions,
   demoWorkouts,
 } from "./demo";
-import { demoData, demoWeights, unpackRevision, withFoodMode } from "./demo-store";
+import { demoData, demoPeople, demoWeights, unpackRevision, withFoodMode } from "./demo-store";
 import type {
+  Application,
   CheckIn,
   DaySubmission,
   IngredientSwap,
@@ -350,11 +351,23 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     // Demo mode: the cookie stands in for a session. No cookie means signed
     // out, so the real sign-in/sign-out loop can be exercised without auth.
     const store = await cookies();
-    const role = store.get(DEMO_ROLE_COOKIE)?.value;
-    if (role !== "client" && role !== "admin") return null;
-    const id = role === "admin" ? DEMO_ADMIN_ID : DEMO_CLIENT_ID;
-    const seeded = demoProfiles.find((p) => p.id === id);
-    return seeded ? await withFoodMode(seeded) : null;
+    const session = store.get(DEMO_ROLE_COOKIE)?.value;
+    if (!session) return null;
+
+    /*
+     * Two kinds of session. "client" and "admin" are the demo pair, which stay
+     * for now. Anything else is the id of an account somebody made through the
+     * public signup — a real person in this demo, who signs in as themselves.
+     */
+    if (session === "client" || session === "admin") {
+      const id = session === "admin" ? DEMO_ADMIN_ID : DEMO_CLIENT_ID;
+      const seeded = demoProfiles.find((p) => p.id === id);
+      return seeded ? await withFoodMode(seeded) : null;
+    }
+
+    const { profiles } = await demoPeople();
+    const signedUp = profiles.find((profile) => profile.id === session);
+    return signedUp ? await withFoodMode(signedUp) : null;
   }
 
   const {
@@ -1112,25 +1125,94 @@ export async function listClients(): Promise<ClientOverview[]> {
 export async function getClients(): Promise<Profile[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return (
-      await Promise.all(demoProfiles.filter((p) => p.role === "client").map(withFoodMode))
-    ).sort((a, b) => a.fullName.localeCompare(b.fullName));
+    // Seeded clients plus anyone Dean has enrolled through the requests inbox.
+    // Applicants are deliberately absent: they have an account, not a plan.
+    const { profiles } = await demoPeople();
+    const all = [...demoProfiles, ...profiles].filter(
+      (profile) => profile.role === "client" && profile.status !== "applicant",
+    );
+    return (await Promise.all(all.map(withFoodMode))).sort((a, b) =>
+      a.fullName.localeCompare(b.fullName),
+    );
   }
 
-  const { data } = await supabase.from("profiles").select("*").eq("role", "client").order("full_name");
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("role", "client")
+    .neq("status", "applicant")
+    .order("full_name");
   return (data ?? []).map(toProfile);
 }
 
 export async function getProfile(clientId: string): Promise<Profile | null> {
   const supabase = await createClient();
   if (!supabase) {
-    const seeded = demoProfiles.find((p) => p.id === clientId);
-    return seeded ? await withFoodMode(seeded) : null;
+    const { profiles } = await demoPeople();
+    const found =
+      demoProfiles.find((p) => p.id === clientId) ?? profiles.find((p) => p.id === clientId);
+    return found ? await withFoodMode(found) : null;
   }
 
   const { data } = await supabase.from("profiles").select("*").eq("id", clientId).single();
   return data ? toProfile(data) : null;
 }
+
+// ---------------------------------------------------------------------------
+// Applications — the public signup's side of Dean's requests inbox
+// ---------------------------------------------------------------------------
+
+/** Everything waiting on him, newest first. */
+export async function getApplications(status?: Application["status"]): Promise<Application[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { applications } = await demoPeople();
+    return applications
+      .filter((entry) => !status || entry.status === status)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  let query = supabase.from("applications").select("*").order("created_at", { ascending: false });
+  if (status) query = query.eq("status", status);
+  const { data } = await query;
+  return (data ?? []).map(toApplication);
+}
+
+export async function getApplication(id: string): Promise<Application | null> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { applications } = await demoPeople();
+    return applications.find((entry) => entry.id === id) ?? null;
+  }
+
+  const { data } = await supabase.from("applications").select("*").eq("id", id).maybeSingle();
+  return data ? toApplication(data) : null;
+}
+
+/** What somebody who signed up sees while they wait. */
+export async function getMyApplication(accountId: string): Promise<Application | null> {
+  const all = await getApplications();
+  return all.find((entry) => entry.accountId === accountId) ?? null;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase row */
+function toApplication(row: any): Application {
+  return {
+    id: row.id,
+    accountId: row.account_id,
+    fullName: row.full_name,
+    email: row.email,
+    avatarUrl: row.avatar_url ?? null,
+    currentWeightKg: row.current_weight_kg === null ? null : Number(row.current_weight_kg),
+    goalWeightKg: row.goal_weight_kg === null ? null : Number(row.goal_weight_kg),
+    goalType: row.goal_type,
+    goalOther: row.goal_other ?? null,
+    status: row.status,
+    createdAt: row.created_at,
+    decidedAt: row.decided_at ?? null,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // Libraries

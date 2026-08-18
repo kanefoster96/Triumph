@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { Check, MapPin, X } from "lucide-react";
-import { getCoachingPrice, getPlans, getProgrammes } from "@/lib/services/content";
-import { site } from "@/lib/data/site";
+import { Check, X } from "lucide-react";
+import { getCoachingPrice, getProgrammes } from "@/lib/services/content";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Container, Section, SectionHeader } from "@/components/ui/Section";
+import { Section, SectionHeader } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 import { ProgrammeCard } from "@/components/cards/ProgrammeCard";
 import { WhatsIncluded } from "@/components/home/WhatsIncluded";
@@ -37,12 +36,7 @@ const comparison = {
 };
 
 export default async function CoachingPage() {
-  const [programmes, plans, price] = await Promise.all([
-    getProgrammes(),
-    getPlans(),
-    getCoachingPrice(),
-  ]);
-  const inPerson = plans.find((p) => p.id === "plan-in-person");
+  const [programmes, price] = await Promise.all([getProgrammes(), getCoachingPrice()]);
 
   return (
     <>
@@ -112,25 +106,6 @@ export default async function CoachingPage() {
 
       <MembersArea />
 
-      {inPerson ? (
-        <Container className="pb-20 sm:pb-28">
-          <Reveal>
-            <div className="rounded-[var(--radius-sheet)] border border-line bg-surface p-7 sm:p-9">
-              <span className="inline-flex items-center gap-2 text-sm font-medium text-accent">
-                <MapPin className="h-4 w-4" />
-                {site.inPersonArea}
-              </span>
-              <h2 className="mt-4 text-2xl sm:text-3xl">Prefer to train together in person?</h2>
-              <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
-                {inPerson.description} From {formatPrice(inPerson.price)} per session.
-              </p>
-              <Button href="/contact" variant="secondary" className="mt-7">
-                {inPerson.ctaLabel}
-              </Button>
-            </div>
-          </Reveal>
-        </Container>
-      ) : null}
 
       <CtaBanner />
     </>

@@ -140,6 +140,21 @@ client-facing text may explain, justify or hint at scaling — no "multiplier",
 no "1.5×", no "base amount". Where a client is allowed to choose, it is
 labelled **Portion** with fractions.
 
+The public way in is `/join` — a three-step wizard that creates an account and
+an `Application`. There is no plan to pick and no price to choose because there
+is no shelf of programmes: Dean reads the application in `/admin/requests` and
+enrols them, which flips the profile from `applicant` to `active` and opens
+their week. Coaching is online only on every public surface.
+
+Payment is deliberately a separate, unwired step — `lib/services/payments.ts`
+is the seam and the button in the requests inbox says "coming soon" out loud.
+Nothing pretends to charge anybody.
+
+Demo accounts made through the signup live in a third cookie
+(`triumph-demo-people`), away from the day-to-day and plan stores so a week of
+meal ticks can never prune somebody's account away. Passwords are asked for and
+never stored: sign-in matches on the email alone, and both screens say so.
+
 Clients can ask to move a session (`day_swap_requests`); Dean answers on his
 home page. Approving performs the move — writes the day onto the new date and
 rests the old one — because the failure mode worth designing out is him saying

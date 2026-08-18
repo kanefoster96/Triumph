@@ -12,7 +12,7 @@ import { CtaBanner } from "@/components/home/CtaBanner";
 export const metadata: Metadata = {
   title: "About Dean",
   description:
-    "Dean Foster started training to be fit enough to enjoy family life. Now he coaches others online, with in-person sessions in Newcastle upon Tyne.",
+    "Dean Foster started training to be fit enough to enjoy family life. Now he coaches others online, anywhere in the UK.",
 };
 
 const principles = [

@@ -24,19 +24,4 @@ export const plans: Plan[] = [
     popular: true,
     ctaLabel: "Book a free consult",
   },
-  {
-    id: "plan-in-person",
-    name: "In-person, Newcastle",
-    price: 45,
-    cadence: "session",
-    description:
-      "Face-to-face sessions in Newcastle upon Tyne. Good for nailing technique early, or as a regular add-on alongside your online coaching.",
-    features: [
-      "One-to-one coaching in person",
-      "Technique work on the main lifts",
-      "Available alongside online coaching",
-      "Block booking available",
-    ],
-    ctaLabel: "Ask about availability",
-  },
 ];

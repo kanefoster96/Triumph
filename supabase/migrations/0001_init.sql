@@ -9,7 +9,10 @@
 -- ---------------------------------------------------------------------------
 
 create type public.user_role as enum ('client', 'admin');
-create type public.client_status as enum ('active', 'paused');
+-- 'applicant' is somebody who has signed up through the public wizard and is
+-- waiting on Dean. A real account that can sign in, with no plan behind it and
+-- no place in his client list until he enrols them.
+create type public.client_status as enum ('applicant', 'active', 'paused');
 
 -- Who builds this client's food week. 'coach' is the default and how most
 -- clients are coached: Dean assigns the meals and they follow the plan. 'self'
@@ -519,6 +522,45 @@ create index client_meal_swaps_client_idx
 create index plan_meal_slots_revision_idx on public.plan_meal_slots (revision_id, slot, position);
 
 -- ---------------------------------------------------------------------------
+-- Applications
+--
+-- The public signup wizard. No plan to pick and no price to choose, because
+-- there is no shelf of programmes — Dean builds one per person, so this is an
+-- application he reads rather than a purchase somebody makes.
+--
+-- The answers live here rather than on the profile so they stay as they were
+-- given: editing somebody's goal a month in should not rewrite what they said
+-- when they applied.
+-- ---------------------------------------------------------------------------
+
+create type public.goal_type as enum ('muscle', 'lose', 'fitness', 'other');
+create type public.application_status as enum ('pending', 'approved', 'declined');
+
+create table public.applications (
+  id                uuid primary key default gen_random_uuid(),
+  account_id        uuid not null references public.profiles(id) on delete cascade,
+  full_name         text not null,
+  email             text not null,
+  avatar_url        text,
+  -- Both optional: "if you know it" is why they are asked this way.
+  current_weight_kg numeric(5, 1),
+  goal_weight_kg    numeric(5, 1),
+  goal_type         public.goal_type not null default 'fitness',
+  goal_other        text,
+  status            public.application_status not null default 'pending',
+  created_at        timestamptz not null default now(),
+  decided_at        timestamptz
+);
+
+create index applications_status_idx on public.applications (status, created_at desc);
+
+-- Where Stripe lands. Deliberately not written yet — enrolling and paying are
+-- separate steps today, and the placeholder in the UI says so. When it is
+-- wired up, a successful checkout writes here and enrolment reads it.
+--   alter table public.applications add column paid_at timestamptz;
+--   alter table public.applications add column stripe_checkout_id text;
+
+-- ---------------------------------------------------------------------------
 -- Day swap requests
 --
 -- A client asking to move a session to another day. A request rather than a
@@ -769,6 +811,15 @@ create policy "admin deletes comments" on public.comments
 
 -- Plan templates are Dean's own tools. Clients never read them directly —
 -- they see the days those plans were used to create.
+
+-- Applications: somebody reads and raises their own, and only Dean decides one.
+-- An applicant who could approve their own application would not be applying.
+create policy "read own application" on public.applications
+  for select using (account_id = auth.uid() or public.is_admin());
+create policy "raise own application" on public.applications
+  for insert with check (account_id = auth.uid() and status = 'pending');
+create policy "admin decides applications" on public.applications
+  for update using (public.is_admin()) with check (public.is_admin());
 
 -- Day swaps: the client raises and reads their own requests, and may withdraw
 -- one while it is still pending. Deciding it is Dean's alone — a client who

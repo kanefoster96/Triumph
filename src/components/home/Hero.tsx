@@ -1,5 +1,5 @@
 import { Check, Sparkles } from "lucide-react";
-import { headlineStats, site } from "@/lib/data/site";
+import { headlineStats } from "@/lib/data/site";
 import { getCoachingPrice } from "@/lib/services/content";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
@@ -31,15 +31,14 @@ export async function Hero() {
       <Reveal delay={120}>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
           Online coaching with Dean Foster. Your meal plan, your training plan, regular check-ins and real
-          adjustments as you go — never a copy-and-paste PDF. In-person sessions available in{" "}
-          {site.inPersonArea}.
+          adjustments as you go — never a copy-and-paste PDF.
         </p>
       </Reveal>
 
       <Reveal delay={180}>
         <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-          <Button href="/contact" size="lg">
-            Book a free consult
+          <Button href="/join" size="lg">
+            Apply to train
           </Button>
           <Button href="/coaching" size="lg" variant="secondary">
             What&rsquo;s included

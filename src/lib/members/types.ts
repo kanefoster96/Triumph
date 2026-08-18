@@ -7,7 +7,12 @@
  */
 
 export type UserRole = "client" | "admin";
-export type ClientStatus = "active" | "paused";
+/**
+ * "applicant" is somebody who has signed up and is waiting on Dean. They have
+ * a real account and can sign in — they just have no plan yet, and they are
+ * not in his client list until he enrols them.
+ */
+export type ClientStatus = "applicant" | "active" | "paused";
 export type SessionStatus = "scheduled" | "completed" | "cancelled";
 export type CommentTarget = "workout" | "food_log" | "weight_entry" | "session" | "check_in";
 export type CheckInOutcome = "continued" | "adjusted";
@@ -456,6 +461,47 @@ export type EditScope = "date" | "weekday";
 // ---------------------------------------------------------------------------
 // Logged training
 // ---------------------------------------------------------------------------
+
+/**
+ * Somebody applying to train with Dean.
+ *
+ * There is no plan to pick and no price to choose at signup, because there is
+ * no shelf of programmes — Dean builds one per person. So this is an
+ * application rather than a purchase: they tell him who they are and what they
+ * are after, he reads it, and he either enrols them or he does not.
+ *
+ * Everything the wizard collects lands here rather than on the profile, so the
+ * answers stay as they were given even after Dean has edited their goal or
+ * their weight has moved on.
+ */
+export type GoalType = "muscle" | "lose" | "fitness" | "other";
+
+export const GOAL_LABELS: Record<GoalType, string> = {
+  muscle: "Build muscle",
+  lose: "Lose weight",
+  fitness: "Just get fitter",
+  other: "Something else",
+};
+
+export type ApplicationStatus = "pending" | "approved" | "declined";
+
+export interface Application {
+  id: string;
+  /** The account they created on the way through. */
+  accountId: string;
+  fullName: string;
+  email: string;
+  avatarUrl: string | null;
+  /** Both optional — "if you know it" is the whole point of asking this way. */
+  currentWeightKg: number | null;
+  goalWeightKg: number | null;
+  goalType: GoalType;
+  /** What they typed when they picked "Something else". */
+  goalOther: string | null;
+  status: ApplicationStatus;
+  createdAt: string;
+  decidedAt: string | null;
+}
 
 /**
  * A client asking to train on a different day.

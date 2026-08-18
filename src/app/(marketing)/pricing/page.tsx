@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { Check, MapPin, Sparkles } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { getFaqs, getPlans } from "@/lib/services/content";
-import { site } from "@/lib/data/site";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Section, SectionHeader } from "@/components/ui/Section";
@@ -13,7 +12,7 @@ import { cn, formatCadence, formatPrice } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Online coaching with Dean Foster is £120 a month — meal plan, training plan, check-ins and adjustments included. In-person sessions available in Newcastle upon Tyne.",
+    "Online coaching with Dean Foster is £120 a month — meal plan, training plan, check-ins and adjustments included.",
 };
 
 export default async function PricingPage() {
@@ -87,13 +86,6 @@ export default async function PricingPage() {
                     </li>
                   ))}
                 </ul>
-
-                {!plan.popular ? (
-                  <p className="mt-6 inline-flex items-center gap-2 text-xs text-faint">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {site.inPersonArea} only
-                  </p>
-                ) : null}
 
                 <Button
                   href="/contact"

@@ -15,7 +15,7 @@ import {
   demoSessions,
   demoWorkouts,
 } from "./demo";
-import { packRevision, writeDemoData } from "./demo-store";
+import { demoPeople, packRevision, writeDemoData, writeDemoPeople } from "./demo-store";
 import {
   DEMO_ROLE_COOKIE,
   dayIndexFor,
@@ -37,12 +37,15 @@ import {
   today,
 } from "./service";
 import type {
+  Application,
   CommentTarget,
   EditScope,
   FoodMode,
   MealTag,
   PlanDay,
+  GoalType,
   PlanKind,
+  Profile,
   SwapRequest,
 } from "./types";
 
@@ -360,6 +363,189 @@ export async function setDemoRole(role: "client" | "admin") {
 }
 
 /** "Signs in" as a demo client or coach and lands on the right home screen. */
+// ---------------------------------------------------------------------------
+// Public signup — apply to train, and the account it creates
+// ---------------------------------------------------------------------------
+
+/**
+ * A word about passwords in demo mode.
+ *
+ * The wizard and the sign-in page ask for one, because the flow is the thing
+ * being looked at and a signup with no password is not the flow. Nothing is
+ * stored: there is no hashing here, no credential in the cookie, and sign-in
+ * matches on the email alone. Writing a password — however scrambled — into a
+ * store that travels with the browser would be teaching the wrong lesson, and
+ * Supabase Auth is what replaces this the moment it is connected.
+ *
+ * Both screens say so on the page rather than only here.
+ */
+const normalise = (email: string) => email.trim().toLowerCase();
+
+/** Everybody signed up in this demo, seeded cast included. */
+async function demoAccountFor(email: string): Promise<Profile | null> {
+  const target = normalise(email);
+  if (!target) return null;
+  const { profiles } = await demoPeople();
+  return (
+    profiles.find((profile) => normalise(profile.email ?? "") === target) ??
+    demoProfiles.find((profile) => normalise(profile.email ?? "") === target) ??
+    null
+  );
+}
+
+/** Starts a demo session as a particular account rather than a demo role. */
+async function signInAs(profileId: string) {
+  const store = await cookies();
+  store.set(DEMO_ROLE_COOKIE, profileId, { path: "/", httpOnly: false, sameSite: "lax" });
+}
+
+/**
+ * Apply to train, and get an account on the way through.
+ *
+ * One action rather than two screens: somebody who has just filled in three
+ * steps about their goals should not then be asked to sign up before any of it
+ * counts. The account and the application are written together, and they are
+ * signed in when it returns.
+ *
+ * No plan and no price is collected because there are none to collect — Dean
+ * reads this and builds them something, which is the whole shape of the
+ * business. Payment is a separate step he takes later; see `lib/services/payments.ts`.
+ */
+export async function submitApplication(formData: FormData) {
+  const email = normalise(String(formData.get("email") ?? ""));
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  if (!email || !fullName) return;
+
+  const supabase = await createClient();
+  if (supabase) {
+    // Real signup lands here: create the auth user, then the application.
+    // Left unwired on purpose — this is the seam, not a half-built version.
+    redirect("/login");
+  }
+
+  const existing = await demoAccountFor(email);
+  if (existing) {
+    // Already has an account. Sign them in rather than making a second one —
+    // and their application, if any, is on their dashboard.
+    await signInAs(existing.id);
+    refresh();
+    redirect("/app");
+  }
+
+  const raw = String(formData.get("avatarUrl") ?? "").trim();
+  const avatarUrl = raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null;
+
+  const number = (key: string) => {
+    const value = Number(formData.get(key));
+    return Number.isFinite(value) && value > 0 ? Number(value.toFixed(1)) : null;
+  };
+
+  const goals: GoalType[] = ["muscle", "lose", "fitness", "other"];
+  const goalType = goals.find((goal) => goal === formData.get("goalType")) ?? "fitness";
+  const goalOther =
+    goalType === "other" ? String(formData.get("goalOther") ?? "").trim().slice(0, 120) || null : null;
+
+  const accountId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const profile: Profile = {
+    id: accountId,
+    fullName,
+    email,
+    role: "client",
+    // An account, not a client. They are in nobody's list until Dean enrols
+    // them, and the requests inbox is the only place they show up.
+    status: "applicant",
+    goal: null,
+    startedOn: now.slice(0, 10),
+    foodMode: "coach",
+    avatarUrl,
+  };
+
+  const application: Application = {
+    id: crypto.randomUUID(),
+    accountId,
+    fullName,
+    email,
+    avatarUrl,
+    currentWeightKg: number("currentWeightKg"),
+    goalWeightKg: number("goalWeightKg"),
+    goalType,
+    goalOther,
+    status: "pending",
+    createdAt: now,
+    decidedAt: null,
+  };
+
+  await writeDemoPeople((people) => {
+    people.profiles.push(profile);
+    people.applications.push(application);
+  });
+
+  await signInAs(accountId);
+  refresh();
+  redirect("/join/thanks");
+}
+
+/** Sign in to an account made through the signup. */
+export async function signIn(formData: FormData) {
+  const supabase = await createClient();
+  if (supabase) redirect("/login"); // Real auth once connected.
+
+  const account = await demoAccountFor(String(formData.get("email") ?? ""));
+  if (!account) redirect("/login?e=1");
+
+  await signInAs(account.id);
+  refresh();
+  redirect(account.role === "admin" ? "/admin" : "/app");
+}
+
+/**
+ * Enrol an applicant, or turn them down.
+ *
+ * Approving flips the account from applicant to client, which is what puts
+ * them in Dean's list and lets a plan be built for them. Payment is not part
+ * of it — see the placeholder on the request itself.
+ */
+export async function decideApplication(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "");
+  const approve = formData.get("decision") === "approve";
+  if (!id) return;
+
+  let accountId: string | null = null;
+
+  await writeDemoPeople((people) => {
+    const application = people.applications.find((entry) => entry.id === id);
+    if (!application || application.status !== "pending") return;
+
+    application.status = approve ? "approved" : "declined";
+    application.decidedAt = new Date().toISOString();
+    accountId = application.accountId;
+
+    const profile = people.profiles.find((entry) => entry.id === application.accountId);
+    if (profile && approve) {
+      profile.status = "active";
+      // Their words, carried onto the profile as the goal every screen shows.
+      profile.goal =
+        application.goalOther ??
+        {
+          muscle: "Build muscle",
+          lose: "Lose weight",
+          fitness: "Get fitter",
+          other: "Get started",
+        }[application.goalType];
+    }
+  });
+
+  refresh();
+  // Straight into building their week, which is the next thing he does.
+  if (approve && accountId) redirect(`/admin/clients/${accountId}/plan`);
+  redirect("/admin/requests");
+}
+
 export async function enterDemoAs(role: "client" | "admin") {
   const supabase = await createClient();
   if (supabase) redirect("/login"); // Real auth once connected.

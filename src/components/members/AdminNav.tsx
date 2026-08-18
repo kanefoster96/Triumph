@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, CalendarDays, ClipboardCheck, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, Inbox, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/admin", label: "Clients", icon: Users },
+  { href: "/admin/requests", label: "Requests", icon: Inbox },
   { href: "/admin/checkin", label: "Check-ins", icon: ClipboardCheck },
   { href: "/admin/library", label: "Library", icon: BookOpen },
   { href: "/admin/schedule", label: "Schedule", icon: CalendarDays },

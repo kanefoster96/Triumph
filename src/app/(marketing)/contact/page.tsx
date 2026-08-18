@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Clock, Mail, MapPin, Phone } from "lucide-react";
+import { Clock, Mail, Monitor, Phone } from "lucide-react";
 import { getProcess, getProgrammes } from "@/lib/services/content";
 import { site } from "@/lib/data/site";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -12,13 +12,13 @@ import { EnquiryForm } from "@/components/contact/EnquiryForm";
 export const metadata: Metadata = {
   title: "Book a free consult",
   description:
-    "Book a free consult with Dean Foster — online coaching anywhere in the UK, or in-person sessions in Newcastle upon Tyne.",
+    "Get in touch with Dean Foster — online coaching anywhere in the UK.",
 };
 
 const details = [
   { icon: Mail, label: "Email", value: site.email, href: `mailto:${site.email}` },
   { icon: Phone, label: "Phone", value: site.phone, href: `tel:${site.phone.replace(/\s/g, "")}` },
-  { icon: MapPin, label: "In person", value: `${site.inPersonArea} only` },
+  { icon: Monitor, label: "Coaching", value: "Online, anywhere in the UK" },
   { icon: Clock, label: "Reply time", value: "Within one working day" },
 ];
 

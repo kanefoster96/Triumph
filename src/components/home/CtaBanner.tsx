@@ -10,16 +10,16 @@ export function CtaBanner() {
       <Container className="py-20 text-center sm:py-24">
         <Reveal>
           <h2 className="mx-auto max-w-2xl text-3xl text-balance sm:text-4xl">
-            Start with a conversation, not a contract
+Tell him what you are after
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-accent-ink/75 sm:text-lg">
-            Twenty minutes, no cost, no pressure. If I am not the right coach for what you want, I will tell
-            you and point you at someone who is.
+            Three short questions and no card. Dean reads every application himself and comes back to
+            you with what he would do — and if he is not the right coach for it, he will say so.
           </p>
 
           <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-            <Button href="/contact" size="lg" variant="onAccent">
-              Book a free consult
+            <Button href="/join" size="lg" variant="onAccent">
+              Apply to train
             </Button>
             <Button
               href={`mailto:${site.email}`}
@@ -31,7 +31,7 @@ export function CtaBanner() {
           </div>
 
           <p className="mt-7 text-sm text-accent-ink/70">
-            Free consult · No contract · Cancel any time
+No card needed · No contract · Cancel any time
           </p>
         </Reveal>
       </Container>

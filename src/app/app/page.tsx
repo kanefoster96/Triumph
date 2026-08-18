@@ -4,6 +4,7 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCheck,
+  Hourglass,
   Dumbbell,
   LineChart,
   MessageCircle,
@@ -86,6 +87,24 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {/*
+        Applied and waiting. Without this the dashboard is a set of empty
+        cards and no explanation, which reads as a broken app rather than a
+        coach who has not answered yet.
+      */}
+      {profile.status === "applicant" ? (
+        <div className="mb-6 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+            <Hourglass className="h-3.5 w-3.5" />
+            With Dean
+          </p>
+          <p className="mt-2.5 text-sm leading-relaxed text-muted">
+            Your application is in. Dean will review your details and get back to you to propose
+            your plan and get you enrolled — until then there is nothing in here to do.
+          </p>
+        </div>
+      ) : null}
+
       {/* Their face beside their name — the one place in the app that is
           purely theirs rather than a task waiting to be done. */}
       <div className="mb-2 flex items-center gap-4">
