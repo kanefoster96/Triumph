@@ -34,6 +34,8 @@ export function PlanDayForm({
   training,
   food,
   scope,
+  trainingHint,
+  foodHint,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   title: string;
@@ -46,6 +48,9 @@ export function PlanDayForm({
   training: ReactNode;
   food: ReactNode;
   scope: ReactNode;
+  /** What is in each half, so a shut section still says something. */
+  trainingHint?: string;
+  foodHint?: string;
 }) {
   const phone = useIsPhone();
   const [open, setOpen] = useState(defaultOpen);
@@ -105,13 +110,16 @@ export function PlanDayForm({
       {hidden}
 
       <div className={cn(phone && "min-h-0 flex-1 overflow-y-auto overscroll-contain")}>
-        <Section icon={Dumbbell} title="Training" defaultOpen>
+        {/* Open on arrival: he tapped Edit on a day to change the training,
+            so a screen where the first tap only reveals it is one tap too
+            many. Meals stay shut — their summary line says what is there. */}
+        <Section icon={Dumbbell} title="Workout" hint={trainingHint} defaultOpen>
           {training}
         </Section>
-        <Section icon={Salad} title="Food">
+        <Section icon={Salad} title="Meals" hint={foodHint}>
           {food}
         </Section>
-        <Section icon={CalendarRange} title="How far this reaches" defaultOpen>
+        <Section icon={CalendarRange} title="Apply to" defaultOpen>
           {scope}
         </Section>
       </div>
@@ -213,21 +221,28 @@ export function PlanDayForm({
 function Section({
   icon: Icon,
   title,
+  hint,
   defaultOpen = false,
   children,
 }: {
   icon: typeof Dumbbell;
   title: string;
+  hint?: string;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
   return (
     <details open={defaultOpen} className="group shrink-0 border-b border-line">
-      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-5 py-4 transition-colors hover:bg-raised">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-5 py-3.5 transition-colors hover:bg-raised">
         <Icon className="h-4 w-4 shrink-0 text-accent" />
-        <span className="flex-1 text-sm font-semibold">{title}</span>
-        <span className="text-xs font-semibold text-faint group-open:hidden">Show</span>
-        <span className="hidden text-xs font-semibold text-faint group-open:inline">Hide</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{title}</span>
+          {/* A shut section that says "Workout" and nothing else makes you
+              open it to find out whether there is one. */}
+          {hint ? <span className="block truncate text-xs text-faint">{hint}</span> : null}
+        </span>
+        <span className="text-xs font-semibold text-accent group-open:hidden">Open</span>
+        <span className="hidden text-xs font-semibold text-faint group-open:inline">Close</span>
       </summary>
       <div className="space-y-4 px-5 pt-1 pb-5">{children}</div>
     </details>
@@ -246,7 +261,7 @@ function SaveBar({ dirty, needsTitle }: { dirty: boolean; needsTitle: boolean })
             ? "Saving…"
             : dirty
               ? "Not saved yet."
-              : "Training, food and how far it reaches."}
+              : "Nothing to save — this day is up to date."}
       </p>
       <button
         type="submit"

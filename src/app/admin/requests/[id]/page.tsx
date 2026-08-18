@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, CreditCard, Monitor, X } from "lucide-react";
+import { ArrowLeft, Check, CreditCard, Monitor, Users, X } from "lucide-react";
 import { getApplication } from "@/lib/members/service";
 import { decideApplication } from "@/lib/members/actions";
 import { isPaymentsConfigured } from "@/lib/services/payments";
@@ -30,7 +30,6 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
     ["Goal", goal],
     ["Weight now", application.currentWeightKg ? `${application.currentWeightKg}kg` : "Not said"],
     ["Goal weight", application.goalWeightKg ? `${application.goalWeightKg}kg` : "Not said"],
-    ["Coaching", "Online"],
     ["Email", application.email],
     [
       "Applied",
@@ -46,7 +45,7 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
     <>
       <Link
         href="/admin/requests"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-text"
+        className="-my-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-text"
       >
         <ArrowLeft className="h-4 w-4" />
         All requests
@@ -86,35 +85,72 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
         </Panel>
 
         {pending ? (
-          <Panel title="Your answer">
-            <p className="mb-4 text-sm leading-relaxed text-muted">
-              Enrolling makes them a client and opens their week, ready to build. Nothing is charged
-              — taking payment is its own step.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <form action={decideApplication} className="sm:flex-1">
-                <input type="hidden" name="id" value={application.id} />
-                <input type="hidden" name="decision" value="approve" />
-                <button
-                  type="submit"
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
-                >
-                  <Check className="h-4 w-4" />
-                  Enrol {application.fullName.split(" ")[0]}
-                </button>
-              </form>
-              <form action={decideApplication}>
-                <input type="hidden" name="id" value={application.id} />
-                <input type="hidden" name="decision" value="decline" />
-                <button
-                  type="submit"
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-muted transition-colors hover:border-danger hover:text-danger"
-                >
-                  <X className="h-4 w-4" />
-                  Not right now
-                </button>
-              </form>
-            </div>
+          <Panel title="Take them on">
+            {/*
+              How he coaches them, chosen where he decides to take them on —
+              it is the same question and asking it twice would be one screen
+              too many. Either way they get the whole app; 1-to-1 adds sessions
+              in his diary on top.
+            */}
+            <form action={decideApplication} className="space-y-4">
+              <input type="hidden" name="id" value={application.id} />
+              <input type="hidden" name="decision" value="approve" />
+
+              <div className="space-y-2">
+                {(
+                  [
+                    ["online", "Online", "You plan their week. No sessions in the diary.", Monitor],
+                    [
+                      "one_to_one",
+                      "1-to-1",
+                      "Same plan, plus sessions you book with them.",
+                      Users,
+                    ],
+                  ] as const
+                ).map(([value, title, hint, Icon], index) => (
+                  <label
+                    key={value}
+                    className="flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border border-line bg-ink p-4 transition-colors hover:border-accent/40 has-checked:border-accent has-checked:bg-accent/[0.07]"
+                  >
+                    <input
+                      type="radio"
+                      name="coaching"
+                      value={value}
+                      defaultChecked={index === 0}
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-accent)]"
+                    />
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">{title}</span>
+                      <span className="block text-xs text-faint">{hint}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <button
+                type="submit"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+              >
+                <Check className="h-4 w-4" />
+                Enrol {application.fullName.split(" ")[0]}
+              </button>
+              <p className="text-xs text-faint">
+                Opens their week, ready to build. Nothing is charged.
+              </p>
+            </form>
+
+            <form action={decideApplication} className="mt-3 border-t border-line pt-4">
+              <input type="hidden" name="id" value={application.id} />
+              <input type="hidden" name="decision" value="decline" />
+              <button
+                type="submit"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-muted transition-colors hover:border-danger hover:text-danger"
+              >
+                <X className="h-4 w-4" />
+                Not right now
+              </button>
+            </form>
           </Panel>
         ) : (
           <Panel title="Your answer">
@@ -162,19 +198,15 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
               <CreditCard className="h-4 w-4" />
               Take payment — Stripe (coming soon)
             </button>
-            <Chip tone="amber">{isPaymentsConfigured() ? "Configured" : "Not connected"}</Chip>
+            <Chip tone="amber">{isPaymentsConfigured() ? "Ready" : "Not set up yet"}</Chip>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-faint">
-            No payment provider is wired up yet. When Stripe is connected this starts a checkout for
-            the amount you agreed, and the application records that it was paid — see
-            src/lib/services/payments.ts.
+            Card payments are not set up yet. Once they are, this takes the amount you agreed and
+            marks them as paid.
           </p>
         </Panel>
 
-        <p className="inline-flex items-start gap-2 px-1 text-xs leading-relaxed text-faint">
-          <Monitor className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Everyone applying through the website is coached online.
-        </p>
+
       </div>
     </>
   );

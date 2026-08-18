@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { Clock, Mail, Monitor, Phone } from "lucide-react";
-import { getProcess, getProgrammes } from "@/lib/services/content";
+import { getProcess } from "@/lib/services/content";
 import { site } from "@/lib/data/site";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 import { IconTile } from "@/components/ui/IconTile";
-import { EnquiryForm } from "@/components/contact/EnquiryForm";
+import { QuestionForm } from "@/components/contact/QuestionForm";
 
 export const metadata: Metadata = {
-  title: "Book a free consult",
+  title: "Ask a question",
   description:
     "Get in touch with Dean Foster — online coaching anywhere in the UK.",
 };
@@ -22,27 +21,21 @@ const details = [
   { icon: Clock, label: "Reply time", value: "Within one working day" },
 ];
 
-export default async function ContactPage() {
-  const [programmes, process] = await Promise.all([getProgrammes(), getProcess()]);
+export default async function ContactPage({ searchParams }: PageProps<"/contact">) {
+  const [process, query] = await Promise.all([getProcess(), searchParams]);
 
   return (
     <>
       <PageHeader
-        eyebrow="Get started"
-        title="Book a free consult"
-        description="A short conversation about where you are, what you want, and whether I am the right coach to get you there. No cost, no obligation."
+        eyebrow="Get in touch"
+        title="Ask a question"
+        description="Something you want to know before you start? Ask away — Dean answers these himself. If you would rather he built you a plan, ask for a free consultation instead."
       />
 
       <Container className="pb-20 sm:pb-28">
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <Reveal className="min-w-0">
-            <Suspense
-              fallback={
-                <div className="h-[32rem] animate-pulse rounded-[var(--radius-sheet)] border border-line bg-surface" />
-              }
-            >
-              <EnquiryForm programmes={programmes} />
-            </Suspense>
+            <QuestionForm sent={query.sent === "1"} failed={query.e === "1"} />
           </Reveal>
 
           <div className="min-w-0 space-y-10">

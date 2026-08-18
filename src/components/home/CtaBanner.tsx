@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
-import { site } from "@/lib/data/site";
 
 /** Full-bleed accent band — the one saturated moment on the page. */
 export function CtaBanner() {
@@ -10,23 +9,23 @@ export function CtaBanner() {
       <Container className="py-20 text-center sm:py-24">
         <Reveal>
           <h2 className="mx-auto max-w-2xl text-3xl text-balance sm:text-4xl">
-Tell him what you are after
+Two ways to start
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-accent-ink/75 sm:text-lg">
-            Three short questions and no card. Dean reads every application himself and comes back to
-            you with what he would do — and if he is not the right coach for it, he will say so.
+            Ask for a free consultation and Dean will come back to you with what he would do. Or
+            just ask a question — he answers those himself too.
           </p>
 
           <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
             <Button href="/join" size="lg" variant="onAccent">
-              Apply to train
+              Request a free consultation
             </Button>
             <Button
-              href={`mailto:${site.email}`}
+              href="/contact"
               size="lg"
               className="border border-accent-ink/25 bg-transparent text-accent-ink hover:bg-accent-ink/10"
             >
-              Email me directly
+              Ask a question
             </Button>
           </div>
 

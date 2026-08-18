@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ChevronRight, Inbox } from "lucide-react";
-import { getApplications } from "@/lib/members/service";
+import { Check, ChevronRight, Inbox, MessageSquare } from "lucide-react";
+import { getApplications, getQuestions } from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { Avatar } from "@/components/members/Avatar";
 import { Chip } from "@/components/ui/Chip";
+import { markQuestionAnswered } from "@/lib/members/actions";
 import { GOAL_LABELS, type Application } from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,8 @@ function sentOn(iso: string) {
  * has to do well is make the pending ones impossible to miss.
  */
 export default async function AdminRequestsPage() {
-  const applications = await getApplications();
+  const [applications, questions] = await Promise.all([getApplications(), getQuestions()]);
+  const openQuestions = questions.filter((question) => !question.answeredAt);
   const pending = applications.filter((entry) => entry.status === "pending");
   const decided = applications.filter((entry) => entry.status !== "pending");
 
@@ -33,17 +35,22 @@ export default async function AdminRequestsPage() {
       <ScreenTitle
         title="Requests"
         subtitle={
-          pending.length === 0
-            ? "Nobody waiting."
-            : `${pending.length} waiting on you${decided.length > 0 ? ` · ${decided.length} answered` : ""}`
+          pending.length + openQuestions.length === 0
+            ? "Nothing waiting on you."
+            : [
+                pending.length > 0 ? `${pending.length} to enrol` : null,
+                openQuestions.length > 0 ? `${openQuestions.length} to answer` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
         }
       />
 
       <div className="space-y-5">
-        <Panel title={pending.length === 1 ? "1 waiting" : `${pending.length} waiting`}>
+        <Panel title="People who want to train">
           {pending.length === 0 ? (
             <EmptyState>
-              Applications from the website land here. Nothing to read just now.
+              Nobody waiting. Anyone who asks for a free consultation on the website turns up here.
             </EmptyState>
           ) : (
             <ul className="space-y-2">
@@ -79,6 +86,46 @@ export default async function AdminRequestsPage() {
           )}
         </Panel>
 
+        {/* Questions are their own list. Somebody asking whether Dean coaches
+            runners has not applied, and one list holding both would make both
+            of them useless. */}
+        <Panel title="Questions">
+          {openQuestions.length === 0 ? (
+            <EmptyState>No questions to answer.</EmptyState>
+          ) : (
+            <ul className="space-y-2">
+              {openQuestions.map((question) => (
+                <li key={question.id} className="rounded-2xl border border-line bg-ink p-4">
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold">{question.name}</p>
+                      <a
+                        href={`mailto:${question.email}`}
+                        className="block truncate text-xs text-accent hover:underline"
+                      >
+                        {question.email}
+                      </a>
+                      <p className="mt-2 text-sm leading-relaxed text-muted">{question.body}</p>
+                      <p className="mt-2 text-xs text-faint">Asked {sentOn(question.createdAt)}</p>
+                    </div>
+                  </div>
+                  <form action={markQuestionAnswered} className="mt-3">
+                    <input type="hidden" name="id" value={question.id} />
+                    <button
+                      type="submit"
+                      className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                    >
+                      <Check className="h-4 w-4" />
+                      Mark as answered
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
         {decided.length > 0 ? (
           <Panel title="Answered">
             <ul className="space-y-2">
@@ -104,7 +151,7 @@ export default async function AdminRequestsPage() {
 
         <p className="inline-flex items-start gap-2 px-1 text-xs leading-relaxed text-faint">
           <Inbox className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Everyone here applied through the website. Enrolling one makes them a client and opens
+          Everyone here came from the website. Enrolling somebody makes them a client and opens
           their week, ready to build.
         </p>
       </div>

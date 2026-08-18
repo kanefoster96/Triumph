@@ -44,7 +44,7 @@ export const secondaryNav = [
   { href: "/coaching", label: "Online coaching" },
   { href: "/results", label: "Client results" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Book a free consult" },
+  { href: "/contact", label: "Ask a question" },
 ];
 
 export const headlineStats: Stat[] = [

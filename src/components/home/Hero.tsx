@@ -38,10 +38,10 @@ export async function Hero() {
       <Reveal delay={180}>
         <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <Button href="/join" size="lg">
-            Apply to train
+            Request a free consultation
           </Button>
-          <Button href="/coaching" size="lg" variant="secondary">
-            What&rsquo;s included
+          <Button href="/contact" size="lg" variant="secondary">
+            Ask a question
           </Button>
         </div>
       </Reveal>

@@ -54,7 +54,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
     <>
       <ScreenTitle
         title="Schedule"
-        subtitle="Your in-person sessions. Pick a day to see it, or add one below. Online clients are coached through their workouts and food, not from here."
+        subtitle="Sessions with your 1-to-1 clients. Pick a day to see it, or add one below."
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">

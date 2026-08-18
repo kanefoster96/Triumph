@@ -22,7 +22,7 @@ export function DemoBanner({ role }: { role: UserRole }) {
               "use server";
               await setDemoRole(role === "admin" ? "client" : "admin");
             }}
-            className="rounded-full border border-amber/40 px-3 py-1 text-xs font-semibold text-amber transition-colors hover:bg-amber/15"
+            className="-my-2 inline-flex min-h-11 items-center rounded-full border border-amber/40 px-3 text-xs font-semibold text-amber transition-colors hover:bg-amber/15"
           >
             {role === "admin" ? "Dean (admin)" : "Client"} · switch
           </button>

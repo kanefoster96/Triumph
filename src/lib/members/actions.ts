@@ -43,9 +43,11 @@ import type {
   FoodMode,
   MealTag,
   PlanDay,
+  CoachingMode,
   GoalType,
   PlanKind,
   Profile,
+  Question,
   SwapRequest,
 } from "./types";
 
@@ -459,6 +461,8 @@ export async function submitApplication(formData: FormData) {
     goal: null,
     startedOn: now.slice(0, 10),
     foodMode: "coach",
+    // Online until Dean says otherwise — he picks when he enrols them.
+    coachingMode: "online",
     avatarUrl,
   };
 
@@ -487,6 +491,67 @@ export async function submitApplication(formData: FormData) {
   redirect("/join/thanks");
 }
 
+/**
+ * A one-off question from the website.
+ *
+ * Open to anybody, signed in or not — somebody wanting to know whether Dean
+ * coaches runners should not have to make an account to ask. It lands in his
+ * inbox beside the applications but in its own list, because answering a
+ * question and enrolling somebody are not the same job.
+ */
+export async function askQuestion(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  const email = String(formData.get("email") ?? "").trim().slice(0, 120);
+  const body = String(formData.get("body") ?? "").trim().slice(0, 600);
+  if (!name || !email.includes("@") || !body) redirect("/contact?e=1");
+
+  const question: Question = {
+    id: crypto.randomUUID(),
+    name,
+    email,
+    body,
+    createdAt: new Date().toISOString(),
+    answeredAt: null,
+  };
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoPeople((people) => {
+      people.questions.push(question);
+    });
+  } else {
+    await supabase.from("questions").insert({ name, email, body });
+  }
+
+  refresh();
+  redirect("/contact?sent=1");
+}
+
+/** Mark a question dealt with, so the inbox only shows what is outstanding. */
+export async function markQuestionAnswered(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoPeople((people) => {
+      const question = people.questions.find((entry) => entry.id === id);
+      if (question) question.answeredAt = new Date().toISOString();
+    });
+  } else {
+    await supabase
+      .from("questions")
+      .update({ answered_at: new Date().toISOString() })
+      .eq("id", id);
+  }
+
+  refresh();
+  redirect("/admin/requests");
+}
+
 /** Sign in to an account made through the signup. */
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
@@ -513,6 +578,7 @@ export async function decideApplication(formData: FormData) {
 
   const id = String(formData.get("id") ?? "");
   const approve = formData.get("decision") === "approve";
+  const coaching: CoachingMode = formData.get("coaching") === "one_to_one" ? "one_to_one" : "online";
   if (!id) return;
 
   let accountId: string | null = null;
@@ -528,6 +594,9 @@ export async function decideApplication(formData: FormData) {
     const profile = people.profiles.find((entry) => entry.id === application.accountId);
     if (profile && approve) {
       profile.status = "active";
+      // Online or 1-to-1 is Dean's call and he makes it here. Either way they
+      // get the whole app; 1-to-1 adds sessions in his diary on top.
+      profile.coachingMode = coaching;
       // Their words, carried onto the profile as the goal every screen shows.
       profile.goal =
         application.goalOther ??
@@ -2097,6 +2166,8 @@ export async function copyPlanWeek(formData: FormData) {
   }
 
   refresh();
+  // Land on the week just written, which is the one to tweak.
+  redirect(`/admin/clients/${clientId}/plan?week=${to}`);
 }
 
 export async function bumpPlanWeights(formData: FormData) {

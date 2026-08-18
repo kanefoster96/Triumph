@@ -114,13 +114,20 @@ export default async function AdminClientWorkoutsPage({
           />
         </Panel>
 
-        <Panel title="The repeating plan">
+        <Panel title="Their repeating week">
           {block ? (
             <>
               <p className="text-sm leading-relaxed text-muted">
-                A {block.cycleWeeks === 2 ? "two week" : "one week"} block, repeating from{" "}
-                {block.startsOn}. This calendar shows what it works out to. Change the shape of the
-                week on the Plan tab; change one date here.
+                {block.cycleWeeks === 2
+                  ? "Two weeks that alternate"
+                  : "One week that repeats"}
+                , running from{" "}
+                {new Date(block.startsOn).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                })}
+                . This calendar shows how that lands on real dates. Change the whole week on the
+                Plan tab; change one date here.
               </p>
               <Link
                 href={planPath}
@@ -133,15 +140,15 @@ export default async function AdminClientWorkoutsPage({
           ) : (
             <>
               <p className="text-sm leading-relaxed text-muted">
-                No repeating plan yet, so nothing generates past the days already logged. Start one
-                and this calendar fills in.
+                No plan yet, so there is nothing past the days already logged. Build their week and
+                this calendar fills in.
               </p>
               <Link
                 href={planPath}
                 className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent"
               >
                 <Repeat className="h-4 w-4" />
-                Start a plan
+                Build their week
               </Link>
             </>
           )}

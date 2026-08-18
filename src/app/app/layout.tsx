@@ -28,7 +28,7 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
           <div className="flex items-center gap-3">
             <Link
               href="/logout"
-              className="text-sm text-muted transition-colors hover:text-text"
+              className="inline-flex min-h-11 items-center text-sm text-muted transition-colors hover:text-text"
               prefetch={false}
             >
               Sign out

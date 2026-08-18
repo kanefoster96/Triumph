@@ -235,7 +235,7 @@ export function MealBreakdown({
                             type="submit"
                             className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
                           >
-                            Save the swap
+                            Save this swap
                           </button>
                         </form>
                       </details>

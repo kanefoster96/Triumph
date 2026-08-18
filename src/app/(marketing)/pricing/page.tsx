@@ -88,7 +88,7 @@ export default async function PricingPage() {
                 </ul>
 
                 <Button
-                  href="/contact"
+                  href="/join"
                   variant={plan.popular ? "onAccent" : "secondary"}
                   fullWidth
                   className="mt-6"

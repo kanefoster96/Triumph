@@ -67,8 +67,8 @@ export function TopBar({ demoSlot }: { demoSlot?: ReactNode }) {
           {/* Wrapped rather than given `hidden` directly: the Button sets its
               own `inline-flex`, which wins over a `hidden` passed in. */}
           <span className="hidden md:inline-flex">
-            <Button href="/contact" size="sm">
-              Book a consult
+            <Button href="/join" size="sm">
+              Free consultation
             </Button>
           </span>
           <MobileMenu demoSlot={demoSlot} />

@@ -65,9 +65,7 @@ export default async function ProgrammePage({ params }: PageProps<"/coaching/[sl
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted">{programme.summary}</p>
 
           <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
-            <Button href="/contact" size="lg">
-              Book a free consult
-            </Button>
+            <Button href="/join" size="lg">Request a free consultation</Button>
             <Button href="/pricing" size="lg" variant="secondary">
               {formatPrice(price.amount)}/month — what&rsquo;s included
             </Button>

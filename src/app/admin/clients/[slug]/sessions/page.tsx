@@ -126,7 +126,7 @@ export default async function AdminClientSessionsPage({
                   />
                   <div className="flex flex-wrap items-center gap-3">
                     <button type="submit" className={submitButton}>
-                      Save changes
+                      Save this session
                     </button>
                     <span className="text-xs text-faint">{formatWhen(session.startsAt)}</span>
                   </div>
@@ -140,7 +140,7 @@ export default async function AdminClientSessionsPage({
                   className="mt-3 border-t border-line pt-3"
                 >
                   <button type="submit" className="text-xs font-semibold text-danger">
-                    Cancel and remove
+                    Cancel this session
                   </button>
                 </form>
               </li>
@@ -179,7 +179,7 @@ export default async function AdminClientSessionsPage({
                     className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2 text-sm placeholder:text-faint focus:border-accent focus:outline-none"
                   />
                   <button type="submit" className="shrink-0 text-sm font-semibold text-accent">
-                    Save note
+                    Save this note
                   </button>
                 </form>
               </li>

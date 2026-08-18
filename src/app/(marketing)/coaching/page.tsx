@@ -45,9 +45,7 @@ export default async function CoachingPage() {
         title="Coaching, not a downloadable plan"
         description={`${formatPrice(price.amount)} a month for a plan built around you and a coach who keeps changing it as you go. Wherever you train, whatever your week looks like.`}
       >
-        <Button href="/contact" size="lg">
-          Book a free consult
-        </Button>
+        <Button href="/join" size="lg">Request a free consultation</Button>
       </PageHeader>
 
       <WhatsIncluded />

@@ -21,6 +21,11 @@ create type public.client_status as enum ('applicant', 'active', 'paused');
 -- identical either way.
 create type public.food_mode as enum ('coach', 'self');
 
+-- How somebody is coached. 'online' is most people; 'one_to_one' is somebody
+-- Dean also trains in person, who gets everything an online client gets plus
+-- sessions in the diary. It changes what he books, not what they can use.
+create type public.coaching_mode as enum ('online', 'one_to_one');
+
 create table public.profiles (
   id          uuid primary key references auth.users on delete cascade,
   full_name   text not null default '',
@@ -30,6 +35,7 @@ create table public.profiles (
   goal        text,
   started_on  date not null default current_date,
   food_mode   public.food_mode not null default 'coach',
+  coaching_mode public.coaching_mode not null default 'online',
   -- A photo if there is one. Storage is not wired up yet, so this holds a URL
   -- Dean pastes in; swapping it for a Supabase Storage path changes nothing
   -- above it.
@@ -522,6 +528,25 @@ create index client_meal_swaps_client_idx
 create index plan_meal_slots_revision_idx on public.plan_meal_slots (revision_id, slot, position);
 
 -- ---------------------------------------------------------------------------
+-- Questions
+--
+-- A one-off ask from the website's contact form. Not an application: somebody
+-- wanting to know whether Dean coaches runners has not applied to train, and
+-- one list holding both would make both useless.
+-- ---------------------------------------------------------------------------
+
+create table public.questions (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  email       text not null,
+  body        text not null,
+  created_at  timestamptz not null default now(),
+  answered_at timestamptz
+);
+
+create index questions_open_idx on public.questions (answered_at, created_at desc);
+
+-- ---------------------------------------------------------------------------
 -- Applications
 --
 -- The public signup wizard. No plan to pick and no price to choose, because
@@ -811,6 +836,14 @@ create policy "admin deletes comments" on public.comments
 
 -- Plan templates are Dean's own tools. Clients never read them directly —
 -- they see the days those plans were used to create.
+
+-- Questions: anyone may ask one, including a visitor who is not signed in.
+-- Only Dean reads them — an open inbox anybody could read would be a leak of
+-- everyone else's email address.
+create policy "anyone asks a question" on public.questions
+  for insert with check (true);
+create policy "admin reads questions" on public.questions
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- Applications: somebody reads and raises their own, and only Dean decides one.
 -- An applicant who could approve their own application would not be applying.

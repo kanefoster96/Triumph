@@ -31,6 +31,24 @@ export type CheckInOutcome = "continued" | "adjusted";
  */
 export type FoodMode = "coach" | "self";
 
+/**
+ * How somebody is coached.
+ *
+ * "online" is most people: their week is the workouts and food Dean plans, and
+ * they never see him. "one_to_one" is somebody he trains in person as well —
+ * they get everything an online client gets, plus sessions in the diary. It
+ * changes what Dean books, not what they can use.
+ *
+ * Only ever set by Dean, when he enrols somebody. The public site offers
+ * online, because that is what somebody can sign up to without talking to him.
+ */
+export type CoachingMode = "online" | "one_to_one";
+
+export const COACHING_LABELS: Record<CoachingMode, string> = {
+  online: "Online",
+  one_to_one: "1-to-1",
+};
+
 export interface Profile {
   id: string;
   fullName: string;
@@ -40,6 +58,7 @@ export interface Profile {
   goal: string | null;
   startedOn: string;
   foodMode: FoodMode;
+  coachingMode: CoachingMode;
   /**
    * A photo, when there is one. Null falls back to initials — which is most of
    * the time, and has to look deliberate rather than like a missing image.
@@ -461,6 +480,22 @@ export type EditScope = "date" | "weekday";
 // ---------------------------------------------------------------------------
 // Logged training
 // ---------------------------------------------------------------------------
+
+/**
+ * A one-off question from the website.
+ *
+ * Deliberately not an application: somebody asking whether Dean coaches
+ * runners has not applied to train, and putting them in the same list as
+ * people waiting to be enrolled would make both lists useless.
+ */
+export interface Question {
+  id: string;
+  name: string;
+  email: string;
+  body: string;
+  createdAt: string;
+  answeredAt: string | null;
+}
 
 /**
  * Somebody applying to train with Dean.

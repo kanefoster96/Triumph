@@ -22,6 +22,6 @@ export const plans: Plan[] = [
       "No contract — cancel any time",
     ],
     popular: true,
-    ctaLabel: "Book a free consult",
+    ctaLabel: "Request a free consultation",
   },
 ];

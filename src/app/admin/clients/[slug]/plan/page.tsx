@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  CalendarRange,
   ChevronLeft,
   ChevronRight,
   Copy as CopyIcon,
@@ -34,11 +33,6 @@ export const dynamic = "force-dynamic";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Day 0 is the block's start date, so its weekday depends on that date. */
-function cycleLabel(startsOn: string, dayIndex: number, cycleWeeks: number): string {
-  const weekday = WEEKDAYS[(new Date(`${startsOn}T00:00:00Z`).getUTCDay() + 6 + dayIndex) % 7];
-  return cycleWeeks === 2 ? `${weekday} · week ${Math.floor(dayIndex / 7) + 1}` : weekday;
-}
 
 function longDate(date: string) {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString("en-GB", {
@@ -94,42 +88,42 @@ export default async function AdminClientPlanPage({
     return (
       <>
         {banner}
-        <Panel title="No repeating plan yet">
+        <Panel title="Build their first week">
           <form action={createPlanBlock} className="space-y-4">
             <input type="hidden" name="clientId" value={profile.id} />
             <p className="text-sm text-muted">
-              A block repeats until you change it, so it never runs out. The start date is also the
-              date it takes over — anything already assigned before then stays exactly as it is.
+              Pick the week to start from. You build a week of training and food, and it carries on
+              week after week until you change it — so nobody ever runs out of plan.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={fieldLabel} htmlFor="blk-cycle">
-                  Cycle
+                  How it repeats
                 </label>
                 <select id="blk-cycle" className={field} name="cycleWeeks" defaultValue="1">
-                  <option value="1">One week</option>
-                  <option value="2">Two weeks</option>
+                  <option value="1">The same week, every week</option>
+                  <option value="2">Two different weeks, alternating</option>
                 </select>
               </div>
               <div>
                 <label className={fieldLabel} htmlFor="blk-start">
-                  Takes over from
+                  Starting
                 </label>
                 <input id="blk-start" className={field} type="date" name="startsOn" defaultValue={now} />
                 {/* Said out loud because the date is adjusted after it is
                     picked, and a field that quietly changes what you typed is
                     worse than one that explains itself. */}
                 <p className="mt-2 text-xs text-faint">
-                  Blocks run Monday to Sunday, so this moves back to the Monday of whichever week you
-                  pick.
+                  Weeks run Monday to Sunday, so this moves back to the Monday of whichever week you
+                  pick. Anything before that date stays as it is.
                 </p>
               </div>
             </div>
             <button
               type="submit"
-              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+              className="inline-flex h-12 w-full items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong sm:w-auto"
             >
-              Start a repeating plan
+              Start their plan
             </button>
           </form>
         </Panel>
@@ -203,77 +197,72 @@ export default async function AdminClientPlanPage({
     <div className="space-y-5">
       {banner}
 
+      {/* One line, in the words somebody would use. What a "block" is and how
+          a cycle repeats is the app's business, not Dean's. */}
       <ScreenTitle
         title="Plan"
-        subtitle={
-          <>
-            <span className="sm:hidden">
-              {block.cycleWeeks === 2 ? "Two week" : "One week"} block from {block.startsOn}
-            </span>
-            {/* The long form explains the model, which is worth saying on a
-                screen with room and not worth a paragraph between Dean and
-                the week he opened this to edit. */}
-            <span className="hidden sm:inline">
-              A {block.cycleWeeks === 2 ? "two week" : "one week"} block repeating from{" "}
-              {block.startsOn}. This is the week it works out to — edit any day and choose how far
-              the change reaches.
-            </span>
-          </>
-        }
+        subtitle="Tap a day to edit it. Repeat onto next week to carry it forward, then tweak."
       />
 
       {/* Which week, and what to do with it. Sticky under the app header so
           paging and repeating stay reachable once the board is scrolled — on
           a phone this row is otherwise the first thing to leave the screen.
           -mx-5 lets the bar span the gutter it is pinned across. */}
-      <div className="sticky top-[var(--admin-header-h)] z-20 -mx-5 flex items-center justify-between gap-2 sm:flex-wrap sm:gap-3 border-b border-line bg-ink/95 px-5 py-2.5 supports-[backdrop-filter]:bg-ink/75 supports-[backdrop-filter]:backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:px-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <Link
-            href={`${basePath}?week=${shiftDate(weekStart, -7)}${carry}`}
-            aria-label="Previous week"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line text-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-          <Link
-            href={`${basePath}?week=${shiftDate(weekStart, 7)}${carry}`}
-            aria-label="Next week"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line text-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-          <p className="ml-2 truncate text-sm font-semibold">{weekLabel(weekStart)}</p>
-          {weekStart === mondayOf(now) ? (
-            // The dates already say it on a phone, where the row has to hold
-            // the pager, the week and Repeat without wrapping.
-            <span className="hidden sm:inline-flex">
-              <Chip tone="accent">This week</Chip>
-            </span>
-          ) : (
-            <Link
-              href={`${basePath}${fromReview ? "?review=1" : ""}`}
-              className="ml-1 inline-flex h-11 shrink-0 items-center px-2 text-xs font-semibold text-accent"
-            >
-              This week
-            </Link>
-          )}
-        </div>
+      <div className="sticky top-[var(--admin-header-h)] z-20 -mx-5 flex flex-col gap-1.5 border-b border-line bg-ink/95 px-5 py-2 supports-[backdrop-filter]:bg-ink/75 supports-[backdrop-filter]:backdrop-blur sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:rounded-2xl sm:border sm:px-3">
+        {/* Which week, said in full. It shared a line with the pager and the
+            Repeat button on a phone and was the thing that lost — "17 – 2…"
+            is not a week. */}
+        <p className="flex items-center gap-2 text-sm font-semibold sm:order-2 sm:min-w-0">
+          <span className="truncate">{weekLabel(weekStart)}</span>
+          {weekStart === mondayOf(now) ? <Chip tone="accent">This week</Chip> : null}
+        </p>
 
-        {/* A block already repeats, so this is for a week that has been changed
-            away from it — a deload, a holiday, a fortnight built by hand. */}
-        <form action={copyPlanWeek} className="shrink-0">
-          <input type="hidden" name="clientId" value={profile.id} />
-          <input type="hidden" name="from" value={weekStart} />
-          <input type="hidden" name="to" value={shiftDate(weekStart, 7)} />
-          <button
-            type="submit"
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            <CopyIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Repeat onto next week</span>
-            <span className="sm:hidden">Repeat</span>
-          </button>
-        </form>
+        <div className="flex items-center justify-between gap-2 sm:order-1 sm:justify-start">
+          <div className="flex min-w-0 items-center gap-1">
+            {/* Named, not just arrows. Two chevrons either side of a date range
+                is a puzzle the first time you meet it. */}
+            <Link
+              href={`${basePath}?week=${shiftDate(weekStart, -7)}${carry}`}
+              className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full border border-line pr-3 pl-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Previous week</span>
+              <span className="sm:hidden">Prev</span>
+            </Link>
+            <Link
+              href={`${basePath}?week=${shiftDate(weekStart, 7)}${carry}`}
+              className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full border border-line pr-2 pl-3 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              <span className="hidden sm:inline">Next week</span>
+              <span className="sm:hidden">Next</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+            {weekStart === mondayOf(now) ? null : (
+              <Link
+                href={`${basePath}${fromReview ? "?review=1" : ""}`}
+                className="ml-1 inline-flex h-11 shrink-0 items-center px-2 text-xs font-semibold text-accent"
+              >
+                This week
+              </Link>
+            )}
+          </div>
+
+          {/* A block already repeats, so this is for a week that has been changed
+              away from it — a deload, a holiday, a fortnight built by hand. */}
+          <form action={copyPlanWeek} className="shrink-0">
+            <input type="hidden" name="clientId" value={profile.id} />
+            <input type="hidden" name="from" value={weekStart} />
+            <input type="hidden" name="to" value={shiftDate(weekStart, 7)} />
+            <button
+              type="submit"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              <CopyIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Repeat onto next week</span>
+              <span className="sm:hidden">Repeat</span>
+            </button>
+          </form>
+        </div>
       </div>
 
       <WeekBoard days={cards} selected={selected} clientId={profile.id} review={fromReview}>
@@ -281,12 +270,12 @@ export default async function AdminClientPlanPage({
           {day === null || dayIndex === null ? (
             <Panel title={longDate(selected)}>
               <EmptyState>
-                This date is before the plan takes over, so there is nothing to edit.
+                Nothing to edit here — this day is before {profile.fullName.split(" ")[0]} started.
               </EmptyState>
             </Panel>
           ) : !editable ? (
             <Panel title={longDate(selected)}>
-              <EmptyState>This day has been and gone. Past days are kept as they were.</EmptyState>
+              <EmptyState>This day has already happened, so it stays as it was.</EmptyState>
             </Panel>
           ) : (
             /*
@@ -310,6 +299,22 @@ export default async function AdminClientPlanPage({
                 .filter(Boolean)
                 .join(" · ")}
               defaultOpen={query.edit === "1"}
+              trainingHint={
+                day.workout?.isRest || (day.workout?.exercises.length ?? 0) === 0
+                  ? "Rest day"
+                  : `${day.workout?.title ?? "Training"} · ${day.workout?.exercises.length} ${
+                      day.workout?.exercises.length === 1 ? "exercise" : "exercises"
+                    }`
+              }
+              foodHint={
+                (day.food?.meals.length ?? 0) === 0
+                  ? "No meals set"
+                  : `${day.food?.meals.length} meals${
+                      day.food?.calorieTarget
+                        ? ` · ${day.food.calorieTarget.toLocaleString("en-GB")} kcal`
+                        : ""
+                    }`
+              }
               hidden={
                 <>
                   <input type="hidden" name="clientId" value={profile.id} />
@@ -434,15 +439,7 @@ export default async function AdminClientPlanPage({
                   calorieTarget={day.food?.calorieTarget ?? null}
                 />
               }
-              scope={
-                <ScopeFields
-                  dateLabel={longDate(selected)}
-                  weekdayName={weekdayName}
-                  startsOn={block.startsOn}
-                  cycleWeeks={block.cycleWeeks}
-                  dayIndex={dayIndex}
-                />
-              }
+              scope={<ApplyTo weekdayName={weekdayName} />}
             />
           )}
         </div>
@@ -452,88 +449,39 @@ export default async function AdminClientPlanPage({
 }
 
 /**
- * How far a save reaches, and which other weekdays it also lands on.
+ * Where this save lands.
  *
- * The board is date-first, so "just this date" leads — the opposite of the old
- * cycle view, where the week was the subject. The weekday chips are the thing
- * that makes setting a client up quick: four food slots that barely change,
- * written to Monday through Friday in one save.
+ * One question, two answers, in the words somebody would use out loud. What
+ * used to be here explained the model — reaches, weekdays from here on, a
+ * shape of the week — and every one of those words is the app's vocabulary
+ * rather than Dean's. Underneath it is the same two scopes it always was.
  */
-function ScopeFields({
-  dateLabel,
-  weekdayName,
-  startsOn,
-  cycleWeeks,
-  dayIndex,
-}: {
-  dateLabel: string;
-  weekdayName: string;
-  startsOn: string;
-  cycleWeeks: number;
-  dayIndex: number;
-}) {
-  const others = Array.from({ length: cycleWeeks * 7 }, (_, i) => i).filter((i) => i !== dayIndex);
-
+function ApplyTo({ weekdayName }: { weekdayName: string }) {
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-line bg-ink p-4">
-        <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-          <CalendarRange className="h-3.5 w-3.5" />
-          How far does this reach?
-        </p>
-        <div className="mt-3 space-y-2">
-          <label className="flex items-start gap-3 text-sm text-muted">
-            <input
-              type="radio"
-              name="scope"
-              value="date"
-              defaultChecked
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
-            />
-            Just {dateLabel}
-          </label>
-          <label className="flex items-start gap-3 text-sm text-muted">
-            <input
-              type="radio"
-              name="scope"
-              value="weekday"
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
-            />
-            Every {weekdayName} from here on
-          </label>
-        </div>
-        <p className="mt-3 text-xs text-faint">
-          Days already gone are never changed, and nothing the client has already logged is
-          overwritten.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-line bg-ink p-4">
-        <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-          <CopyIcon className="h-3.5 w-3.5" />
-          Use this for other weekdays too
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {others.map((index) => (
-            <label
-              key={index}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent has-checked:border-accent has-checked:bg-accent/10 has-checked:text-accent"
-            >
-              <input
-                type="checkbox"
-                name="alsoDay"
-                value={index}
-                className="h-3.5 w-3.5 accent-[var(--color-accent)]"
-              />
-              {cycleLabel(startsOn, index, cycleWeeks)}
-            </label>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-faint">
-          Only applies to &ldquo;every {weekdayName} from here on&rdquo; — one date is one weekday,
-          so there is nothing to spread.
-        </p>
-      </div>
+    <div className="space-y-2">
+      {(
+        [
+          ["date", "Just this week", `Only this ${weekdayName} changes.`],
+          ["weekday", "Every week from now on", `Every ${weekdayName} from here changes.`],
+        ] as const
+      ).map(([value, title, hint], index) => (
+        <label
+          key={value}
+          className="flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border border-line bg-ink p-4 transition-colors hover:border-accent/40 has-checked:border-accent has-checked:bg-accent/[0.07]"
+        >
+          <input
+            type="radio"
+            name="scope"
+            value={value}
+            defaultChecked={index === 0}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-accent)]"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">{title}</span>
+            <span className="block text-xs text-faint">{hint}</span>
+          </span>
+        </label>
+      ))}
     </div>
   );
 }

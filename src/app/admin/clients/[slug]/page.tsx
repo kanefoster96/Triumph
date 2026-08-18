@@ -205,7 +205,7 @@ export default async function AdminClientOverviewPage({
               />
             </div>
             <button type="submit" className={submitButton}>
-              Save
+              Save the photo
             </button>
           </form>
           <p className="mt-3 text-xs text-faint">

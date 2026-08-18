@@ -45,6 +45,7 @@ import type {
   PlanMealSlot,
   PlanSet,
   Profile,
+  Question,
   ScaledMeal,
   ShoppingLine,
   ShoppingList,
@@ -86,6 +87,7 @@ function toProfile(row: any): Profile {
     goal: row.goal ?? null,
     startedOn: row.started_on,
     foodMode: row.food_mode ?? "coach",
+    coachingMode: row.coaching_mode ?? "online",
     avatarUrl: row.avatar_url ?? null,
   };
 }
@@ -365,9 +367,17 @@ export async function getCurrentProfile(): Promise<Profile | null> {
       return seeded ? await withFoodMode(seeded) : null;
     }
 
+    /*
+     * Signed up through the website, or one of the seeded people signed in by
+     * their own email — the seeded pair have to be found here too, or signing
+     * in as the demo client lands on a cookie nothing resolves and bounces
+     * straight back to the login page.
+     */
     const { profiles } = await demoPeople();
-    const signedUp = profiles.find((profile) => profile.id === session);
-    return signedUp ? await withFoodMode(signedUp) : null;
+    const signedIn =
+      profiles.find((profile) => profile.id === session) ??
+      demoProfiles.find((profile) => profile.id === session);
+    return signedIn ? await withFoodMode(signedIn) : null;
   }
 
   const {
@@ -1193,6 +1203,29 @@ export async function getApplication(id: string): Promise<Application | null> {
 export async function getMyApplication(accountId: string): Promise<Application | null> {
   const all = await getApplications();
   return all.find((entry) => entry.accountId === accountId) ?? null;
+}
+
+/** One-off questions from the website's contact form, newest first. */
+export async function getQuestions(): Promise<Question[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { questions } = await demoPeople();
+    return [...questions].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const { data } = await supabase
+    .from("questions")
+    .select("*")
+    .order("created_at", { ascending: false });
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped row */
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    body: row.body,
+    createdAt: row.created_at,
+    answeredAt: row.answered_at ?? null,
+  }));
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase row */

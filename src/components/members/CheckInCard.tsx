@@ -363,7 +363,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
                 placeholder="All good this week — same plan carrying on. I'll check in again next week."
               />
               <button type="submit" className={submitButton} disabled={!canContinue}>
-                Continue and send note
+                Continue and send the note
               </button>
             </form>
           </details>
@@ -389,7 +389,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
                 hideWeeks
               />
               <button type="submit" className={submitButton}>
-                Record and send note
+                Save and send the note
               </button>
             </form>
           </details>

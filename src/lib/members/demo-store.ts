@@ -12,6 +12,7 @@ import type {
   IngredientSwap,
   MealLog,
   Profile,
+  Question,
   ShoppingList,
   SwapRequest,
   WeightEntry,
@@ -83,6 +84,7 @@ const MAX_PEOPLE_BYTES = 3950;
 export interface DemoPeople {
   profiles: Profile[];
   applications: Application[];
+  questions: Question[];
 }
 
 /** What this value will actually weigh in the header. */
@@ -407,13 +409,17 @@ export const demoPeople = cache(async (): Promise<DemoPeople> => {
   try {
     const store = await cookies();
     const raw = store.get(PEOPLE_COOKIE)?.value;
-    if (!raw) return { profiles: [], applications: [] };
+    if (!raw) return { profiles: [], applications: [], questions: [] };
     const parsed = JSON.parse(raw) as Partial<DemoPeople>;
-    return { profiles: parsed.profiles ?? [], applications: parsed.applications ?? [] };
+    return {
+      profiles: parsed.profiles ?? [],
+      applications: parsed.applications ?? [],
+      questions: parsed.questions ?? [],
+    };
   } catch {
     // No cookie jar, or a cookie from an older shape. Neither is worth an
     // error page in a demo.
-    return { profiles: [], applications: [] };
+    return { profiles: [], applications: [], questions: [] };
   }
 });
 
@@ -424,8 +430,15 @@ export async function writeDemoPeople(mutate: (people: DemoPeople) => void): Pro
   // Oldest application first out. An account is never dropped: somebody who
   // signed up and then could not sign in again would be the worst thing this
   // store could do.
+  // Oldest question first out, then the oldest application. An account is
+  // never dropped: somebody who signed up and then could not sign in again
+  // would be the worst thing this store could do.
   let value = JSON.stringify(people);
-  while (people.applications.length > 1 && wireSize(value) > MAX_PEOPLE_BYTES) {
+  while (wireSize(value) > MAX_PEOPLE_BYTES && people.questions.length > 0) {
+    people.questions.shift();
+    value = JSON.stringify(people);
+  }
+  while (wireSize(value) > MAX_PEOPLE_BYTES && people.applications.length > 1) {
     people.applications.shift();
     value = JSON.stringify(people);
   }

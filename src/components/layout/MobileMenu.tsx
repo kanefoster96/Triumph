@@ -225,8 +225,11 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                 </div>
               ) : null}
 
-              <Button href="/contact" fullWidth>
-                Book a free consult
+              <Button href="/join" fullWidth>
+                Request a free consultation
+              </Button>
+              <Button href="/contact" variant="secondary" fullWidth>
+                Ask a question
               </Button>
               <a
                 href={`tel:${site.phone.replace(/\s/g, "")}`}

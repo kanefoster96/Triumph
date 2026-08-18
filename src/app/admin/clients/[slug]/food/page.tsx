@@ -138,7 +138,7 @@ export default async function AdminClientFoodPage({
             </label>
           ))}
           <button type="submit" className={submitButton}>
-            Save
+            Save this choice
           </button>
           <p className="text-xs text-faint">
             Changing this leaves the plan exactly as it is. Nobody&rsquo;s week gets cleared.

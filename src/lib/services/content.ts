@@ -86,4 +86,3 @@ export async function getFaqs(limit?: number): Promise<FaqItem[]> {
   return typeof limit === "number" ? faqs.slice(0, limit) : faqs;
 }
 
-export { submitEnquiry, validateEnquiry } from "@/lib/services/enquiry";

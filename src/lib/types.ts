@@ -153,20 +153,4 @@ export interface Stat {
   suffix?: string;
 }
 
-export interface EnquiryDraft {
-  name: string;
-  email: string;
-  phone?: string;
-  goal: string;
-  programmeSlug?: string;
-  experience: Level;
-  /** Online, in person, or both. */
-  coachingType?: string;
-  message?: string;
-}
 
-export interface EnquiryResult {
-  ok: boolean;
-  reference: string;
-  message: string;
-}

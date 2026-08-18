@@ -73,7 +73,7 @@ export default async function AdminClientWeightPage({
             <input id="wt-note" className={field} name="note" />
           </div>
           <button type="submit" className={`${submitButton} self-end`}>
-            Save
+            Save this weight
           </button>
         </form>
       </Panel>

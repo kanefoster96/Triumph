@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CalendarClock, Copy, Dumbbell, MoveRight, Salad, MoreHorizontal } from "lucide-react";
+import { CalendarClock, Copy, Dumbbell, MoveRight, Pencil, Salad, MoreHorizontal } from "lucide-react";
 import { copyPlanDay } from "@/lib/members/actions";
 import { BottomSheet } from "./BottomSheet";
 import { Chip } from "@/components/ui/Chip";
@@ -233,7 +233,21 @@ function DayCard({
               ))}
 
               {day.oneOff ? (
-                <p className="text-[11px] text-amber">Changed for this date</p>
+                <p className="text-[11px] text-amber">Changed this week</p>
+              ) : null}
+
+              {/* Says what a tap does. Without it the card reads as a summary
+                  and the way in is something you have to guess at. */}
+              {!day.past ? (
+                <span
+                  className={cn(
+                    "mt-1.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold",
+                    active ? "bg-accent text-accent-ink" : "bg-raised text-accent",
+                  )}
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </span>
               ) : null}
             </div>
           </>
@@ -246,8 +260,8 @@ function DayCard({
         <button
           type="button"
           onClick={onMenu}
-          aria-label={`Copy or move ${day.weekday} ${day.dayNumber}`}
-          className="absolute top-0 right-0 grid h-11 w-11 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-text"
+          aria-label={`More for ${day.weekday} ${day.dayNumber}`}
+          className="absolute top-0 right-0 grid h-11 w-11 place-items-center rounded-full text-faint/70 transition-colors hover:bg-raised hover:text-text"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -283,22 +297,18 @@ function DayMenu({
       open
       onClose={onClose}
       title={`${day.weekday} ${day.dayNumber}`}
-      description={
-        day.isRest || day.exercises.length === 0
-          ? "A rest day and its food."
-          : `${day.title ?? "Training"} and its food.`
-      }
+      description="Copy or move this day, workout and meals together."
     >
       {targets.length === 0 ? (
         <p className="py-4 text-sm text-faint">
-          No other day this week can take it — the rest have already been and gone.
+          No other day left this week to move it to.
         </p>
       ) : (
         <div className="space-y-5">
           {(
             [
-              ["copy", "Copy to", Copy, "Leaves this day exactly as it is."],
-              ["move", "Move to", MoveRight, "Clears this day and makes it a rest day."],
+              ["copy", "Copy to", Copy, "Keeps this day as well."],
+              ["move", "Move to", MoveRight, "Empties this day."],
             ] as const
           ).map(([mode, label, Icon, hint]) => (
             <div key={mode}>
@@ -328,8 +338,8 @@ function DayMenu({
           ))}
 
           <p className="border-t border-line pt-4 text-xs text-faint">
-            Both write onto that date alone. The shape of the week — every Monday from now on — is
-            what the day&rsquo;s own editor changes.
+            Changes this week only. To change every week, edit the day and pick &ldquo;every week
+            from now on&rdquo;.
           </p>
         </div>
       )}

@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
           </div>
           <Link
             href="/logout"
-            className="order-1 text-sm text-muted transition-colors hover:text-text sm:order-none"
+            className="order-1 -my-2 inline-flex min-h-11 items-center text-sm text-muted transition-colors hover:text-text sm:order-none"
             prefetch={false}
           >
             Sign out
