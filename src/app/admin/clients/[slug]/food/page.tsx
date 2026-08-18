@@ -5,7 +5,6 @@ import {
   dayIndexFor,
   getAssignedFoodDates,
   getComments,
-  getDayPlans,
   getFoodLogs,
   getFoodPlan,
   getMealSwaps,
@@ -18,17 +17,15 @@ import {
   sumCalories,
   today,
 } from "@/lib/members/service";
-import { assignDayPlan, savePlanDay, saveFoodPlan, setFoodMode } from "@/lib/members/actions";
+import { savePlanDay, setFoodMode } from "@/lib/members/actions";
 import { MealPlanner } from "@/components/members/PlanDayEditor";
 import { MealBreakdown } from "@/components/members/MealBreakdown";
 import { ReviewBanner } from "@/components/members/ReviewBanner";
 import { cn } from "@/lib/utils";
-import { PlanAssigner } from "@/components/members/PlanAssigner";
 import {
   CalorieBar,
   EmptyState,
   Panel,
-  field,
   fieldLabel,
   submitButton,
 } from "@/components/members/ui";
@@ -70,13 +67,12 @@ export default async function AdminClientFoodPage({
   const requested = typeof query.date === "string" ? query.date : date;
   const selected = /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested >= date ? requested : date;
 
-  const [plan, todaysLogs, allLogs, comments, dayPlans, assignedDates, block, meals] =
+  const [plan, todaysLogs, allLogs, comments, assignedDates, block, meals] =
     await Promise.all([
       getFoodPlan(profile.id, date),
       getFoodLogs(profile.id, date),
       getFoodLogs(profile.id),
       getComments(profile.id),
-      getDayPlans(),
       getAssignedFoodDates(profile.id),
       getPlanBlock(profile.id),
       getMeals(),
@@ -287,17 +283,6 @@ export default async function AdminClientFoodPage({
         )}
       </Panel>
 
-      <Panel title="Plan ahead">
-        <PlanAssigner
-          clientId={profile.id}
-          today={date}
-          plans={dayPlans}
-          action={assignDayPlan}
-          noun="food"
-          emptyHint="No food plans yet — build one on the Plans page first."
-        />
-      </Panel>
-
       <Panel title={`Planned ahead (${upcoming.length})`}>
         {upcoming.length === 0 ? (
           <EmptyState>
@@ -329,71 +314,6 @@ export default async function AdminClientFoodPage({
             ))}
           </ul>
         )}
-      </Panel>
-
-      <Panel title="Today by hand">
-        <p className="mb-4 text-sm text-muted">
-          Overrides whatever is assigned for today, without touching the other days.
-        </p>
-        <form action={saveFoodPlan} className="space-y-4">
-          <input type="hidden" name="clientId" value={profile.id} />
-          <input type="hidden" name="date" value={date} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={fieldLabel} htmlFor="f-cal">
-                Calorie target
-              </label>
-              <input
-                id="f-cal"
-                className={field}
-                type="number"
-                name="calorieTarget"
-                defaultValue={plan?.calorieTarget ?? ""}
-                placeholder="1950"
-              />
-            </div>
-            <div>
-              <label className={fieldLabel} htmlFor="f-pro">
-                Protein target (g)
-              </label>
-              <input
-                id="f-pro"
-                className={field}
-                type="number"
-                name="proteinTarget"
-                defaultValue={plan?.proteinTarget ?? ""}
-                placeholder="130"
-              />
-            </div>
-          </div>
-          <div>
-            <label className={fieldLabel} htmlFor="f-meals">
-              Meals — one per line, &ldquo;Name | ingredients | kcal&rdquo;
-            </label>
-            <textarea
-              id="f-meals"
-              className={field}
-              name="meals"
-              rows={5}
-              defaultValue={plan?.meals
-                .map((m) => [m.name, m.ingredients ?? "", m.calories ?? ""].join(" | "))
-                .join("\n")}
-              placeholder="Breakfast | 200g yoghurt, berries | 420"
-            />
-            <p className="mt-2 text-xs text-faint">
-              Leave empty to assign a calorie target only.
-            </p>
-          </div>
-          <div>
-            <label className={fieldLabel} htmlFor="f-notes">
-              Note
-            </label>
-            <input id="f-notes" className={field} name="notes" defaultValue={plan?.notes ?? ""} />
-          </div>
-          <button type="submit" className={submitButton}>
-            Save food plan
-          </button>
-        </form>
       </Panel>
 
       <Panel title="Earlier days">

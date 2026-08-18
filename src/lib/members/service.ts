@@ -10,11 +10,9 @@ import {
   demoMeals,
   demoPlanBlocks,
   demoPlanRevisions,
-  demoDayPlans,
   demoFoodLogs,
   demoFoodPlans,
   demoProfiles,
-  demoSessionPlans,
   demoSessions,
   demoWorkouts,
 } from "./demo";
@@ -30,7 +28,6 @@ import type {
   Comment,
   CommentTarget,
   DashboardSummary,
-  DayPlan,
   DayProgress,
   DayTaskState,
   Exercise,
@@ -48,7 +45,6 @@ import type {
   PlanSet,
   Profile,
   ScaledMeal,
-  SessionPlan,
   ShoppingLine,
   ShoppingList,
   SessionStatus,
@@ -655,54 +651,7 @@ export async function getAssignedFoodDates(clientId: string): Promise<FoodPlan[]
 // Reusable plans
 // ---------------------------------------------------------------------------
 
-export async function getSessionPlans(): Promise<SessionPlan[]> {
-  const supabase = await createClient();
-  if (!supabase) return demoSessionPlans;
 
-  const { data } = await supabase.from("session_plans").select("*, session_plan_items(*)").order("name");
-
-  /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    notes: row.notes ?? null,
-    items: (row.session_plan_items ?? [])
-      .map((item: any) => ({
-        id: item.id,
-        position: item.position,
-        label: item.label,
-        target: item.target ?? null,
-      }))
-      .sort((a: any, b: any) => a.position - b.position),
-  }));
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-}
-
-export async function getDayPlans(): Promise<DayPlan[]> {
-  const supabase = await createClient();
-  if (!supabase) return demoDayPlans;
-
-  const { data } = await supabase.from("day_plans").select("*, day_plan_meals(*)").order("name");
-
-  /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    name: row.name,
-    calorieTarget: row.calorie_target ?? null,
-    proteinTarget: row.protein_target ?? null,
-    notes: row.notes ?? null,
-    meals: (row.day_plan_meals ?? [])
-      .map((meal: any) => ({
-        id: meal.id,
-        position: meal.position,
-        name: meal.name,
-        ingredients: meal.ingredients ?? null,
-        calories: meal.calories ?? null,
-      }))
-      .sort((a: any, b: any) => a.position - b.position),
-  }));
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-}
 
 export async function getFoodLogs(clientId: string, date?: string): Promise<FoodLog[]> {
   const supabase = await createClient();
@@ -1637,6 +1586,133 @@ export function weekDiff(current: PlanDay | null, previous: PlanDay | null): Map
   }
 
   return out;
+}
+
+/**
+ * Everyone's week, in one grid.
+ *
+ * Thirty clients as cards is thirty scroll-lengths, and the question Dean
+ * actually has on a Monday morning is "who has gone quiet" — which is a
+ * shape, not a list. One row per client, one cell per day, and the colour
+ * carries it.
+ *
+ * Built per client from bulk reads rather than by asking `getDayProgress`
+ * two hundred and ten times: that function is five queries deep and is meant
+ * for one day at a time.
+ */
+export type ComplianceState = "none" | "todo" | "partial" | "done";
+
+export interface ComplianceDay {
+  date: string;
+  workout: ComplianceState;
+  food: ComplianceState;
+  weight: ComplianceState;
+  session: boolean;
+  /** Not yet happened — shown, never judged. */
+  future: boolean;
+  /** Everything asked of them that day was done. */
+  allDone: boolean;
+}
+
+export interface ComplianceRow {
+  profile: Profile;
+  days: ComplianceDay[];
+  /** Of the things asked so far this week, how many landed. */
+  done: number;
+  asked: number;
+}
+
+export async function getComplianceBoard(from: string, days = 7): Promise<ComplianceRow[]> {
+  const now = today();
+  const clients = await getClients();
+  const rows: ComplianceRow[] = [];
+
+  for (const profile of clients) {
+    const block = await getPlanBlock(profile.id);
+    const [week, workouts, mealLogs, weights, sessions] = await Promise.all([
+      block ? getPlanWeek(block, from, days) : Promise.resolve([]),
+      getWorkouts(profile.id),
+      getMealLogs(profile.id),
+      getWeightEntries(profile.id),
+      getSessions(profile.id),
+    ]);
+
+    const loggedWorkouts = new Map(workouts.map((workout) => [workout.scheduledFor, workout]));
+    const sessionDates = new Set(sessions.map((session) => session.startsAt.slice(0, 10)));
+    const weighed = new Set(weights.map((entry) => entry.loggedFor));
+
+    let done = 0;
+    let asked = 0;
+
+    const cells = Array.from({ length: days }, (_, offset) => {
+      const date = shiftDate(from, offset);
+      const planned = week[offset] ?? null;
+      const future = date > now;
+
+      const trainingPlanned = Boolean(
+        planned?.workout && !planned.workout.isRest && planned.workout.exercises.length > 0,
+      );
+      const logged = loggedWorkouts.get(date);
+      const ticked = logged?.items.filter((item) => item.done).length ?? 0;
+      const workout: ComplianceState = !trainingPlanned
+        ? "none"
+        : logged?.completedAt
+          ? "done"
+          : ticked > 0
+            ? "partial"
+            : "todo";
+
+      const plannedMeals = planned?.food?.meals ?? [];
+      const eaten = new Set(
+        mealLogs.filter((log) => log.loggedFor === date).map((log) => `${log.slot}:${log.mealId}`),
+      );
+      const hit = plannedMeals.filter((slot) => eaten.has(`${slot.slot}:${slot.meal.id}`)).length;
+      const food: ComplianceState =
+        plannedMeals.length === 0
+          ? "none"
+          : hit === plannedMeals.length
+            ? "done"
+            : hit > 0
+              ? "partial"
+              : "todo";
+
+      // Nothing is asked of a date the plan does not cover — before the block
+      // takes over, or with no block at all. Marking the weigh-in red on a day
+      // the client was never given anything to do is just noise in the grid.
+      const covered = planned !== null && planned.dayIndex !== null;
+      const weight: ComplianceState = !covered ? "none" : weighed.has(date) ? "done" : "todo";
+
+      // Only days that have happened count towards the week's score — a
+      // Thursday that has not arrived is not a Thursday they have missed.
+      if (!future) {
+        for (const state of [workout, food, weight]) {
+          if (state === "none") continue;
+          asked += 1;
+          if (state === "done") done += 1;
+        }
+      }
+
+      const judged = [workout, food, weight].filter((state) => state !== "none");
+      return {
+        date,
+        workout,
+        food,
+        weight,
+        session: sessionDates.has(date),
+        future,
+        allDone: judged.length > 0 && judged.every((state) => state === "done"),
+      };
+    });
+
+    rows.push({ profile, days: cells, done, asked });
+  }
+
+  // Whoever needs looking at first. A client with nothing asked of them yet
+  // sorts as complete rather than as a crisis.
+  return rows.sort((a, b) => {
+    const rate = (row: ComplianceRow) => (row.asked === 0 ? 1 : row.done / row.asked);
+    return rate(a) - rate(b);
+  });
 }
 
 /**

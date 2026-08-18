@@ -11,10 +11,7 @@ import {
   demoExercises,
   demoMeals,
   demoPlanBlocks,
-  demoDayPlans,
-  demoFoodPlans,
   demoProfiles,
-  demoSessionPlans,
   demoSessions,
   demoWorkouts,
 } from "./demo";
@@ -53,37 +50,7 @@ function refresh() {
   revalidatePath("/admin", "layout");
 }
 
-/**
- * "Back squat — 4 × 5 @ 70kg" becomes a label and a target. One exercise per
- * line, so a whole session can be typed or pasted in one go.
- */
-function parseChecklist(input: string) {
-  return input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, position) => {
-      const [label, target] = line.split(/\s+[—–-]\s+/, 2);
-      return { position, label: label.trim(), target: target?.trim() ?? null };
-    });
-}
 
-/** "Breakfast | 200g yoghurt, berries | 420" becomes one meal. */
-function parseMeals(input: string) {
-  return input
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line, position) => {
-      const [name, ingredients, calories] = line.split("|").map((part) => part.trim());
-      return {
-        position,
-        name: name || "Meal",
-        ingredients: ingredients || null,
-        calories: calories ? Number(calories) : null,
-      };
-    });
-}
 
 // ---------------------------------------------------------------------------
 // Client actions
@@ -304,156 +271,7 @@ export async function addComment(
   refresh();
 }
 
-/** Create or replace a client's workout for a given date. */
-export async function saveWorkout(formData: FormData) {
-  const clientId = String(formData.get("clientId") ?? "");
-  const scheduledFor = String(formData.get("date") ?? today());
-  const title = String(formData.get("title") ?? "Workout").trim() || "Workout";
-  const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
-  const coachNotes = String(formData.get("coachNotes") ?? "").trim() || null;
-  const parsed = parseChecklist(String(formData.get("items") ?? ""));
-  if (!clientId || parsed.length === 0) return;
 
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const existing = demoWorkouts.find((w) => w.clientId === clientId && w.scheduledFor === scheduledFor);
-    const workoutId = existing?.id ?? crypto.randomUUID();
-    const items = parsed.map((item) => ({
-      id: crypto.randomUUID(),
-      workoutId,
-      position: item.position,
-      label: item.label,
-      target: item.target,
-      exerciseId: null,
-      muscleGroup: null,
-      equipment: null,
-      howTo: null,
-      skippedReason: null,
-      sets: [],
-      // Keep tick state for items whose label has not changed.
-      done: existing?.items.find((i) => i.label === item.label)?.done ?? false,
-      doneAt: existing?.items.find((i) => i.label === item.label)?.doneAt ?? null,
-    }));
-
-    if (existing) {
-      existing.title = title;
-      existing.suggestedTime = suggestedTime;
-      existing.coachNotes = coachNotes;
-      existing.items = items;
-    } else {
-      demoWorkouts.push({
-        id: workoutId,
-        clientId,
-        scheduledFor,
-        title,
-        suggestedTime,
-        coachNotes,
-        clientNote: null,
-        feeling: null,
-        completedAt: null,
-        fromPlan: false,
-        items,
-      });
-    }
-  } else {
-    const { data: workout } = await supabase
-      .from("workouts")
-      .upsert(
-        {
-          client_id: clientId,
-          scheduled_for: scheduledFor,
-          title,
-          suggested_time: suggestedTime,
-          coach_notes: coachNotes,
-        },
-        { onConflict: "client_id,scheduled_for" },
-      )
-      .select("id")
-      .single();
-
-    if (workout) {
-      await supabase.from("workout_items").delete().eq("workout_id", workout.id);
-      await supabase.from("workout_items").insert(
-        parsed.map((item) => ({
-          workout_id: workout.id,
-          position: item.position,
-          label: item.label,
-          target: item.target,
-        })),
-      );
-    }
-  }
-
-  refresh();
-}
-
-/** Set a client's calorie target and/or assigned meals. */
-export async function saveFoodPlan(formData: FormData) {
-  const clientId = String(formData.get("clientId") ?? "");
-  if (!clientId) return;
-
-  // Which day this applies from. Later days inherit it until another is set.
-  const forDate = String(formData.get("date") ?? today());
-
-  const calorieTargetRaw = String(formData.get("calorieTarget") ?? "").trim();
-  const proteinTargetRaw = String(formData.get("proteinTarget") ?? "").trim();
-  const calorieTarget = calorieTargetRaw ? Number(calorieTargetRaw) : null;
-  const proteinTarget = proteinTargetRaw ? Number(proteinTargetRaw) : null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-
-  const meals = parseMeals(String(formData.get("meals") ?? ""));
-
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const existing = demoFoodPlans.find((p) => p.clientId === clientId && p.assignedFor === forDate);
-    const mapped = meals.map((meal) => ({ id: crypto.randomUUID(), ...meal }));
-
-    if (existing) {
-      existing.calorieTarget = calorieTarget;
-      existing.proteinTarget = proteinTarget;
-      existing.notes = notes;
-      existing.meals = mapped;
-    } else {
-      demoFoodPlans.push({
-        id: crypto.randomUUID(),
-        clientId,
-        assignedFor: forDate,
-        calorieTarget,
-        proteinTarget,
-        notes,
-        meals: mapped,
-      });
-    }
-  } else {
-    const { data: plan } = await supabase
-      .from("food_plans")
-      .upsert(
-        {
-          client_id: clientId,
-          assigned_for: forDate,
-          calorie_target: calorieTarget,
-          protein_target: proteinTarget,
-          notes,
-        },
-        { onConflict: "client_id,assigned_for" },
-      )
-      .select("id")
-      .single();
-
-    if (plan) {
-      await supabase.from("food_plan_meals").delete().eq("food_plan_id", plan.id);
-      if (meals.length > 0) {
-        await supabase
-          .from("food_plan_meals")
-          .insert(meals.map((meal) => ({ food_plan_id: plan.id, ...meal })));
-      }
-    }
-  }
-
-  refresh();
-}
 
 /** Schedule a session, or edit one that already exists. */
 export async function saveSession(formData: FormData) {
@@ -559,351 +377,13 @@ export async function getDemoClients() {
 // Reusable plans, and assigning them across days
 // ---------------------------------------------------------------------------
 
-/** Create or update a reusable session (workout) plan. */
-export async function saveSessionPlan(formData: FormData) {
-  const id = String(formData.get("id") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  const items = parseChecklist(String(formData.get("items") ?? ""));
-  if (!name || items.length === 0) return;
 
-  const supabase = await createClient();
 
-  if (!supabase) {
-    const existing = demoSessionPlans.find((p) => p.id === id);
-    const mapped = items.map((item) => ({ id: crypto.randomUUID(), ...item }));
-    if (existing) {
-      existing.name = name;
-      existing.notes = notes;
-      existing.items = mapped;
-    } else {
-      demoSessionPlans.push({ id: crypto.randomUUID(), name, notes, items: mapped });
-    }
-  } else {
-    const { data: plan } = id
-      ? await supabase.from("session_plans").update({ name, notes }).eq("id", id).select("id").single()
-      : await supabase.from("session_plans").insert({ name, notes }).select("id").single();
 
-    if (plan) {
-      await supabase.from("session_plan_items").delete().eq("session_plan_id", plan.id);
-      await supabase
-        .from("session_plan_items")
-        .insert(items.map((item) => ({ session_plan_id: plan.id, ...item })));
-    }
-  }
 
-  revalidatePath("/admin", "layout");
-}
 
-/** Create or update a reusable day (food) plan. */
-export async function saveDayPlan(formData: FormData) {
-  const id = String(formData.get("id") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
 
-  const calorieTargetRaw = String(formData.get("calorieTarget") ?? "").trim();
-  const proteinTargetRaw = String(formData.get("proteinTarget") ?? "").trim();
-  const calorieTarget = calorieTargetRaw ? Number(calorieTargetRaw) : null;
-  const proteinTarget = proteinTargetRaw ? Number(proteinTargetRaw) : null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  const meals = parseMeals(String(formData.get("meals") ?? ""));
 
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const existing = demoDayPlans.find((p) => p.id === id);
-    const mapped = meals.map((meal) => ({ id: crypto.randomUUID(), ...meal }));
-    if (existing) {
-      Object.assign(existing, { name, calorieTarget, proteinTarget, notes, meals: mapped });
-    } else {
-      demoDayPlans.push({
-        id: crypto.randomUUID(),
-        name,
-        calorieTarget,
-        proteinTarget,
-        notes,
-        meals: mapped,
-      });
-    }
-  } else {
-    const payload = {
-      name,
-      calorie_target: calorieTarget,
-      protein_target: proteinTarget,
-      notes,
-    };
-    const { data: plan } = id
-      ? await supabase.from("day_plans").update(payload).eq("id", id).select("id").single()
-      : await supabase.from("day_plans").insert(payload).select("id").single();
-
-    if (plan) {
-      await supabase.from("day_plan_meals").delete().eq("day_plan_id", plan.id);
-      if (meals.length > 0) {
-        await supabase
-          .from("day_plan_meals")
-          .insert(meals.map((meal) => ({ day_plan_id: plan.id, ...meal })));
-      }
-    }
-  }
-
-  revalidatePath("/admin", "layout");
-}
-
-export async function deleteSessionPlan(id: string) {
-  const supabase = await createClient();
-  if (!supabase) {
-    const index = demoSessionPlans.findIndex((p) => p.id === id);
-    if (index >= 0) demoSessionPlans.splice(index, 1);
-  } else {
-    await supabase.from("session_plans").delete().eq("id", id);
-  }
-  revalidatePath("/admin", "layout");
-}
-
-export async function deleteDayPlan(id: string) {
-  const supabase = await createClient();
-  if (!supabase) {
-    const index = demoDayPlans.findIndex((p) => p.id === id);
-    if (index >= 0) demoDayPlans.splice(index, 1);
-  } else {
-    await supabase.from("day_plans").delete().eq("id", id);
-  }
-  revalidatePath("/admin", "layout");
-}
-
-/**
- * The dates a plan lands on: every day between `from` and `to` whose weekday
- * was ticked. Capped at 30 days, which is the longest range worth planning in
- * one go.
- */
-function datesInRange(from: string, to: string, weekdays: number[]): string[] {
-  const start = new Date(`${from}T00:00:00Z`);
-  const end = new Date(`${to}T00:00:00Z`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [];
-
-  const dates: string[] = [];
-  const cursor = new Date(start);
-
-  while (cursor <= end && dates.length < 30) {
-    if (weekdays.length === 0 || weekdays.includes(cursor.getUTCDay())) {
-      dates.push(cursor.toISOString().slice(0, 10));
-    }
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-
-  return dates;
-}
-
-function readAssignment(formData: FormData) {
-  const clientId = String(formData.get("clientId") ?? "");
-  const planId = String(formData.get("planId") ?? "");
-  const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
-  const from = String(formData.get("from") ?? today());
-  const to = String(formData.get("to") ?? from);
-  const weekdays = formData.getAll("weekdays").map((v) => Number(v));
-  const overwrite = formData.get("overwrite") === "on";
-  return { clientId, planId, suggestedTime, dates: datesInRange(from, to, weekdays), overwrite };
-}
-
-/** Paint a session plan across every selected day. */
-export async function assignSessionPlan(formData: FormData) {
-  const { clientId, planId, suggestedTime, dates, overwrite } = readAssignment(formData);
-  if (!clientId || !planId || dates.length === 0) return;
-
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const plan = demoSessionPlans.find((p) => p.id === planId);
-    if (!plan) return;
-
-    for (const date of dates) {
-      const existing = demoWorkouts.find((w) => w.clientId === clientId && w.scheduledFor === date);
-      // Never silently wipe a day the client has already worked through.
-      if (existing && !overwrite) continue;
-
-      const workoutId = existing?.id ?? crypto.randomUUID();
-      const items = plan.items.map((item) => ({
-        id: crypto.randomUUID(),
-        workoutId,
-        position: item.position,
-        label: item.label,
-        target: item.target,
-        exerciseId: null,
-        muscleGroup: null,
-        equipment: null,
-        howTo: null,
-        skippedReason: null,
-        sets: [],
-        done: false,
-        doneAt: null,
-      }));
-
-      if (existing) {
-        existing.title = plan.name;
-        existing.suggestedTime = suggestedTime;
-        existing.coachNotes = plan.notes;
-        existing.items = items;
-        existing.completedAt = null;
-      } else {
-        demoWorkouts.push({
-          id: workoutId,
-          clientId,
-          scheduledFor: date,
-          title: plan.name,
-          suggestedTime,
-          coachNotes: plan.notes,
-          clientNote: null,
-          feeling: null,
-          completedAt: null,
-          fromPlan: false,
-          items,
-        });
-      }
-    }
-  } else {
-    const { data: plan } = await supabase
-      .from("session_plans")
-      .select("*, session_plan_items(*)")
-      .eq("id", planId)
-      .single();
-    if (!plan) return;
-
-    const { data: existing } = await supabase
-      .from("workouts")
-      .select("scheduled_for")
-      .eq("client_id", clientId)
-      .in("scheduled_for", dates);
-    const taken = new Set((existing ?? []).map((row) => row.scheduled_for));
-    const targets = overwrite ? dates : dates.filter((d) => !taken.has(d));
-
-    for (const date of targets) {
-      const { data: workout } = await supabase
-        .from("workouts")
-        .upsert(
-          {
-            client_id: clientId,
-            scheduled_for: date,
-            title: plan.name,
-            suggested_time: suggestedTime,
-            coach_notes: plan.notes,
-            source_plan_id: plan.id,
-            completed_at: null,
-          },
-          { onConflict: "client_id,scheduled_for" },
-        )
-        .select("id")
-        .single();
-
-      if (workout) {
-        await supabase.from("workout_items").delete().eq("workout_id", workout.id);
-        await supabase.from("workout_items").insert(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped row
-          (plan.session_plan_items ?? []).map((item: any) => ({
-            workout_id: workout.id,
-            position: item.position,
-            label: item.label,
-            target: item.target,
-          })),
-        );
-      }
-    }
-  }
-
-  revalidatePath("/admin", "layout");
-  revalidatePath("/app", "layout");
-}
-
-/** Paint a day plan across every selected day. */
-export async function assignDayPlan(formData: FormData) {
-  const { clientId, planId, dates, overwrite } = readAssignment(formData);
-  if (!clientId || !planId || dates.length === 0) return;
-
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const plan = demoDayPlans.find((p) => p.id === planId);
-    if (!plan) return;
-
-    for (const date of dates) {
-      const existing = demoFoodPlans.find((p) => p.clientId === clientId && p.assignedFor === date);
-      if (existing && !overwrite) continue;
-
-      const meals = plan.meals.map((meal) => ({ ...meal, id: crypto.randomUUID() }));
-
-      if (existing) {
-        Object.assign(existing, {
-          calorieTarget: plan.calorieTarget,
-          proteinTarget: plan.proteinTarget,
-          notes: plan.notes,
-          meals,
-        });
-      } else {
-        demoFoodPlans.push({
-          id: crypto.randomUUID(),
-          clientId,
-          assignedFor: date,
-          calorieTarget: plan.calorieTarget,
-          proteinTarget: plan.proteinTarget,
-          notes: plan.notes,
-          meals,
-        });
-      }
-    }
-  } else {
-    const { data: plan } = await supabase
-      .from("day_plans")
-      .select("*, day_plan_meals(*)")
-      .eq("id", planId)
-      .single();
-    if (!plan) return;
-
-    const { data: existing } = await supabase
-      .from("food_plans")
-      .select("assigned_for")
-      .eq("client_id", clientId)
-      .in("assigned_for", dates);
-    const taken = new Set((existing ?? []).map((row) => row.assigned_for));
-    const targets = overwrite ? dates : dates.filter((d) => !taken.has(d));
-
-    for (const date of targets) {
-      const { data: assigned } = await supabase
-        .from("food_plans")
-        .upsert(
-          {
-            client_id: clientId,
-            assigned_for: date,
-            calorie_target: plan.calorie_target,
-            protein_target: plan.protein_target,
-            notes: plan.notes,
-            source_plan_id: plan.id,
-          },
-          { onConflict: "client_id,assigned_for" },
-        )
-        .select("id")
-        .single();
-
-      if (assigned) {
-        await supabase.from("food_plan_meals").delete().eq("food_plan_id", assigned.id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped row
-        const meals = (plan.day_plan_meals ?? []) as any[];
-        if (meals.length > 0) {
-          await supabase.from("food_plan_meals").insert(
-            meals.map((meal) => ({
-              food_plan_id: assigned.id,
-              position: meal.position,
-              name: meal.name,
-              ingredients: meal.ingredients,
-              calories: meal.calories,
-            })),
-          );
-        }
-      }
-    }
-  }
-
-  revalidatePath("/admin", "layout");
-  revalidatePath("/app", "layout");
-}
 
 // ---------------------------------------------------------------------------
 // Check-ins
@@ -1012,7 +492,6 @@ async function repeatCurrentWeek(clientId: string, weeks: number): Promise<numbe
         title: template.title,
         suggested_time: template.suggested_time,
         coach_notes: template.coach_notes,
-        source_plan_id: template.source_plan_id,
       })
       .select("id")
       .single();
@@ -1037,63 +516,7 @@ async function repeatCurrentWeek(clientId: string, weeks: number): Promise<numbe
   return written;
 }
 
-/**
- * Clear queued workouts the new pattern does not cover.
- *
- * Adjusting someone to Mon/Wed/Fri has to mean they train Mon/Wed/Fri. Leaving
- * their old Tue/Thu days in place would quietly hand them five sessions a week
- * — the opposite of what Dean just decided. Only ever touches days from
- * tomorrow onwards, so nothing already worked through is lost.
- */
-async function clearUnplannedDays(clientId: string, from: string, to: string, keep: number[]) {
-  // No weekdays ticked means every day is covered, so nothing falls outside.
-  if (keep.length === 0) return;
 
-  const outside = (date: string) => date >= from && date <= to && !keep.includes(weekdayOf(date));
-  const supabase = await createClient();
-
-  if (!supabase) {
-    for (let i = demoWorkouts.length - 1; i >= 0; i -= 1) {
-      const workout = demoWorkouts[i];
-      if (workout.clientId === clientId && outside(workout.scheduledFor)) {
-        demoWorkouts.splice(i, 1);
-      }
-    }
-    return;
-  }
-
-  const { data } = await supabase
-    .from("workouts")
-    .select("id, scheduled_for")
-    .eq("client_id", clientId)
-    .gte("scheduled_for", from)
-    .lte("scheduled_for", to);
-
-  const ids = (data ?? []).filter((row) => outside(row.scheduled_for)).map((row) => row.id);
-  if (ids.length > 0) await supabase.from("workouts").delete().in("id", ids);
-}
-
-/** Hand a set of fields to the existing assigners, which read FormData. */
-function assignmentForm(fields: {
-  clientId: string;
-  planId: string;
-  from: string;
-  to: string;
-  weekdays: number[];
-  suggestedTime?: string | null;
-}): FormData {
-  const form = new FormData();
-  form.set("clientId", fields.clientId);
-  form.set("planId", fields.planId);
-  form.set("from", fields.from);
-  form.set("to", fields.to);
-  // Adjusting is a deliberate replacement of what is already queued, and only
-  // ever touches days from tomorrow onwards, so nothing worked through is lost.
-  form.set("overwrite", "on");
-  if (fields.suggestedTime) form.set("suggestedTime", fields.suggestedTime);
-  for (const day of fields.weekdays) form.append("weekdays", String(day));
-  return form;
-}
 
 /**
  * Record a weekly check-in.
@@ -1124,29 +547,14 @@ export async function recordCheckIn(formData: FormData) {
   // so rather than claim four weeks are covered.
   let weeksPlanned = 0;
 
-  if (weeks > 0) {
-    if (outcome === "adjusted") {
-      const workoutPlanId = String(formData.get("workoutPlanId") ?? "");
-      const dayPlanId = String(formData.get("dayPlanId") ?? "");
-      const weekdays = formData.getAll("weekdays").map((v) => Number(v));
-      const suggestedTime = String(formData.get("suggestedTime") ?? "").trim() || null;
-      const from = shiftDate(periodEnd, 1);
-      const to = shiftDate(periodEnd, weeks * 7);
-
-      if (workoutPlanId) {
-        await clearUnplannedDays(clientId, from, to, weekdays);
-        await assignSessionPlan(
-          assignmentForm({ clientId, planId: workoutPlanId, from, to, weekdays, suggestedTime }),
-        );
-      }
-      // Food is set for every day of the range, not just training days.
-      if (dayPlanId) {
-        await assignDayPlan(assignmentForm({ clientId, planId: dayPlanId, from, to, weekdays: [] }));
-      }
-      if (workoutPlanId || dayPlanId) weeksPlanned = weeks;
-    } else if ((await repeatCurrentWeek(clientId, weeks)) > 0) {
-      weeksPlanned = weeks;
-    }
+  /*
+   * Carrying on is a thing this action can do on its own; changing the plan is
+   * not. Adjusting means opening the week board and editing days, which is
+   * what the check-in card's three links are for — a template picker bolted on
+   * here could only ever assign somebody else's idea of the week.
+   */
+  if (weeks > 0 && outcome === "continued" && (await repeatCurrentWeek(clientId, weeks)) > 0) {
+    weeksPlanned = weeks;
   }
 
   const supabase = await createClient();

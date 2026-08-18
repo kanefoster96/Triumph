@@ -10,11 +10,9 @@ import type {
   PlanSet,
   ShoppingList,
   Comment,
-  DayPlan,
   FoodLog,
   FoodPlan,
   Profile,
-  SessionPlan,
   WeightEntry,
   Workout,
 } from "./types";
@@ -680,140 +678,7 @@ export const demoWeightEntries: WeightEntry[] = [
   { id: "we-10", clientId: "demo-client-2", loggedFor: isoDate(0), weightKg: 88.2, note: null },
 ];
 
-export const demoSessionPlans: SessionPlan[] = [
-  {
-    id: "sp-1",
-    name: "Lower body — strength",
-    notes: "Leave two reps in the tank on the squats.",
-    items: [
-      { id: "spi-1", position: 0, label: "Back squat", target: "4 × 5 @ 70kg" },
-      { id: "spi-2", position: 1, label: "Romanian deadlift", target: "3 × 8 @ 60kg" },
-      { id: "spi-3", position: 2, label: "Walking lunges", target: "3 × 10 each leg" },
-      { id: "spi-4", position: 3, label: "Leg curl", target: "3 × 12" },
-      { id: "spi-5", position: 4, label: "Plank", target: "3 × 45 seconds" },
-    ],
-  },
-  {
-    id: "sp-2",
-    name: "Push day",
-    notes: null,
-    items: [
-      { id: "spi-6", position: 0, label: "Bench press", target: "4 × 6" },
-      { id: "spi-7", position: 1, label: "Overhead press", target: "3 × 8" },
-      { id: "spi-8", position: 2, label: "Incline dumbbell press", target: "3 × 10" },
-      { id: "spi-9", position: 3, label: "Cable fly", target: "3 × 12" },
-      { id: "spi-10", position: 4, label: "Triceps pushdown", target: "3 × 12" },
-    ],
-  },
-  {
-    id: "sp-3",
-    name: "Pull day",
-    notes: null,
-    items: [
-      { id: "spi-11", position: 0, label: "Deadlift", target: "4 × 5" },
-      { id: "spi-12", position: 1, label: "Pull-ups", target: "4 × max" },
-      { id: "spi-13", position: 2, label: "Barbell row", target: "3 × 8" },
-      { id: "spi-14", position: 3, label: "Face pull", target: "3 × 15" },
-    ],
-  },
-  {
-    id: "sp-4",
-    name: "Short session — 30 minutes",
-    notes: "For the days that fall apart. Two lifts and something for the back.",
-    items: [
-      { id: "spi-15", position: 0, label: "Goblet squat", target: "3 × 12" },
-      { id: "spi-16", position: 1, label: "Dumbbell press", target: "3 × 10" },
-      { id: "spi-17", position: 2, label: "Single-arm row", target: "3 × 12 each" },
-    ],
-  },
-];
 
-export const demoDayPlans: DayPlan[] = [
-  {
-    id: "dp-1",
-    name: "1,950 kcal — training day",
-    calorieTarget: 1950,
-    proteinTarget: 130,
-    notes: "Front-load protein at breakfast.",
-    meals: [
-      {
-        id: "dpm-1",
-        position: 0,
-        name: "Breakfast — Greek yoghurt bowl",
-        ingredients: "200g 0% Greek yoghurt, 40g granola, 100g berries, 1 tbsp honey",
-        calories: 420,
-      },
-      {
-        id: "dpm-2",
-        position: 1,
-        name: "Lunch — chicken and rice",
-        ingredients: "150g chicken breast, 60g rice (dry), mixed veg, 1 tsp olive oil",
-        calories: 560,
-      },
-      {
-        id: "dpm-3",
-        position: 2,
-        name: "Dinner — salmon and potatoes",
-        ingredients: "150g salmon, 250g new potatoes, green beans, lemon",
-        calories: 640,
-      },
-      {
-        id: "dpm-4",
-        position: 3,
-        name: "Snacks",
-        ingredients: "Whey shake, an apple, or a small handful of nuts",
-        calories: 330,
-      },
-    ],
-  },
-  {
-    id: "dp-2",
-    name: "1,700 kcal — rest day",
-    calorieTarget: 1700,
-    proteinTarget: 130,
-    notes: "Slightly lower on the days you are not training.",
-    meals: [
-      {
-        id: "dpm-5",
-        position: 0,
-        name: "Breakfast — eggs on toast",
-        ingredients: "3 eggs, 2 slices wholemeal, tomatoes",
-        calories: 400,
-      },
-      {
-        id: "dpm-6",
-        position: 1,
-        name: "Lunch — big salad with chicken",
-        ingredients: "150g chicken, salad, 30g feta, olive oil",
-        calories: 480,
-      },
-      {
-        id: "dpm-7",
-        position: 2,
-        name: "Dinner — chilli and rice",
-        ingredients: "150g lean mince, kidney beans, 50g rice (dry)",
-        calories: 620,
-      },
-      { id: "dpm-8", position: 3, name: "Snack", ingredients: "Greek yoghurt", calories: 200 },
-    ],
-  },
-  {
-    id: "dp-3",
-    name: "2,600 kcal — shift worker",
-    calorieTarget: 2600,
-    proteinTarget: 180,
-    notes: "Keep the big meal before the shift, not at 3am.",
-    meals: [],
-  },
-  {
-    id: "dp-4",
-    name: "Target only — 1,800 kcal",
-    calorieTarget: 1800,
-    proteinTarget: 120,
-    notes: "No meals set — the client eats their own food to the target.",
-    meals: [],
-  },
-];
 
 export const demoComments: Comment[] = [
   {

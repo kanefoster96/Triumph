@@ -514,55 +514,6 @@ create index client_meal_swaps_client_idx
 create index plan_meal_slots_revision_idx on public.plan_meal_slots (revision_id, slot, position);
 
 -- ---------------------------------------------------------------------------
--- Reusable plans — built once by Dean, assigned to many days
---
--- Superseded by plan_blocks for anyone on a repeating plan. Kept because
--- existing clients have days assigned from these, and those days are history.
--- ---------------------------------------------------------------------------
-
-create table public.session_plans (
-  id         uuid primary key default gen_random_uuid(),
-  name       text not null,
-  notes      text,
-  created_at timestamptz not null default now()
-);
-
-create table public.session_plan_items (
-  id              uuid primary key default gen_random_uuid(),
-  session_plan_id uuid not null references public.session_plans(id) on delete cascade,
-  position        int not null default 0,
-  label           text not null,
-  target          text
-);
-
-create index session_plan_items_plan_idx on public.session_plan_items (session_plan_id, position);
-
-create table public.day_plans (
-  id             uuid primary key default gen_random_uuid(),
-  name           text not null,
-  calorie_target int,
-  protein_target int,
-  notes          text,
-  created_at     timestamptz not null default now()
-);
-
-create table public.day_plan_meals (
-  id          uuid primary key default gen_random_uuid(),
-  day_plan_id uuid not null references public.day_plans(id) on delete cascade,
-  position    int not null default 0,
-  name        text not null,
-  ingredients text,
-  calories    int
-);
-
-create index day_plan_meals_plan_idx on public.day_plan_meals (day_plan_id, position);
-
--- Which template a given assigned day came from. Null when Dean wrote the day
--- by hand; kept nullable so editing one day never breaks the link for others.
-alter table public.workouts   add column source_plan_id uuid references public.session_plans(id) on delete set null;
-alter table public.food_plans add column source_plan_id uuid references public.day_plans(id)     on delete set null;
-
--- ---------------------------------------------------------------------------
 -- Check-ins
 --
 -- The weekly rhythm. Dean reviews a client's last stretch, decides whether the
@@ -668,9 +619,6 @@ alter table public.food_plan_meals enable row level security;
 alter table public.food_logs       enable row level security;
 alter table public.weight_entries  enable row level security;
 alter table public.comments        enable row level security;
-alter table public.session_plans      enable row level security;
-alter table public.session_plan_items enable row level security;
-alter table public.day_plans          enable row level security;
 alter table public.check_ins          enable row level security;
 alter table public.exercises          enable row level security;
 alter table public.meals              enable row level security;
@@ -688,7 +636,6 @@ alter table public.client_meal_swaps  enable row level security;
 alter table public.day_submissions    enable row level security;
 alter table public.shopping_lists     enable row level security;
 alter table public.shopping_list_items enable row level security;
-alter table public.day_plan_meals     enable row level security;
 
 -- Profiles
 create policy "read own profile" on public.profiles
@@ -791,14 +738,6 @@ create policy "admin deletes comments" on public.comments
 
 -- Plan templates are Dean's own tools. Clients never read them directly —
 -- they see the days those plans were used to create.
-create policy "admin manages session plans" on public.session_plans
-  for all using (public.is_admin()) with check (public.is_admin());
-create policy "admin manages session plan items" on public.session_plan_items
-  for all using (public.is_admin()) with check (public.is_admin());
-create policy "admin manages day plans" on public.day_plans
-  for all using (public.is_admin()) with check (public.is_admin());
-create policy "admin manages day plan meals" on public.day_plan_meals
-  for all using (public.is_admin()) with check (public.is_admin());
 
 -- Check-ins: the client reads their own history — the note is written to them —
 -- but only Dean records one.

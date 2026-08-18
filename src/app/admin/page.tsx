@@ -1,24 +1,80 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { listClients } from "@/lib/members/service";
-import { EmptyState, ScreenTitle } from "@/components/members/ui";
+import { ArrowRight, LayoutGrid, Rows3 } from "lucide-react";
+import {
+  getComplianceBoard,
+  listClients,
+  mondayOf,
+  shiftDate,
+  today,
+} from "@/lib/members/service";
+import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
 import { Avatar } from "@/components/members/Avatar";
-import { relativeDate } from "@/lib/utils";
+import { ComplianceGrid } from "@/components/members/ComplianceGrid";
+import { cn, relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminClientsPage() {
-  const clients = await listClients();
+/**
+ * Dean's home.
+ *
+ * The grid is the default because the question on a Monday is "who has gone
+ * quiet", and thirty cards is thirty scroll-lengths before that has an answer.
+ * The cards are still here — they carry today's numbers rather than the week's
+ * shape — so the view is a toggle rather than a replacement.
+ */
+export default async function AdminClientsPage({ searchParams }: PageProps<"/admin">) {
+  const query = await searchParams;
+  const asCards = query.view === "cards";
+
+  const now = today();
+  const weekStart = mondayOf(now);
+  const [clients, board] = await Promise.all([
+    listClients(),
+    asCards ? Promise.resolve([]) : getComplianceBoard(weekStart),
+  ]);
+
+  const active = clients.filter((client) => client.profile.status === "active").length;
+  const weekLabel = `${new Date(`${weekStart}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", timeZone: "UTC" })} – ${new Date(`${shiftDate(weekStart, 6)}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}`;
 
   return (
     <>
       <ScreenTitle
         title="Clients"
-        subtitle={`${clients.filter((c) => c.profile.status === "active").length} active`}
+        subtitle={`${active} active${asCards ? "" : ` · this week, ${weekLabel}`}`}
+        action={
+          <div className="flex items-center gap-1 rounded-full border border-line p-1">
+            {(
+              [
+                ["", "Week", Rows3],
+                ["cards", "Cards", LayoutGrid],
+              ] as const
+            ).map(([view, label, Icon]) => {
+              const on = view === "cards" ? asCards : !asCards;
+              return (
+                <Link
+                  key={label}
+                  href={view ? `/admin?view=${view}` : "/admin"}
+                  aria-current={on ? "page" : undefined}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                    on ? "bg-accent text-accent-ink" : "text-muted hover:text-text",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        }
       />
 
-      {clients.length === 0 ? (
+      {!asCards ? (
+        <Panel>
+          <ComplianceGrid rows={board} weekStart={weekStart} />
+        </Panel>
+      ) : clients.length === 0 ? (
         <EmptyState>No clients yet.</EmptyState>
       ) : (
         <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
