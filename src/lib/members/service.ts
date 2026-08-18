@@ -1223,11 +1223,22 @@ export async function getPlanBlock(clientId: string): Promise<PlanBlock | null> 
   if (!supabase) {
     // A block Dean has started wins over the seeded one for that client.
     const { planBlocks } = await demoData();
-    return (
+    const block =
       planBlocks.find((b) => b.clientId === clientId) ??
       demoPlanBlocks.find((b) => b.clientId === clientId) ??
-      null
-    );
+      null;
+
+    /*
+     * Blocks are Monday-anchored, and a demo cookie written before that rule
+     * existed still holds whatever weekday it was started on. Snapped on read
+     * here because the alternative is a browser with an old cookie quietly
+     * showing the old behaviour. Deliberately not done for the database: there
+     * the constraint makes it impossible, and re-anchoring a real block would
+     * rotate every day of somebody's plan on a read.
+     */
+    return block && block.startsOn !== mondayOf(block.startsOn)
+      ? { ...block, startsOn: mondayOf(block.startsOn) }
+      : block;
   }
 
   const { data } = await supabase.from("plan_blocks").select("*").eq("client_id", clientId).maybeSingle();
