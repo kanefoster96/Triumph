@@ -241,31 +241,21 @@ export default async function AdminClientWorkoutsPage({
                 </div>
               </div>
 
+              {/* What they managed last time rides with each exercise now,
+                  rather than as a second list underneath repeating the names. */}
               <ExercisePlanner
                 key={`${planDay.revisionId ?? "none"}:${selected}`}
                 day={planDay}
                 exercises={exercises}
+                lastEfforts={Object.fromEntries(
+                  [...efforts.entries()].map(([exerciseId, effort]) => [
+                    exerciseId,
+                    `${effort.on}: ${effort.sets
+                      .map((set) => `${set.weightKg ?? 0}×${set.reps ?? 0}`)
+                      .join("  ")}`,
+                  ]),
+                )}
               />
-
-              {/* What they managed last time, so a target can be set against
-                  something real rather than from memory. */}
-              {planDay.exercises.length > 0 ? (
-                <ul className="space-y-1.5 rounded-2xl border border-line bg-ink p-4">
-                  {planDay.exercises.map((exercise) => {
-                    const last = efforts.get(exercise.exerciseId);
-                    return (
-                      <li key={exercise.id} className="text-xs text-muted">
-                        <span className="font-semibold text-text">{exercise.name}</span> —{" "}
-                        {last
-                          ? `last ${last.on}: ${last.sets
-                              .map((set) => `${set.weightKg ?? 0}×${set.reps ?? 0}`)
-                              .join("  ")}`
-                          : "nothing logged yet"}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
 
               <div>
                 <label className={fieldLabel} htmlFor="w-notes">

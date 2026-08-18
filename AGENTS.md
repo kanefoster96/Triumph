@@ -59,9 +59,28 @@ any screen showing a day must resolve it the way the client's app does —
 `getWorkoutFor` and `getTrainingDates`, never a raw `getWorkouts`, which
 returns logged rows only and so reports planned days as empty.
 
-The Plan tab owns the shape of the week; the Workouts tab owns one date. Both
-write through `savePlanDay` — the Plan tab defaulting to weekday-forward, the
-Workouts tab to that date alone.
+The Plan tab is a **week board**: seven day cards resolved through
+`getPlanWeek` (a wide-screen row, a snapping carousel on a phone) with the
+editor for the open day underneath, so the week never leaves the screen. It is
+date-first — the repeating cycle is how a plan is stored, not how anyone reads
+one — and every save asks how far it reaches: just that date, or that weekday
+from here on. `savePlanDay` takes `kind=both` so training and food commit
+together; a screen with two Save buttons is a day half-written.
+
+The Workouts tab still owns one date, in a month calendar with its history and
+comments. Both write through `savePlanDay`.
+
+Nothing anywhere parses free text into sets, reps, portions or calories.
+Workouts and meals are built from library ids and number fields, and that is
+deliberate: the Templates page that did parse text is gone, replaced by "start
+from another client", which copies a day Dean already built. If you find
+yourself adding a textarea, it is for prose — a note, a cue, a method step —
+never for structure.
+
+`/admin` opens on a compliance grid (`getComplianceBoard`): one row per client,
+one column per day, three marks per day for training, food and weight. Nothing
+is scored on a date the plan does not cover, and a day that has not happened is
+shown but never judged.
 
 Demo writes go through `lib/members/demo-store.ts`, not module-level arrays.
 The site runs as serverless functions, so a module array is per-instance: a
@@ -105,6 +124,11 @@ client-facing text may explain, justify or hint at scaling — no "multiplier",
 no "1.5×", no "base amount". Where a client is allowed to choose, it is
 labelled **Portion** with fractions.
 
+Clients can ask to move a session (`day_swap_requests`); Dean answers on his
+home page. Approving performs the move — writes the day onto the new date and
+rests the old one — because the failure mode worth designing out is him saying
+yes and the plan never changing.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,
@@ -121,7 +145,17 @@ labelled **Portion** with fractions.
   `translate-x-full`) in the DOM: it interferes with the page's
   scroll-into-view behaviour, and `visibility: hidden` does not help. Mount it
   only while in use. For the same reason, never leave a full-viewport
-  `backdrop-filter` applied while the overlay is closed.
+  `backdrop-filter` applied while the overlay is closed. `BottomSheet` follows
+  both rules and portals into `document.body` — it is opened from inside forms
+  and cards, and a `<form>` inside a `<form>` is dropped by the browser without
+  a word.
+- A grid item is sized by its own min-content, and Chrome does not zero a flex
+  item's min-content contribution even with `min-w-0` — so a `truncate` line
+  (which is `white-space: nowrap`) can push a card past the viewport. Use
+  `grid-cols-1` (`minmax(0,1fr)`) plus `min-w-0` on the item.
+- Nothing inside a collapsed `<details>` may be `required`: the browser cannot
+  focus a hidden field to complain about it and refuses to submit at all. Flag
+  what is missing in the UI and drop it server-side.
 
 ## Checks
 

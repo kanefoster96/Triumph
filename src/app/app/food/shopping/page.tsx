@@ -11,6 +11,7 @@ import {
 import { createShoppingList } from "@/lib/members/actions";
 import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { formatAmount } from "@/lib/members/types";
+import { AISLES, aisleFor } from "@/lib/data/aisles";
 
 export const dynamic = "force-dynamic";
 
@@ -156,27 +157,45 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
               Nothing to buy — there are no meals planned between {dayLabel(from)} and {dayLabel(to)}.
             </EmptyState>
           ) : (
-            <ul className="divide-y divide-line">
-              {lines.map((line) => (
-                <li key={`${line.name}-${line.unit}`} className="flex items-baseline gap-4 py-3">
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{line.name}</span>
-                    {/* Why it is on the list, so nothing looks like a mistake. */}
-                    <span className="block truncate text-xs text-faint">{line.usedIn.join(", ")}</span>
-                  </span>
-                  <span className="shrink-0 text-sm font-semibold text-accent tabular-nums">
-                    {formatAmount(line.quantity, line.unit)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            /* Grouped by aisle rather than listed A–Z: alphabetical walks you
+               past the same shelves four times. */
+            <div className="space-y-5">
+              {AISLES.map((aisle) => {
+                const inAisle = lines.filter((line) => aisleFor(line.name) === aisle);
+                if (inAisle.length === 0) return null;
+
+                return (
+                  <div key={aisle}>
+                    <h3 className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                      {aisle}
+                    </h3>
+                    <ul className="mt-1 divide-y divide-line">
+                      {inAisle.map((line) => (
+                        <li key={`${line.name}-${line.unit}`} className="flex items-baseline gap-4 py-3">
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-semibold">{line.name}</span>
+                            {/* Why it is on the list, so nothing looks like a mistake. */}
+                            <span className="block truncate text-xs text-faint">
+                              {line.usedIn.join(", ")}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-sm font-semibold text-accent tabular-nums">
+                            {formatAmount(line.quantity, line.unit)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           <p className="mt-5 inline-flex items-start gap-2 text-xs text-faint">
             <ShoppingBasket className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Totalled across every meal on those days. Anything measured differently is listed separately
-            rather than added together. Create the list and it becomes a checklist you can tick off and put
-            in your own order.
+            Totalled across every meal on those days and grouped by roughly where things live in a
+            shop. Anything measured differently is listed separately rather than added together.
+            Create the list and it becomes a checklist you can tick off and put in your own order.
           </p>
         </Panel>
       </div>

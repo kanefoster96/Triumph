@@ -45,10 +45,9 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 
 | Screen | What it does |
 | --- | --- |
-| **Clients** `/admin` | Every client with last activity, on/off track, and today's workout, calories and weight at a glance. |
-| **Client** `/admin/clients/[id]` | The same five tabs the client sees, but editable. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts assigns the checklist and shows what they ticked; Food sets targets and meals; Weight shows the trend and allows corrections. Dean can reply to any note from its tab. |
+| **Clients** `/admin` | A grid of everyone's week: one row per client, one column per day, three marks a day for training, food and weight, sorted by who needs looking at first. Pending day-swap requests sit above it. A card view with today's numbers is behind a toggle. |
+| **Client** `/admin/clients/[id]` | The same tabs the client sees, but editable. Plan is the week board — seven day cards with the editor for the open day underneath, one save for training and food together. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts owns one date with its history; Food sets targets and meals; Weight shows the trend. Dean can reply to any note from its tab. |
 | **Check-ins** `/admin/checkin` | The weekly round. Every active client with how their last stretch went, anything they wrote, and how far ahead they are planned — then continue the plan or adjust it, both with a note. |
-| **Plans** `/admin/plans` | Reusable workout plans and food plans, built once and assigned to as many days as needed. Independent of any client. |
 | **Schedule** `/admin/schedule` | A month calendar of every session across all clients. Pick a day to see it and add to it — client, time, location picker with a free-text override. Anything added shows up in that client's Sessions tab. |
 
 ## Calendars
@@ -209,13 +208,30 @@ or a portion having been adjusted: the scaled amounts are simply the meal. A
 sweep of every client page checks for this — see `pickRevision` in
 `service.ts` for the other half of the rule.
 
-## On its way out
+## Building a week
 
-`/admin/plans` ("Templates") is the older way of assigning a day: free-text
-session and day plans, unconnected to the exercise and meal libraries. The
-repeating plan block replaces it, and the client Workouts tab has already been
-moved over. Two screens still read templates and have to be moved before the
-page can go:
+The Plan tab is where a client's week is built and read. Seven day cards, each
+showing the session title and its first exercises, the calorie target and meal
+count, any booked 1:1, and what moved since the same day last week. Tapping one
+opens the editor underneath it, so the week stays on screen while it is edited.
 
-- the check-in round's **Adjust plan** fast path, and
-- a client's **Food** tab assigner.
+Everything is structured. Exercises come from the library and sets are number
+fields; meals come from the library with a portion. Nothing parses free text
+into sets, reps or calories anywhere in the product — the Templates page that
+did is gone.
+
+Four things make a week quick to build:
+
+- **Start from another client** — pick a client, pick one of their days,
+  preview it, take the training or the whole day. A copy, landing on that date
+  only, which Dean then adjusts.
+- **Use this for other weekdays too** — one save writes the same day onto as
+  many weekdays as he ticks, which is most of setting a client up.
+- **Copy to / Move to** — a day onto another date in two taps, from the card's
+  own menu.
+- **Repeat onto next week** — for a week that has been changed away from the
+  repeating block: a deload, a holiday, a fortnight built by hand.
+
+**+2.5kg** reaches this weekday from here on, this week only, or every day from
+here on. **Scale the day to 1,950** moves every portion together until the
+day's total lands on the target.

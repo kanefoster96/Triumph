@@ -672,7 +672,7 @@ export function MealPlanner({
           <button
             type="button"
             onClick={scaleToTarget}
-            className="mt-3 inline-flex items-center gap-2 rounded-full border border-line px-3.5 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-line px-3.5 py-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
           >
             <Scale className="h-3.5 w-3.5" />
             Scale the day to {targetValue.toLocaleString("en-GB")}

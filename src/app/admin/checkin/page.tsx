@@ -39,7 +39,7 @@ export default async function AdminCheckInPage({ searchParams }: PageProps<"/adm
                 href={`/admin/checkin?days=${window.days}`}
                 aria-current={window.days === windowDays ? "page" : undefined}
                 className={cn(
-                  "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                  "rounded-full px-3.5 py-2 text-xs font-semibold transition-colors",
                   window.days === windowDays ? "bg-accent/10 text-accent" : "text-muted hover:text-text",
                 )}
               >

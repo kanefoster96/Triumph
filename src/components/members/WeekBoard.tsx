@@ -246,7 +246,7 @@ function DayCard({
           type="button"
           onClick={onMenu}
           aria-label={`More for ${day.weekday} ${day.dayNumber}`}
-          className="absolute top-1 right-1 rounded-full p-1.5 text-faint transition-colors hover:bg-raised hover:text-text"
+          className="absolute top-0.5 right-0.5 rounded-full p-2 text-faint transition-colors hover:bg-raised hover:text-text"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
