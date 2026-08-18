@@ -42,6 +42,7 @@ import type {
   MealLog,
   PlanBlock,
   PlanDay,
+  PlanExercise,
   PlanKind,
   PlanMealSlot,
   PlanSet,
@@ -1528,6 +1529,114 @@ export async function getPlanCycle(block: PlanBlock, onDate: string, kind: PlanK
 
     return buildPlanDay(repeating.at(-1) ?? null, dayIndex, kind, exercises, meals, false);
   });
+}
+
+/**
+ * A client's week, resolved date by date — what the week board draws.
+ *
+ * Date-first rather than cycle-index-first. The cycle is how the plan is
+ * stored, but it is not how anyone thinks about a week: Dean is looking at
+ * Monday the 18th, with the one-off he made on Wednesday folded in and the 1:1
+ * that actually sits on Thursday shown next to it.
+ *
+ * The library and the revisions load once for the whole week rather than once
+ * per day, which is the difference between three round trips and twenty-one.
+ */
+export interface PlanWeekDay {
+  date: string;
+  /** Null before the block takes over — nothing to show or edit yet. */
+  dayIndex: number | null;
+  workout: PlanDay | null;
+  food: PlanDay | null;
+  sessions: CoachSession[];
+  /** Been and gone: shown, never editable. */
+  past: boolean;
+}
+
+/** The Monday of whatever week a date falls in. Weeks start Monday here. */
+export function mondayOf(date: string): string {
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return shiftDate(date, -((day + 6) % 7));
+}
+
+export async function getPlanWeek(
+  block: PlanBlock,
+  weekStart: string,
+  days = 7,
+): Promise<PlanWeekDay[]> {
+  const now = today();
+  const [revisions, exercises, meals, sessions] = await Promise.all([
+    loadRevisions(block.id),
+    getExercises(true),
+    getMeals(true),
+    getSessions(block.clientId),
+  ]);
+
+  const out: PlanWeekDay[] = [];
+  for (let offset = 0; offset < days; offset += 1) {
+    const date = shiftDate(weekStart, offset);
+    const dayIndex = dayIndexFor(block, date);
+    const onDate = sessions.filter((session) => session.startsAt.slice(0, 10) === date);
+
+    if (dayIndex === null) {
+      out.push({ date, dayIndex: null, workout: null, food: null, sessions: onDate, past: date < now });
+      continue;
+    }
+
+    // Swaps are per date, so a week spanning a change shows cod after it and
+    // salmon before it rather than one answer for the whole week.
+    const swaps = await getMealSwaps(block.clientId, date);
+    const forClient = swaps.length > 0 ? meals.map((meal) => applySwaps(meal, swaps)) : meals;
+
+    const workout = pickRevision(revisions, dayIndex, "workout", date);
+    const food = pickRevision(revisions, dayIndex, "food", date);
+
+    out.push({
+      date,
+      dayIndex,
+      workout: buildPlanDay(workout.revision, dayIndex, "workout", exercises, forClient, workout.oneOff),
+      food: buildPlanDay(food.revision, dayIndex, "food", exercises, forClient, food.oneOff),
+      sessions: onDate,
+      past: date < now,
+    });
+  }
+
+  return out;
+}
+
+/**
+ * What changed on an exercise since the same weekday last week.
+ *
+ * Progression is the point of the plan and it was invisible: two identical
+ * looking weeks, one of them 2.5kg heavier. Keyed by exercise so a day that
+ * has been reordered still lines up.
+ */
+export function weekDiff(current: PlanDay | null, previous: PlanDay | null): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!current) return out;
+
+  const before = new Map(
+    (previous?.exercises ?? []).map((exercise) => [exercise.exerciseId, exercise] as const),
+  );
+
+  for (const exercise of current.exercises) {
+    const was = before.get(exercise.exerciseId);
+    if (!was) {
+      if (previous) out.set(exercise.exerciseId, "new");
+      continue;
+    }
+    const top = (day: PlanExercise) =>
+      day.sets.reduce((max, set) => Math.max(max, set.targetWeightKg ?? 0), 0);
+    const nowTop = top(exercise);
+    const wasTop = top(was);
+    if (nowTop !== wasTop && (nowTop > 0 || wasTop > 0)) {
+      out.set(exercise.exerciseId, `${wasTop || "—"} \u2192 ${nowTop || "—"}kg`);
+    } else if (exercise.sets.length !== was.sets.length) {
+      out.set(exercise.exerciseId, `${was.sets.length} → ${exercise.sets.length} sets`);
+    }
+  }
+
+  return out;
 }
 
 /**
