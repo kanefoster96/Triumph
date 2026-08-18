@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { CalendarRange, Dumbbell, Loader2, Salad } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,32 @@ export function PlanDayForm({
   scope: ReactNode;
 }) {
   const [dirty, setDirty] = useState(false);
+  const [needsTitle, setNeedsTitle] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+
+  /*
+   * A day with exercises on it and no name reads as "Training" everywhere the
+   * client sees it, which tells them nothing. Checked from the form itself
+   * rather than by lifting the field's value up through three components —
+   * everything here is a real input, so the form already knows.
+   */
+  const check = () => {
+    setDirty(true);
+    const data = form.current ? new FormData(form.current) : null;
+    const hasExercises = (data?.getAll("exerciseId") ?? []).some((id) => String(id) !== "");
+    const named = String(data?.get("title") ?? "").trim() !== "";
+    const isRest = data?.get("isRest") === "on";
+    setNeedsTitle(hasExercises && !named && !isRest);
+  };
+
+  // A half-built day is several minutes of work and the only copy of it is in
+  // this form. Leaving with it unsaved should take a deliberate answer.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   return (
     <div className="rounded-[var(--radius-sheet)] border border-line bg-surface">
@@ -52,7 +78,7 @@ export function PlanDayForm({
           browser drops the inner one and the button silently does nothing. */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">{toolbar}</div>
 
-      <form action={action} onInput={() => setDirty(true)} onChange={() => setDirty(true)}>
+      <form ref={form} action={action} onInput={check} onChange={check}>
         {hidden}
 
         <Section icon={Dumbbell} title="Training" defaultOpen>
@@ -65,7 +91,7 @@ export function PlanDayForm({
           {scope}
         </Section>
 
-        <SaveBar dirty={dirty} />
+        <SaveBar dirty={dirty} needsTitle={needsTitle} />
       </form>
     </div>
   );
@@ -104,17 +130,23 @@ function Section({
   );
 }
 
-function SaveBar({ dirty }: { dirty: boolean }) {
+function SaveBar({ dirty, needsTitle }: { dirty: boolean; needsTitle: boolean }) {
   const { pending } = useFormStatus();
 
   return (
     <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-b-[var(--radius-sheet)] border-t border-line bg-surface px-5 py-3">
-      <p className="text-xs text-faint">
-        {pending ? "Saving…" : dirty ? "Not saved yet." : "Training, food and how far it reaches."}
+      <p className={cn("text-xs", needsTitle ? "text-amber" : "text-faint")}>
+        {needsTitle
+          ? "Give the day a name — they see it as “Training” otherwise."
+          : pending
+            ? "Saving…"
+            : dirty
+              ? "Not saved yet."
+              : "Training, food and how far it reaches."}
       </p>
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || needsTitle}
         className={cn(
           "inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
           "bg-accent text-accent-ink hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint",
