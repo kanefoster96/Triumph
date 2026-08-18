@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, LayoutGrid, Rows3 } from "lucide-react";
 import {
   getComplianceBoard,
+  getPendingSwaps,
   listClients,
   mondayOf,
   shiftDate,
@@ -11,6 +12,7 @@ import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
 import { Avatar } from "@/components/members/Avatar";
 import { ComplianceGrid } from "@/components/members/ComplianceGrid";
+import { SwapRequests } from "@/components/members/SwapRequests";
 import { cn, relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +31,10 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
 
   const now = today();
   const weekStart = mondayOf(now);
-  const [clients, board] = await Promise.all([
+  const [clients, board, swaps] = await Promise.all([
     listClients(),
     asCards ? Promise.resolve([]) : getComplianceBoard(weekStart),
+    getPendingSwaps(),
   ]);
 
   const active = clients.filter((client) => client.profile.status === "active").length;
@@ -69,6 +72,8 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
           </div>
         }
       />
+
+      <SwapRequests requests={swaps} />
 
       {!asCards ? (
         <Panel>

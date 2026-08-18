@@ -514,6 +514,32 @@ create index client_meal_swaps_client_idx
 create index plan_meal_slots_revision_idx on public.plan_meal_slots (revision_id, slot, position);
 
 -- ---------------------------------------------------------------------------
+-- Day swap requests
+--
+-- A client asking to move a session to another day. A request rather than a
+-- change: the plan is coaching, so only Dean's approval moves anything.
+-- ---------------------------------------------------------------------------
+
+create type public.swap_status as enum ('pending', 'approved', 'declined');
+
+create table public.day_swap_requests (
+  id         uuid primary key default gen_random_uuid(),
+  client_id  uuid not null references public.profiles(id) on delete cascade,
+  from_date  date not null,
+  to_date    date not null,
+  -- Snapshotted so the request still reads after the plan has moved on.
+  title      text,
+  reason     text,
+  status     public.swap_status not null default 'pending',
+  created_at timestamptz not null default now(),
+  decided_at timestamptz,
+  check (from_date <> to_date)
+);
+
+create index day_swap_requests_client_idx
+  on public.day_swap_requests (client_id, status, from_date);
+
+-- ---------------------------------------------------------------------------
 -- Check-ins
 --
 -- The weekly rhythm. Dean reviews a client's last stretch, decides whether the
@@ -738,6 +764,18 @@ create policy "admin deletes comments" on public.comments
 
 -- Plan templates are Dean's own tools. Clients never read them directly —
 -- they see the days those plans were used to create.
+
+-- Day swaps: the client raises and reads their own requests, and may withdraw
+-- one while it is still pending. Deciding it is Dean's alone — a client who
+-- could approve their own request would not be making a request.
+create policy "read own swap requests" on public.day_swap_requests
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "client raises swap requests" on public.day_swap_requests
+  for insert with check (client_id = auth.uid() and status = 'pending');
+create policy "client withdraws pending swaps" on public.day_swap_requests
+  for delete using (client_id = auth.uid() and status = 'pending');
+create policy "admin decides swap requests" on public.day_swap_requests
+  for update using (public.is_admin()) with check (public.is_admin());
 
 -- Check-ins: the client reads their own history — the note is written to them —
 -- but only Dean records one.

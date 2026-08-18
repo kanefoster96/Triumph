@@ -35,7 +35,15 @@ import {
   shiftDate,
   today,
 } from "./service";
-import type { CommentTarget, EditScope, FoodMode, MealTag, PlanDay, PlanKind } from "./types";
+import type {
+  CommentTarget,
+  EditScope,
+  FoodMode,
+  MealTag,
+  PlanDay,
+  PlanKind,
+  SwapRequest,
+} from "./types";
 
 /**
  * Writes for the members' area and Dean's admin.
@@ -1559,6 +1567,168 @@ export async function copyPlanDay(formData: FormData) {
 
   refresh();
   if (formData.get("review") === "1") redirect(`/admin/checkin#client-${clientId}`);
+}
+
+/**
+ * "Can I do Monday's session on Tuesday?"
+ *
+ * Raised by the client, decided by Dean. It is a request rather than a change
+ * because the plan is coaching — but the alternative was a note in a comment
+ * thread that Dean had to read, interpret and then act on by hand, so the week
+ * the client was actually having drifted away from the week on the plan.
+ */
+export async function requestDaySwap(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const from = String(formData.get("from") ?? "");
+  const to = String(formData.get("to") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 200) || null;
+  if (!from || !to || from === to) return;
+
+  // Only forwards, and only into days that have not happened. Asking to have
+  // trained last Tuesday is not something an approval could deliver.
+  const now = today();
+  if (from < now || to < now) return;
+
+  const block = await getPlanBlock(profile.id);
+  const day = block ? await getPlanDay(block, from, "workout") : null;
+
+  const request: SwapRequest = {
+    id: crypto.randomUUID(),
+    clientId: profile.id,
+    fromDate: from,
+    toDate: to,
+    title: day?.title ?? null,
+    reason,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    decidedAt: null,
+  };
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoData((data) => {
+      // One open request per day. Asking twice is a correction, not a queue.
+      data.swapRequests = data.swapRequests.filter(
+        (entry) =>
+          !(entry.clientId === profile.id && entry.fromDate === from && entry.status === "pending"),
+      );
+      data.swapRequests.push(request);
+    });
+  } else {
+    await supabase.from("day_swap_requests").insert({
+      client_id: profile.id,
+      from_date: from,
+      to_date: to,
+      title: request.title,
+      reason,
+    });
+  }
+
+  refresh();
+}
+
+/** Withdraw a request that has not been answered yet. */
+export async function cancelDaySwap(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoData((data) => {
+      data.swapRequests = data.swapRequests.filter(
+        (entry) => !(entry.id === id && entry.clientId === profile.id && entry.status === "pending"),
+      );
+    });
+  } else {
+    await supabase
+      .from("day_swap_requests")
+      .delete()
+      .eq("id", id)
+      .eq("client_id", profile.id)
+      .eq("status", "pending");
+  }
+
+  refresh();
+}
+
+/**
+ * Dean's answer, in one tap.
+ *
+ * Approving does the move rather than telling him to go and do it: the whole
+ * point is that the plan and the week the client is having stay the same
+ * thing. It writes onto the two dates only — a session moved this week is not
+ * a decision about every Monday from now on.
+ */
+export async function decideDaySwap(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "");
+  const approve = formData.get("decision") === "approve";
+  if (!id) return;
+
+  const supabase = await createClient();
+  let request: SwapRequest | null = null;
+
+  if (!supabase) {
+    await writeDemoData((data) => {
+      const found = data.swapRequests.find((entry) => entry.id === id);
+      if (!found || found.status !== "pending") return;
+      found.status = approve ? "approved" : "declined";
+      found.decidedAt = new Date().toISOString();
+      request = { ...found };
+    });
+  } else {
+    const { data } = await supabase
+      .from("day_swap_requests")
+      .update({ status: approve ? "approved" : "declined", decided_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "pending")
+      .select("*")
+      .single();
+    if (data) {
+      request = {
+        id: data.id,
+        clientId: data.client_id,
+        fromDate: data.from_date,
+        toDate: data.to_date,
+        title: data.title ?? null,
+        reason: data.reason ?? null,
+        status: data.status,
+        createdAt: data.created_at,
+        decidedAt: data.decided_at ?? null,
+      };
+    }
+  }
+
+  if (approve && request) {
+    const moved = request as SwapRequest;
+    const block = await getPlanBlock(moved.clientId);
+    const now = today();
+    const toIndex = block ? dayIndexFor(block, moved.toDate) : null;
+    const fromIndex = block ? dayIndexFor(block, moved.fromDate) : null;
+
+    if (block && toIndex !== null && moved.toDate >= now) {
+      const source = await getPlanDay(block, moved.fromDate, "workout");
+      await writeRevision(block.id, toIndex, "workout", moved.toDate, moved.toDate, toWritable(source));
+
+      // The day it came from becomes a rest day. Left alone it would still
+      // carry the session, and the client would have been given two.
+      if (fromIndex !== null && moved.fromDate >= now) {
+        await writeRevision(block.id, fromIndex, "workout", moved.fromDate, moved.fromDate, {
+          ...toWritable(null),
+          isRest: true,
+        });
+      }
+    }
+  }
+
+  refresh();
 }
 
 /**

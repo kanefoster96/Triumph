@@ -3,13 +3,16 @@ import {
   commentsFor,
   getComments,
   getCurrentProfile,
+  getSwapRequests,
   getWorkoutFor,
   getWorkouts,
+  shiftDate,
   today,
 } from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { ArrowRight, Clock } from "lucide-react";
 import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
+import { MoveWorkout } from "@/components/members/MoveWorkout";
 import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
@@ -24,12 +27,30 @@ export default async function WorkoutsPage() {
   const date = today();
   // Today comes through the resolver, so a day the plan generates shows up
   // before it has been started; the history list is what actually happened.
-  const [workouts, comments, todays] = await Promise.all([
+  const [workouts, comments, todays, swaps] = await Promise.all([
     getWorkouts(profile.id),
     getComments(profile.id),
     getWorkoutFor(profile.id, date),
+    getSwapRequests(profile.id),
   ]);
   const past = workouts.filter((w) => w.scheduledFor !== date);
+
+  // The next six days, as days rather than dates — "Thursday" is how somebody
+  // asks to move a session, not "2026-08-20".
+  const moveOptions = Array.from({ length: 6 }, (_, offset) => {
+    const on = shiftDate(date, offset + 1);
+    return {
+      date: on,
+      label: new Date(`${on}T12:00:00Z`).toLocaleDateString("en-GB", {
+        weekday: "long",
+        timeZone: "UTC",
+      }),
+    };
+  });
+  const pendingSwap = swaps.find((swap) => swap.fromDate === date && swap.status === "pending") ?? null;
+  const answered = swaps.find(
+    (swap) => swap.status !== "pending" && swap.decidedAt && swap.fromDate >= shiftDate(date, -7),
+  );
 
   return (
     <>
@@ -97,6 +118,30 @@ export default async function WorkoutsPage() {
           ) : (
             <EmptyState>No workout scheduled for today — enjoy the rest day.</EmptyState>
           )}
+
+          {/* Only when there is something to move, and only before it has been
+              started: a session with sets already logged against it belongs to
+              today whatever the plan says. */}
+          {todays && !todays.completedAt && todays.items.every((item) => !item.done) ? (
+            <div className="mt-5 border-t border-line pt-5">
+              <MoveWorkout
+                fromDate={date}
+                title={todays.title}
+                options={moveOptions}
+                pending={pendingSwap}
+              />
+            </div>
+          ) : null}
+
+          {answered && !pendingSwap ? (
+            <p
+              className={`mt-4 text-sm ${answered.status === "approved" ? "text-success" : "text-muted"}`}
+            >
+              {answered.status === "approved"
+                ? `Dean moved ${answered.title ?? "your session"} to ${new Date(`${answered.toDate}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" })}.`
+                : `Dean would rather keep ${answered.title ?? "that session"} where it is.`}
+            </p>
+          ) : null}
         </Panel>
 
         <Panel title="Past workouts">

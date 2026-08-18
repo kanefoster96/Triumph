@@ -48,6 +48,7 @@ import type {
   ShoppingLine,
   ShoppingList,
   SessionStatus,
+  SwapRequest,
   WeightEntry,
   Workout,
 } from "./types";
@@ -1587,6 +1588,71 @@ export function weekDiff(current: PlanDay | null, previous: PlanDay | null): Map
 
   return out;
 }
+
+/**
+ * Day swap requests — a client's own, or everyone's still waiting.
+ *
+ * Read from the same place either way so the client's "asked Dean" and Dean's
+ * inbox can never disagree about what was asked.
+ */
+export async function getSwapRequests(clientId: string): Promise<SwapRequest[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { swapRequests } = await demoData();
+    return swapRequests
+      .filter((request) => request.clientId === clientId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const { data } = await supabase
+    .from("day_swap_requests")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toSwapRequest);
+}
+
+export async function getPendingSwaps(): Promise<Array<SwapRequest & { clientName: string; avatarUrl: string | null }>> {
+  const supabase = await createClient();
+  const clients = await getClients();
+  const byId = new Map(clients.map((client) => [client.id, client]));
+  const name = (request: SwapRequest) => ({
+    ...request,
+    clientName: byId.get(request.clientId)?.fullName ?? "Client",
+    avatarUrl: byId.get(request.clientId)?.avatarUrl ?? null,
+  });
+
+  if (!supabase) {
+    const { swapRequests } = await demoData();
+    return swapRequests
+      .filter((request) => request.status === "pending")
+      .sort((a, b) => a.fromDate.localeCompare(b.fromDate))
+      .map(name);
+  }
+
+  const { data } = await supabase
+    .from("day_swap_requests")
+    .select("*")
+    .eq("status", "pending")
+    .order("from_date", { ascending: true });
+  return (data ?? []).map(toSwapRequest).map(name);
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase row */
+function toSwapRequest(row: any): SwapRequest {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    fromDate: row.from_date,
+    toDate: row.to_date,
+    title: row.title ?? null,
+    reason: row.reason ?? null,
+    status: row.status,
+    createdAt: row.created_at,
+    decidedAt: row.decided_at ?? null,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * Everyone's week, in one grid.

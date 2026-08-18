@@ -457,6 +457,33 @@ export type EditScope = "date" | "weekday";
 // Logged training
 // ---------------------------------------------------------------------------
 
+/**
+ * A client asking to train on a different day.
+ *
+ * Life moves a session more often than a coach does — a shift swapped, a
+ * child off school. The alternative was a note in a comment thread that Dean
+ * had to read, understand and then act on by hand, which meant the plan and
+ * the week the client was actually having drifted apart.
+ *
+ * A request, not a change: the plan is coaching and it stays Dean's. He
+ * approves or declines in one tap, and only an approval moves anything.
+ */
+export type SwapStatus = "pending" | "approved" | "declined";
+
+export interface SwapRequest {
+  id: string;
+  clientId: string;
+  /** The date the session is on now, and where they are asking for it. */
+  fromDate: string;
+  toDate: string;
+  /** What was on that day when they asked, so the request still reads later. */
+  title: string | null;
+  reason: string | null;
+  status: SwapStatus;
+  createdAt: string;
+  decidedAt: string | null;
+}
+
 export interface WorkoutSet {
   id: string;
   position: number;

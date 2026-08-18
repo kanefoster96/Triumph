@@ -12,6 +12,7 @@ import type {
   MealLog,
   Profile,
   ShoppingList,
+  SwapRequest,
   WeightEntry,
 } from "./types";
 
@@ -101,6 +102,8 @@ export interface DemoData {
   planBlocks: PlanBlock[];
   /** Ingredient swaps Dean has made for a client. */
   mealSwaps: IngredientSwap[];
+  /** Clients asking to move a session to another day. */
+  swapRequests: SwapRequest[];
   /** Photos Dean has set, by client id. */
   avatars: Record<string, string>;
 }
@@ -122,6 +125,7 @@ function empty(): DemoData {
     deletedFoodLogs: [],
     planBlocks: [],
     mealSwaps: [],
+    swapRequests: [],
     avatars: {},
   };
 }
