@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { listClients } from "@/lib/members/service";
 import { EmptyState, ScreenTitle } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
+import { Avatar } from "@/components/members/Avatar";
 import { relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,18 +21,30 @@ export default async function AdminClientsPage() {
       {clients.length === 0 ? (
         <EmptyState>No clients yet.</EmptyState>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {/* grid-cols-1 rather than a bare `grid`: an auto track is sized by
+              the card's min-content, and the truncating name line is nowrap,
+              so the track grew past the viewport once the avatar took up its
+              44px. minmax(0,1fr) plus min-w-0 lets the card shrink instead. */}
           {clients.map((client) => (
-            <li key={client.profile.id}>
+            <li key={client.profile.id} className="min-w-0">
               <Link
                 href={`/admin/clients/${client.profile.id}`}
                 className="group flex h-full flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-5 transition-colors hover:border-accent/40"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="flex items-start gap-3">
+                  <Avatar
+                    name={client.profile.fullName}
+                    src={client.profile.avatarUrl}
+                    size="md"
+                  />
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{client.profile.fullName}</p>
                     {client.profile.goal ? (
-                      <p className="mt-1 truncate text-sm text-muted">{client.profile.goal}</p>
+                      /* Wraps rather than truncating: the avatar takes width
+                         off this line, and the goal is the one thing on the
+                         card that says who Dean is about to open. */
+                      <p className="mt-1 line-clamp-2 text-sm text-muted">{client.profile.goal}</p>
                     ) : null}
                   </div>
                   {client.profile.status === "paused" ? (

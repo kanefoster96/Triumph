@@ -35,6 +35,11 @@ export interface Profile {
   goal: string | null;
   startedOn: string;
   foodMode: FoodMode;
+  /**
+   * A photo, when there is one. Null falls back to initials — which is most of
+   * the time, and has to look deliberate rather than like a missing image.
+   */
+  avatarUrl: string | null;
 }
 
 /**

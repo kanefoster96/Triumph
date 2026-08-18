@@ -12,6 +12,7 @@ import {
 import type { CheckInSummary } from "@/lib/members/types";
 import { recordCheckIn } from "@/lib/members/actions";
 import { commentsFor } from "@/lib/members/service";
+import { Avatar } from "./Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { CommentThread } from "./Comments";
 import { field, fieldLabel, submitButton } from "./ui";
@@ -128,8 +129,11 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
       id={`client-${id}`}
       className="scroll-mt-24 rounded-[var(--radius-sheet)] border border-line bg-surface"
     >
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
-        <div className="min-w-0">
+      <header className="flex flex-wrap items-start gap-3 border-b border-line px-5 py-4">
+        {/* Thirty cards read as a list of names without this — the face is
+            what tells him whose week he is about to judge. */}
+        <Avatar name={profile.fullName} src={profile.avatarUrl} size="md" />
+        <div className="min-w-0 flex-1">
           <Link href={`/admin/clients/${id}`} className="text-base font-semibold hover:text-accent">
             {profile.fullName}
           </Link>

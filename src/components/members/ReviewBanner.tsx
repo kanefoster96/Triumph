@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, MessageSquareText } from "lucide-react";
 import type { ClientNote } from "@/lib/members/types";
 import { relativeDate } from "@/lib/utils";
+import { Avatar } from "./Avatar";
 
 /**
  * The reason Dean opened this page, kept in front of him while he works.
@@ -15,14 +16,27 @@ import { relativeDate } from "@/lib/utils";
  * Only shown when he arrived from the review. On its own the food tab is not
  * about the notes and this would just be clutter.
  */
-export function ReviewBanner({ clientId, notes }: { clientId: string; notes: ClientNote[] }) {
+export function ReviewBanner({
+  clientId,
+  clientName,
+  avatarUrl,
+  notes,
+}: {
+  clientId: string;
+  clientName: string;
+  avatarUrl?: string | null;
+  notes: ClientNote[];
+}) {
   return (
     <div className="mb-5 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-accent uppercase">
-          <MessageSquareText className="h-3.5 w-3.5" />
-          Why you&rsquo;re here
-        </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar name={clientName} src={avatarUrl} size="sm" />
+          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+            <MessageSquareText className="h-3.5 w-3.5" />
+            What {clientName.split(" ")[0]} said
+          </p>
+        </div>
         <Link
           href={`/admin/checkin#client-${clientId}`}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition-colors hover:text-text"

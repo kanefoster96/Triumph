@@ -13,7 +13,16 @@ import {
   sumCalories,
   today,
 } from "@/lib/members/service";
-import { CalorieBar, EmptyState, Panel } from "@/components/members/ui";
+import {
+  CalorieBar,
+  EmptyState,
+  Panel,
+  field,
+  fieldLabel,
+  submitButton,
+} from "@/components/members/ui";
+import { Avatar } from "@/components/members/Avatar";
+import { setAvatar } from "@/lib/members/actions";
 import { Chip } from "@/components/ui/Chip";
 import { relativeDate } from "@/lib/utils";
 
@@ -178,6 +187,33 @@ export default async function AdminClientOverviewPage({
       </Panel>
 
       <div className="md:col-span-2">
+        <Panel title="Photo">
+          <form action={setAvatar} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="clientId" value={profile.id} />
+            <Avatar name={profile.fullName} src={profile.avatarUrl} size="lg" />
+            <div className="min-w-0 flex-1">
+              <label className={fieldLabel} htmlFor="avatar-url">
+                Link to a photo
+              </label>
+              <input
+                id="avatar-url"
+                className={field}
+                name="avatarUrl"
+                type="url"
+                defaultValue={profile.avatarUrl ?? ""}
+                placeholder="https://…"
+              />
+            </div>
+            <button type="submit" className={submitButton}>
+              Save
+            </button>
+          </form>
+          <p className="mt-3 text-xs text-faint">
+            A link for now — uploads arrive with Supabase Storage. Leave it empty and they show as
+            their initials, which is the normal case and meant to look that way.
+          </p>
+        </Panel>
+
         <Panel title="Recent notes from this client">
           {recentNotes.length === 0 ? (
             <EmptyState>No notes yet.</EmptyState>

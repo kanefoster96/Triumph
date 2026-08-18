@@ -1951,6 +1951,40 @@ export async function removeSwap(formData: FormData) {
 }
 
 /**
+ * Set (or clear) a client's photo.
+ *
+ * A URL rather than an upload: Supabase Storage is not wired up, and a field
+ * that takes a link works today and becomes a storage path later without
+ * anything above it changing. Blank clears it back to initials.
+ */
+export async function setAvatar(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!clientId) return;
+
+  const raw = String(formData.get("avatarUrl") ?? "").trim();
+  // Only http(s): a data: or javascript: URL has no business in an img src.
+  // The length cap is about the demo cookie rather than the URL — a handful of
+  // signed links would be most of the budget, and truncating one would leave a
+  // broken image, so an over-long paste is refused outright.
+  const avatarUrl = raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoData((data) => {
+      if (avatarUrl) data.avatars[clientId] = avatarUrl;
+      else delete data.avatars[clientId];
+    });
+  } else {
+    await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", clientId);
+  }
+
+  refresh();
+}
+
+/**
  * Who plans this client's food. Dean's call, and only Dean's.
  *
  * Switching mode changes who may edit from here on and nothing else. The plan

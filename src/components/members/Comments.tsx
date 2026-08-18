@@ -1,7 +1,7 @@
-import { MessageCircle } from "lucide-react";
 import { addComment } from "@/lib/members/actions";
 import type { Comment, CommentTarget } from "@/lib/members/types";
 import { relativeDate } from "@/lib/utils";
+import { Avatar } from "./Avatar";
 
 /**
  * Dean's comments on a client's note. Rendered under whatever they relate to —
@@ -31,7 +31,9 @@ export function CommentThread({
         <ul className="space-y-3">
           {comments.map((comment) => (
             <li key={comment.id} className="flex gap-3 rounded-2xl bg-raised p-4">
-              <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+              {/* Who said it, rather than a generic speech bubble on every
+                  line — a thread is two people and it should look like it. */}
+              <Avatar name={comment.authorName} size="sm" />
               <div className="min-w-0">
                 <p className="text-xs text-faint">
                   <span className="font-semibold text-text">{comment.authorName}</span> ·{" "}

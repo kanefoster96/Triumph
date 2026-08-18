@@ -4,6 +4,7 @@ import { getCurrentProfile, getDayProgress, isDemoMode, today } from "@/lib/memb
 import { MemberTabBar, MemberTabsInline } from "@/components/members/MemberTabBar";
 import { DemoBanner } from "@/components/members/DemoBanner";
 import { Logo } from "@/components/layout/Logo";
+import { Avatar } from "@/components/members/Avatar";
 
 /** Per-client and private, so never cached. */
 export const dynamic = "force-dynamic";
@@ -24,13 +25,18 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <Logo href="/app" />
           <MemberTabsInline progress={progress} />
-          <Link
-            href="/logout"
-            className="text-sm text-muted transition-colors hover:text-text"
-            prefetch={false}
-          >
-            Sign out
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/logout"
+              className="text-sm text-muted transition-colors hover:text-text"
+              prefetch={false}
+            >
+              Sign out
+            </Link>
+            {/* Their own face, ringed — small, but it is their app and it
+                should look like it belongs to them. */}
+            <Avatar name={profile.fullName} src={profile.avatarUrl} size="sm" ring />
+          </div>
         </div>
       </header>
 

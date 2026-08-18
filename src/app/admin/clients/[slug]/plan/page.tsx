@@ -48,7 +48,12 @@ export default async function AdminClientPlanPage({
   if (!block) {
     return (
       <>
-        {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
+        {fromReview ? <ReviewBanner
+            clientId={profile.id}
+            clientName={profile.fullName}
+            avatarUrl={profile.avatarUrl}
+            notes={reviewNotes}
+          /> : null}
         <Panel title="No repeating plan yet">
         <form action={createPlanBlock} className="space-y-4">
           <input type="hidden" name="clientId" value={profile.id} />
@@ -99,7 +104,12 @@ export default async function AdminClientPlanPage({
 
   return (
     <div className="space-y-5">
-      {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
+      {fromReview ? <ReviewBanner
+            clientId={profile.id}
+            clientName={profile.fullName}
+            avatarUrl={profile.avatarUrl}
+            notes={reviewNotes}
+          /> : null}
       <ScreenTitle
         title="Plan"
         subtitle={`A ${block.cycleWeeks === 2 ? "two week" : "one week"} block, repeating from ${block.startsOn}. Edit a day and choose how far the change reaches.`}

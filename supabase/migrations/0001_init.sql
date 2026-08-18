@@ -27,6 +27,10 @@ create table public.profiles (
   goal        text,
   started_on  date not null default current_date,
   food_mode   public.food_mode not null default 'coach',
+  -- A photo if there is one. Storage is not wired up yet, so this holds a URL
+  -- Dean pastes in; swapping it for a Supabase Storage path changes nothing
+  -- above it.
+  avatar_url  text,
   created_at  timestamptz not null default now()
 );
 

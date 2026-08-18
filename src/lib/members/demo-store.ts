@@ -101,6 +101,8 @@ export interface DemoData {
   planBlocks: PlanBlock[];
   /** Ingredient swaps Dean has made for a client. */
   mealSwaps: IngredientSwap[];
+  /** Photos Dean has set, by client id. */
+  avatars: Record<string, string>;
 }
 
 function empty(): DemoData {
@@ -120,6 +122,7 @@ function empty(): DemoData {
     deletedFoodLogs: [],
     planBlocks: [],
     mealSwaps: [],
+    avatars: {},
   };
 }
 
@@ -252,11 +255,17 @@ export async function demoStoreIsFull(): Promise<boolean> {
   return wireSize(JSON.stringify(await demoData())) > MAX_BYTES * 0.9;
 }
 
-/** A seeded profile with any mode Dean has since switched it to. */
+/** A seeded profile with anything Dean has since changed on it. */
 export async function withFoodMode<T extends Profile>(profile: T): Promise<T> {
-  const { foodModes } = await demoData();
+  const { foodModes, avatars } = await demoData();
   const mode = foodModes[profile.id];
-  return mode ? { ...profile, foodMode: mode } : profile;
+  const avatarUrl = avatars[profile.id];
+  if (!mode && !avatarUrl) return profile;
+  return {
+    ...profile,
+    ...(mode ? { foodMode: mode } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
+  };
 }
 
 /**

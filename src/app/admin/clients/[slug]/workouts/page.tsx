@@ -95,7 +95,12 @@ export default async function AdminClientWorkoutsPage({
 
   return (
     <>
-      {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
+      {fromReview ? <ReviewBanner
+            clientId={profile.id}
+            clientName={profile.fullName}
+            avatarUrl={profile.avatarUrl}
+            notes={reviewNotes}
+          /> : null}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
       <div className="space-y-5">
         <Panel title="Calendar">

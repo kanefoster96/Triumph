@@ -102,7 +102,12 @@ export default async function AdminClientFoodPage({
 
   return (
     <div className="space-y-5">
-      {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
+      {fromReview ? <ReviewBanner
+            clientId={profile.id}
+            clientName={profile.fullName}
+            avatarUrl={profile.avatarUrl}
+            notes={reviewNotes}
+          /> : null}
       {/* Who holds the pen. Switching it never touches the plan already
           written — it only changes who may edit from here on. */}
       <Panel title="Who plans the food">

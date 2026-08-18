@@ -5,6 +5,7 @@ import { deleteSession, saveSession } from "@/lib/members/actions";
 import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { MonthCalendar, resolveCalendarParams, type DayMarker } from "@/components/members/MonthCalendar";
 import { Chip } from "@/components/ui/Chip";
+import { Avatar } from "@/components/members/Avatar";
 import { site } from "@/lib/data/site";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
                         <span className="font-display text-lg font-bold text-accent tabular-nums">
                           {timeOf(session.startsAt)}
                         </span>
+                        <Avatar name={session.clientName} size="sm" />
                         <div>
                           <Link
                             href={`/admin/clients/${session.clientId}`}

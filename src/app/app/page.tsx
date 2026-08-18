@@ -4,7 +4,6 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCheck,
-  ClipboardCheck,
   Dumbbell,
   LineChart,
   MessageCircle,
@@ -23,6 +22,8 @@ import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
 import { Button } from "@/components/ui/Button";
 import { FinishAnyway } from "@/components/members/FinishAnyway";
+import { Avatar } from "@/components/members/Avatar";
+import { coach } from "@/lib/data/coach";
 import { cn, relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,14 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <ScreenTitle title={`Morning, ${firstName}`} subtitle={profile.goal ?? undefined} />
+      {/* Their face beside their name — the one place in the app that is
+          purely theirs rather than a task waiting to be done. */}
+      <div className="mb-2 flex items-center gap-4">
+        <Avatar name={profile.fullName} src={profile.avatarUrl} size="lg" ring />
+        <div className="min-w-0 flex-1">
+          <ScreenTitle title={`Morning, ${firstName}`} subtitle={profile.goal ?? undefined} />
+        </div>
+      </div>
 
       {/* Three states, one shown: closed out, ready to close, or still asking
           for something — and in that last case it can still be closed. */}
@@ -212,9 +220,10 @@ export default async function DashboardPage() {
       {summary.latestCheckIn ? (
         <div className="mb-6 rounded-[var(--radius-sheet)] border border-line bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="inline-flex items-center gap-2 text-base font-semibold">
-              <ClipboardCheck className="h-4 w-4 text-accent" />
-              Your check-in from Dean
+            <h2 className="inline-flex items-center gap-3 text-base font-semibold">
+              {/* From a person, not from the system. */}
+              <Avatar name={coach.name} size="sm" />
+              Your check-in from {coach.name.split(" ")[0]}
             </h2>
             <span className="text-xs text-faint">
               {relativeDate(summary.latestCheckIn.createdAt.slice(0, 10))} ·{" "}

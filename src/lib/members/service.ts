@@ -87,6 +87,7 @@ function toProfile(row: any): Profile {
     goal: row.goal ?? null,
     startedOn: row.started_on,
     foodMode: row.food_mode ?? "coach",
+    avatarUrl: row.avatar_url ?? null,
   };
 }
 
