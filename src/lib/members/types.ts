@@ -438,6 +438,36 @@ export interface PlanDay {
   meals: PlanMealSlot[];
 }
 
+/**
+ * One ingredient swapped out for a client.
+ *
+ * The meal library is shared, so editing a meal there changes it for everyone.
+ * A client who does not want salmon needs the swap to belong to *them* — not
+ * to the recipe, and not to a single plan revision, which is rewritten every
+ * time the day is saved and would take the swap with it.
+ *
+ * Matched on the ingredient's name rather than its id: library ingredients are
+ * re-created whenever a meal is edited, so an id would quietly stop matching
+ * while looking perfectly fine.
+ */
+export interface IngredientSwap {
+  id: string;
+  clientId: string;
+  /** The meal it applies to, or null for every meal that uses the ingredient. */
+  mealId: string | null;
+  /** Ingredient name being replaced, matched case-insensitively. */
+  replaces: string;
+  /** What to use instead. Null removes the ingredient outright. */
+  name: string | null;
+  /** Per single serving, like every other amount. Null keeps the original. */
+  quantity: number | null;
+  unit: string | null;
+  /** Applies from this date on, unless `onlyOn` pins it to one day. */
+  effectiveFrom: string;
+  onlyOn: string | null;
+  createdAt: string;
+}
+
 /** How far an edit reaches. */
 export type EditScope = "date" | "weekday";
 

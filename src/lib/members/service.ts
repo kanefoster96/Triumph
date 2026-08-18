@@ -22,6 +22,7 @@ import { demoData, demoWeights, unpackRevision, withFoodMode } from "./demo-stor
 import type {
   CheckIn,
   DaySubmission,
+  IngredientSwap,
   CheckInSummary,
   ClientNote,
   ClientOverview,
@@ -1264,6 +1265,93 @@ export async function getPlanBlock(clientId: string): Promise<PlanBlock | null> 
 }
 
 /** Hydrate a revision's exercises and meals from the libraries. */
+/**
+ * The swaps in force for a client on a date.
+ *
+ * A swap pinned to a single date beats a standing one, the same way a one-off
+ * plan revision beats the repeating week — so "just this Tuesday, cod" does
+ * not have to undo "salmon is out from now on".
+ */
+export async function getMealSwaps(clientId: string, date: string): Promise<IngredientSwap[]> {
+  const supabase = await createClient();
+
+  let all: IngredientSwap[];
+  if (!supabase) {
+    const { mealSwaps } = await demoData();
+    all = mealSwaps.filter((s) => s.clientId === clientId);
+  } else {
+    const { data } = await supabase
+      .from("client_meal_swaps")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: true });
+    all = (data ?? []).map((row) => ({
+      id: row.id,
+      clientId: row.client_id,
+      mealId: row.meal_id ?? null,
+      replaces: row.replaces,
+      name: row.name ?? null,
+      quantity: row.quantity === null ? null : Number(row.quantity),
+      unit: row.unit ?? null,
+      effectiveFrom: row.effective_from,
+      onlyOn: row.only_on ?? null,
+      createdAt: row.created_at,
+    }));
+  }
+
+  const inForce = all.filter((s) =>
+    s.onlyOn ? s.onlyOn === date : s.effectiveFrom <= date,
+  );
+
+  // One swap per ingredient per meal: a date-pinned one wins, then the newest.
+  const chosen = new Map<string, IngredientSwap>();
+  for (const swap of inForce) {
+    const key = `${swap.mealId ?? "*"}:${swap.replaces.trim().toLowerCase()}`;
+    const held = chosen.get(key);
+    if (!held || (swap.onlyOn && !held.onlyOn) || (Boolean(swap.onlyOn) === Boolean(held.onlyOn) && swap.createdAt >= held.createdAt)) {
+      chosen.set(key, swap);
+    }
+  }
+  return [...chosen.values()];
+}
+
+/**
+ * A meal as this client actually gets it.
+ *
+ * Applied where a meal is resolved for a person and a date, so the plan
+ * editor, their app, the method page and the shopping list all agree without
+ * any of them knowing swaps exist. A swap naming a meal beats a blanket one,
+ * because "in this meal, use cod" is more specific than "no salmon anywhere".
+ */
+export function applySwaps(meal: Meal, swaps: IngredientSwap[]): Meal {
+  const relevant = swaps.filter((s) => s.mealId === null || s.mealId === meal.id);
+  if (relevant.length === 0) return meal;
+
+  const forName = (name: string) => {
+    const key = name.trim().toLowerCase();
+    const matches = relevant.filter((s) => s.replaces.trim().toLowerCase() === key);
+    return matches.find((s) => s.mealId === meal.id) ?? matches[0] ?? null;
+  };
+
+  const ingredients = meal.ingredients.flatMap((ingredient) => {
+    const swap = forName(ingredient.name);
+    if (!swap) return [ingredient];
+    if (swap.name === null) return [];
+    return [
+      {
+        ...ingredient,
+        name: swap.name,
+        quantity: swap.quantity ?? ingredient.quantity,
+        unit: swap.unit ?? ingredient.unit,
+      },
+    ];
+  });
+
+  const changed = ingredients.length !== meal.ingredients.length
+    || ingredients.some((ing, i) => ing.name !== meal.ingredients[i]?.name);
+  return changed ? { ...meal, ingredients } : meal;
+}
+
 function buildPlanDay(
   revision: RawRevision | null,
   dayIndex: number,
@@ -1386,14 +1474,19 @@ export async function getPlanDay(block: PlanBlock, date: string, kind: PlanKind)
   const dayIndex = dayIndexFor(block, date);
   if (dayIndex === null) return null;
 
-  const [revisions, exercises, meals] = await Promise.all([
+  const [revisions, exercises, meals, swaps] = await Promise.all([
     loadRevisions(block.id),
     getExercises(true),
     getMeals(true),
+    getMealSwaps(block.clientId, date),
   ]);
 
   const { revision, oneOff } = pickRevision(revisions, dayIndex, kind, date);
-  return buildPlanDay(revision, dayIndex, kind, exercises, meals, oneOff);
+  // Swapped here, at the one seam where a meal meets a person and a date, so
+  // the plan editor, their app, the method page and the shopping list all
+  // agree without any of them having to know swaps exist.
+  const forClient = swaps.length > 0 ? meals.map((meal) => applySwaps(meal, swaps)) : meals;
+  return buildPlanDay(revision, dayIndex, kind, exercises, forClient, oneOff);
 }
 
 /**
@@ -1604,9 +1697,14 @@ export async function getShoppingList(clientId: string, from: string, days: numb
     if (dayIndex === null) continue;
 
     const { revision } = pickRevision(revisions, dayIndex, "food", date);
+    // Swaps are per date, so they are read inside the loop — a list that spans
+    // a change should buy cod for the days after it and salmon for the days
+    // before, not one or the other for the whole trip.
+    const swaps = await getMealSwaps(clientId, date);
     for (const slot of revision?.meals ?? []) {
-      const meal = byMeal.get(slot.mealId);
-      if (!meal) continue;
+      const library = byMeal.get(slot.mealId);
+      if (!library) continue;
+      const meal = applySwaps(library, swaps);
 
       for (const ingredient of scaleMeal(meal, slot.multiplier).ingredients) {
         const key = `${ingredient.name.trim().toLowerCase()}|${ingredient.unit ?? ""}`;

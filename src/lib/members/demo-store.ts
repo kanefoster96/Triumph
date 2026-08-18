@@ -8,6 +8,7 @@ import type {
   FoodDayFeedback,
   FoodLog,
   FoodMode,
+  IngredientSwap,
   MealLog,
   Profile,
   ShoppingList,
@@ -98,6 +99,8 @@ export interface DemoData {
    * nothing, which is exactly how it failed.
    */
   planBlocks: PlanBlock[];
+  /** Ingredient swaps Dean has made for a client. */
+  mealSwaps: IngredientSwap[];
 }
 
 function empty(): DemoData {
@@ -116,6 +119,7 @@ function empty(): DemoData {
     foodLogs: [],
     deletedFoodLogs: [],
     planBlocks: [],
+    mealSwaps: [],
   };
 }
 

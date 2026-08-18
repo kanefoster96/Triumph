@@ -8,6 +8,7 @@ import {
   getDayPlans,
   getFoodLogs,
   getFoodPlan,
+  getMealSwaps,
   getMeals,
   getPlanBlock,
   getPlanDay,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/members/service";
 import { assignDayPlan, savePlanDay, saveFoodPlan, setFoodMode } from "@/lib/members/actions";
 import { MealPlanner } from "@/components/members/PlanDayEditor";
+import { MealBreakdown } from "@/components/members/MealBreakdown";
 import { cn } from "@/lib/utils";
 import { PlanAssigner } from "@/components/members/PlanAssigner";
 import {
@@ -77,6 +79,10 @@ export default async function AdminClientFoodPage({
       getPlanBlock(profile.id),
       getMeals(),
     ]);
+
+  const swaps = await getMealSwaps(profile.id, selected);
+  // The unswapped recipes, so the breakdown can name what a swap replaced.
+  const library = new Map(meals.map((meal) => [meal.id, meal]));
 
   const planDay = block ? await getPlanDay(block, selected, "food") : null;
   const dayIndex = block ? dayIndexFor(block, selected) : null;
@@ -188,6 +194,31 @@ export default async function AdminClientFoodPage({
           )}
         </div>
       </Panel>
+
+      {/* What the day is actually made of. Picking a meal and picking a portion
+          was all Dean could do before; changing one ingredient meant editing
+          the shared recipe, which is everyone else's dinner too. */}
+      {planDay && planDay.meals.length > 0 ? (
+        <Panel
+          title={`What's in ${longLabel(selected)}`}
+          action={
+            swaps.length > 0 ? (
+              <span className="text-xs font-semibold text-accent">
+                {swaps.length} swap{swaps.length === 1 ? "" : "s"} in place
+              </span>
+            ) : null
+          }
+        >
+          <MealBreakdown
+            clientId={profile.id}
+            date={selected}
+            dateLabel={longLabel(selected)}
+            slots={planDay.meals}
+            library={library}
+            swaps={swaps}
+          />
+        </Panel>
+      ) : null}
 
       <Panel title="Today">
         <CalorieBar total={sumCalories(todaysLogs)} target={plan?.calorieTarget ?? null} />

@@ -1858,6 +1858,95 @@ export async function savePlanDay(formData: FormData) {
 }
 
 /**
+ * Swap an ingredient out for one client.
+ *
+ * The alternative Dean had was to edit the meal in the library, which changes
+ * it for everyone, or to replace the whole meal and lose the rest of it. This
+ * changes one line of one recipe, for one person.
+ *
+ * Scope is the same idea as a plan edit and deliberately the same words: a
+ * date-pinned swap changes that day alone, anything else applies from the date
+ * onwards. Nothing is ever backdated, so a week they have already shopped and
+ * cooked for stays as it was.
+ */
+export async function swapIngredient(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  const replaces = String(formData.get("replaces") ?? "").trim();
+  if (!clientId || !replaces) return;
+
+  // "Everywhere" is a real answer to "they do not like salmon", so an empty
+  // meal id is meaningful rather than missing.
+  const mealId = String(formData.get("mealId") ?? "").trim() || null;
+  const name = String(formData.get("name") ?? "").trim() || null;
+
+  const number = (key: string) => {
+    const value = Number(formData.get(key));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  };
+  const quantity = number("quantity");
+  const unit = String(formData.get("unit") ?? "").trim() || null;
+
+  const requested = String(formData.get("from") ?? today());
+  const from = requested < today() ? today() : requested;
+  const onlyOn = formData.get("scope") === "date" ? from : null;
+
+  const supabase = await createClient();
+
+  if (!supabase) {
+    await writeDemoData((data) => {
+      data.mealSwaps.push({
+        id: crypto.randomUUID(),
+        clientId,
+        mealId,
+        replaces,
+        name,
+        quantity,
+        unit,
+        effectiveFrom: from,
+        onlyOn,
+        createdAt: new Date().toISOString(),
+      });
+    });
+  } else {
+    await supabase.from("client_meal_swaps").insert({
+      client_id: clientId,
+      meal_id: mealId,
+      replaces,
+      name,
+      quantity,
+      unit,
+      effective_from: from,
+      only_on: onlyOn,
+    });
+  }
+
+  refresh();
+}
+
+/** Undo a swap. The meal goes back to whatever the library says. */
+export async function removeSwap(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const id = String(formData.get("swapId") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoData((data) => {
+      data.mealSwaps = data.mealSwaps.filter((s) => s.id !== id);
+    });
+  } else {
+    await supabase.from("client_meal_swaps").delete().eq("id", id);
+  }
+
+  refresh();
+}
+
+/**
  * Who plans this client's food. Dean's call, and only Dean's.
  *
  * Switching mode changes who may edit from here on and nothing else. The plan

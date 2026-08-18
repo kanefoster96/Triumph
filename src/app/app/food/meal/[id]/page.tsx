@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ChefHat } from "lucide-react";
-import { getAssignedPortion, getCurrentProfile, getMeal, scaleMeal, today } from "@/lib/members/service";
+import {
+  applySwaps,
+  getAssignedPortion,
+  getCurrentProfile,
+  getMeal,
+  getMealSwaps,
+  scaleMeal,
+  today,
+} from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { formatAmount } from "@/lib/members/types";
 import { MacroRing } from "@/components/members/MacroRing";
@@ -16,8 +24,15 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
   const { id } = await params;
   const query = await searchParams;
   const date = typeof query.date === "string" ? query.date : today();
-  const [meal, assigned] = await Promise.all([getMeal(id), getAssignedPortion(profile.id, date, id)]);
-  if (!meal) notFound();
+  const [library, assigned, swaps] = await Promise.all([
+    getMeal(id),
+    getAssignedPortion(profile.id, date, id),
+    getMealSwaps(profile.id, date),
+  ]);
+  if (!library) notFound();
+  // This page reads the library directly rather than through the plan, so the
+  // client's own swaps have to be applied here as well.
+  const meal = applySwaps(library, swaps);
 
   /*
    * This page is the meal, not the arithmetic behind it.

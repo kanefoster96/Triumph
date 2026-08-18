@@ -85,6 +85,15 @@ looks exactly like a save that worked and then vanished. Plan revisions are
 stored packed (`packRevision`), with ids rebuilt deterministically on read so
 a workout tick keyed to an item id is never orphaned.
 
+The meal library is shared, so a recipe edit reaches every client — which is
+why a client who does not want salmon gets an **ingredient swap** instead
+(`client_meal_swaps`), matched on the ingredient's name and scoped exactly like
+a plan edit: one date, or that date onwards. Swaps are applied in `getPlanDay`,
+the single seam where a meal meets a person and a date, so the plan editor,
+their app, the method page and the shopping list all agree. Anything that reads
+a meal outside that seam — the meal detail page, the shopping list builder —
+has to call `applySwaps` itself.
+
 Scaled meal amounts are presented to the client as the meal, full stop. No
 client-facing text may explain, justify or hint at scaling — no "multiplier",
 no "1.5×", no "base amount". Where a client is allowed to choose, it is

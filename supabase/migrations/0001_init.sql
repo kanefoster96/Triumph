@@ -470,6 +470,43 @@ create table public.plan_meal_slots (
   multiplier  numeric(3, 2) not null default 1 check (multiplier > 0)
 );
 
+-- ---------------------------------------------------------------------------
+-- Ingredient swaps
+--
+-- The meal library is shared, so correcting a recipe there reaches every
+-- client — which is the point, and exactly why it is the wrong place to record
+-- that one person does not want salmon.
+--
+-- A swap belongs to the client, not to the recipe and not to a plan revision:
+-- a revision is rewritten every time the day is saved and would take the swap
+-- with it. Scope works the same way as a plan edit — `only_on` pins it to a
+-- single date, otherwise it applies from `effective_from` onwards, so a change
+-- made for next Tuesday leaves this Tuesday alone.
+--
+-- Matched on the ingredient's name, not its id: library ingredients are
+-- deleted and re-created whenever a meal is edited, so an id would stop
+-- matching while still looking correct.
+-- ---------------------------------------------------------------------------
+
+create table public.client_meal_swaps (
+  id             uuid primary key default gen_random_uuid(),
+  client_id      uuid not null references public.profiles(id) on delete cascade,
+  -- Null means every meal that uses the ingredient: "no salmon, anywhere".
+  meal_id        uuid references public.meals(id) on delete cascade,
+  replaces       text not null,
+  -- Null removes the ingredient rather than replacing it.
+  name           text,
+  -- Per single serving, like every other amount, so a portion still scales it.
+  quantity       numeric(8, 2),
+  unit           text,
+  effective_from date not null default current_date,
+  only_on        date,
+  created_at     timestamptz not null default now()
+);
+
+create index client_meal_swaps_client_idx
+  on public.client_meal_swaps (client_id, effective_from desc);
+
 create index plan_meal_slots_revision_idx on public.plan_meal_slots (revision_id, slot, position);
 
 -- ---------------------------------------------------------------------------
@@ -643,6 +680,7 @@ alter table public.plan_day_revisions enable row level security;
 alter table public.plan_exercises     enable row level security;
 alter table public.plan_sets          enable row level security;
 alter table public.plan_meal_slots    enable row level security;
+alter table public.client_meal_swaps  enable row level security;
 alter table public.day_submissions    enable row level security;
 alter table public.shopping_lists     enable row level security;
 alter table public.shopping_list_items enable row level security;
@@ -881,6 +919,13 @@ create policy "read own plan meal slots" on public.plan_meal_slots
     )
   );
 create policy "admin manages plan meal slots" on public.plan_meal_slots
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- A swap is Dean's coaching decision, so only he writes it. The client reads
+-- their own, because it is what their meals actually say.
+create policy "read own meal swaps" on public.client_meal_swaps
+  for select using (client_id = auth.uid() or public.is_admin());
+create policy "admin manages meal swaps" on public.client_meal_swaps
   for all using (public.is_admin()) with check (public.is_admin());
 
 -- Only the client closes their own day; Dean reads it.
