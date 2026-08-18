@@ -410,7 +410,12 @@ create table public.plan_blocks (
   client_id   uuid not null references public.profiles(id) on delete cascade,
   -- 1 = the same week every week, 2 = alternating weeks.
   cycle_weeks int not null default 1 check (cycle_weeks in (1, 2)),
-  starts_on   date not null,
+  -- Always a Monday, so day 0 of the cycle is a Monday and every week of the
+  -- plan lines up with the Monday-to-Sunday week the board, the compliance
+  -- grid and the schedule all draw. A constraint rather than a convention:
+  -- anchored anywhere else the cycle silently runs a day out of step with
+  -- every screen that shows it.
+  starts_on   date not null check (extract(isodow from starts_on) = 1),
   created_at  timestamptz not null default now(),
   unique (client_id)
 );

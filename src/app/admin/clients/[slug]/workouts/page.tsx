@@ -207,7 +207,11 @@ export default async function AdminClientWorkoutsPage({
 
         {editable ? (
           <Panel title={`Edit ${selectedLabel}`}>
-            <form action={savePlanDay} className="space-y-4">
+            {/* Keyed on the date for the same reason the Plan tab's editor
+                is: these are uncontrolled inputs, and moving to another day in
+                the calendar would otherwise leave the previous day's title and
+                note sitting in the form. */}
+            <form key={selected} action={savePlanDay} className="space-y-4">
               <input type="hidden" name="clientId" value={profile.id} />
               <input type="hidden" name="dayIndex" value={dayIndex as number} />
               <input type="hidden" name="kind" value="workout" />

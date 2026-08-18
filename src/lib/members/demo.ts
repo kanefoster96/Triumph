@@ -35,6 +35,21 @@ function isoDate(offsetDays: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * The Monday of the week a date falls in.
+ *
+ * A plan block always starts on a Monday — see `createPlanBlock` — so day 0 of
+ * the cycle is a Monday and the fixture's day indices mean the same weekday
+ * whatever day of the week the demo happens to be looked at on.
+ */
+function isoMonday(offsetDays: number): string {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
 function isoTime(offsetDays: number, hour: number): string {
   const d = new Date();
   d.setUTCHours(hour, 0, 0, 0);
@@ -1199,8 +1214,10 @@ export const demoMeals: Meal[] = [
 // ---------------------------------------------------------------------------
 
 export const demoPlanBlocks: PlanBlock[] = [
-  { id: "blk-priya", clientId: DEMO_CLIENT_ID, cycleWeeks: 1, startsOn: isoDate(0) },
-  { id: "blk-danny", clientId: "demo-client-2", cycleWeeks: 2, startsOn: isoDate(-7) },
+  // Monday-anchored, so day 0 is Monday: Priya trains 0/2/4 (Mon, Wed, Fri)
+  // and Danny 0/3/5 then 7/10/12 (Mon, Thu, Sat, both weeks).
+  { id: "blk-priya", clientId: DEMO_CLIENT_ID, cycleWeeks: 1, startsOn: isoMonday(0) },
+  { id: "blk-danny", clientId: "demo-client-2", cycleWeeks: 2, startsOn: isoMonday(-7) },
 ];
 
 const sets = (rows: Array<[number, number]>, prefix: string): PlanSet[] =>
@@ -1218,7 +1235,7 @@ export const demoPlanRevisions: RawRevision[] = [
     blockId: "blk-priya",
     dayIndex: 0,
     kind: "workout",
-    effectiveFrom: isoDate(0),
+    effectiveFrom: isoMonday(0),
     onlyOn: null,
     title: "Lower body — strength",
     suggestedTime: "18:00",
@@ -1290,7 +1307,7 @@ export const demoPlanRevisions: RawRevision[] = [
     blockId: "blk-priya",
     dayIndex: 2,
     kind: "workout",
-    effectiveFrom: isoDate(0),
+    effectiveFrom: isoMonday(0),
     onlyOn: null,
     title: "Upper body — push",
     suggestedTime: "18:00",
@@ -1363,7 +1380,7 @@ export const demoPlanRevisions: RawRevision[] = [
     blockId: "blk-priya",
     dayIndex: 4,
     kind: "workout",
-    effectiveFrom: isoDate(0),
+    effectiveFrom: isoMonday(0),
     onlyOn: null,
     title: "Full body — pull",
     suggestedTime: null,
@@ -1423,7 +1440,7 @@ export const demoPlanRevisions: RawRevision[] = [
     blockId: "blk-priya",
     dayIndex,
     kind: "food" as const,
-    effectiveFrom: isoDate(0),
+    effectiveFrom: isoMonday(0),
     onlyOn: null,
     title: null,
     suggestedTime: null,
@@ -1458,7 +1475,7 @@ export const demoPlanRevisions: RawRevision[] = [
     blockId: "blk-danny",
     dayIndex,
     kind: "workout" as const,
-    effectiveFrom: isoDate(-7),
+    effectiveFrom: isoMonday(-7),
     onlyOn: null,
     title: dayIndex < 7 ? "Full body — heavy" : "Full body — volume",
     suggestedTime: "07:00",

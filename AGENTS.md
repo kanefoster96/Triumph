@@ -59,6 +59,13 @@ any screen showing a day must resolve it the way the client's app does —
 `getWorkoutFor` and `getTrainingDates`, never a raw `getWorkouts`, which
 returns logged rows only and so reports planned days as empty.
 
+A plan block always starts on a **Monday** — `createPlanBlock` snaps the date
+back, and the schema constrains it. Day 0 of the cycle is therefore a Monday,
+so the repeat lines up with the Monday-to-Sunday week the board, the compliance
+grid and the schedule all draw. Anchored anywhere else the cycle ran a day out
+of step with every screen showing it, and the first day of the week on screen
+fell outside the plan entirely.
+
 The Plan tab is a **week board**: seven day cards resolved through
 `getPlanWeek` (a wide-screen row, a snapping carousel on a phone) with the
 editor for the open day underneath, so the week never leaves the screen. It is

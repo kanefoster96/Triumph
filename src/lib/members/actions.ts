@@ -30,6 +30,7 @@ import {
   getPlanCycle,
   getShoppingList,
   getShoppingListById,
+  mondayOf,
   getWorkoutFor,
   scaleMeal,
   shiftDate,
@@ -1174,7 +1175,14 @@ export async function createPlanBlock(formData: FormData) {
   if (!clientId) return;
 
   const cycleWeeks = Number(formData.get("cycleWeeks")) === 2 ? 2 : 1;
-  const startsOn = String(formData.get("startsOn") ?? today());
+  /*
+   * A block always starts on a Monday, so day 0 of the cycle is a Monday and
+   * every week of it lines up with the week everything else shows — the board,
+   * the compliance grid, the schedule. Anchored anywhere else, the cycle ran
+   * Tuesday to Monday behind a Monday-to-Sunday display, and the first day of
+   * the week Dean was looking at fell outside the plan entirely.
+   */
+  const startsOn = mondayOf(String(formData.get("startsOn") ?? today()));
 
   const supabase = await createClient();
 

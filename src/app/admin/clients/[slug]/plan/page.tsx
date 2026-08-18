@@ -116,6 +116,13 @@ export default async function AdminClientPlanPage({
                   Takes over from
                 </label>
                 <input id="blk-start" className={field} type="date" name="startsOn" defaultValue={now} />
+                {/* Said out loud because the date is adjusted after it is
+                    picked, and a field that quietly changes what you typed is
+                    worse than one that explains itself. */}
+                <p className="mt-2 text-xs text-faint">
+                  Blocks run Monday to Sunday, so this moves back to the Monday of whichever week you
+                  pick.
+                </p>
               </div>
             </div>
             <button
@@ -258,7 +265,15 @@ export default async function AdminClientPlanPage({
               <EmptyState>This day has been and gone. Past days are kept as they were.</EmptyState>
             </Panel>
           ) : (
+            /*
+             * Keyed on the date. The title, the suggested time, the note and
+             * the rest-day box are uncontrolled inputs, so React keeps the DOM
+             * node — and its typed-in value — across a navigation that only
+             * changes props. Tuesday's title stayed in the field while
+             * Thursday's exercises loaded underneath it, and saving wrote it.
+             */
             <PlanDayForm
+              key={selected}
               action={savePlanDay}
               title={longDate(selected)}
               hidden={
