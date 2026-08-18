@@ -165,7 +165,10 @@ export default async function AdminClientPlanPage({
       date: day.date,
       weekday: WEEKDAYS[index],
       dayNumber: String(Number(day.date.slice(8, 10))),
-      href: `${basePath}?week=${weekStart}&date=${day.date}${carry}#day-editor`,
+      // edit=1 opens the editor on arrival, which on a phone is the sheet.
+      // The board is seven cards tall there, so a tap that only selected the
+      // day left the thing you tapped for a screen and a half further down.
+      href: `${basePath}?week=${weekStart}&date=${day.date}&edit=1${carry}#day-editor`,
       title: day.workout?.title ?? null,
       exercises: day.workout?.exercises.map((exercise) => exercise.name) ?? [],
       isRest: day.workout?.isRest ?? false,
@@ -202,52 +205,73 @@ export default async function AdminClientPlanPage({
 
       <ScreenTitle
         title="Plan"
-        subtitle={`A ${block.cycleWeeks === 2 ? "two week" : "one week"} block repeating from ${block.startsOn}. This is the week it works out to — edit any day and choose how far the change reaches.`}
+        subtitle={
+          <>
+            <span className="sm:hidden">
+              {block.cycleWeeks === 2 ? "Two week" : "One week"} block from {block.startsOn}
+            </span>
+            {/* The long form explains the model, which is worth saying on a
+                screen with room and not worth a paragraph between Dean and
+                the week he opened this to edit. */}
+            <span className="hidden sm:inline">
+              A {block.cycleWeeks === 2 ? "two week" : "one week"} block repeating from{" "}
+              {block.startsOn}. This is the week it works out to — edit any day and choose how far
+              the change reaches.
+            </span>
+          </>
+        }
       />
 
-      {/* The week you are on, and the two either side of it. A block repeats,
-          so paging forward is how a change made "from here on" gets checked. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Which week, and what to do with it. Sticky under the app header so
+          paging and repeating stay reachable once the board is scrolled — on
+          a phone this row is otherwise the first thing to leave the screen.
+          -mx-5 lets the bar span the gutter it is pinned across. */}
+      <div className="sticky top-[var(--admin-header-h)] z-20 -mx-5 flex items-center justify-between gap-2 sm:flex-wrap sm:gap-3 border-b border-line bg-ink/95 px-5 py-2.5 supports-[backdrop-filter]:bg-ink/75 supports-[backdrop-filter]:backdrop-blur sm:mx-0 sm:rounded-2xl sm:border sm:px-3">
         <div className="flex min-w-0 items-center gap-1">
           <Link
             href={`${basePath}?week=${shiftDate(weekStart, -7)}${carry}`}
             aria-label="Previous week"
-            className="rounded-full border border-line p-2.5 text-muted transition-colors hover:border-accent hover:text-accent"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line text-muted transition-colors hover:border-accent hover:text-accent"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
           <Link
             href={`${basePath}?week=${shiftDate(weekStart, 7)}${carry}`}
             aria-label="Next week"
-            className="rounded-full border border-line p-2.5 text-muted transition-colors hover:border-accent hover:text-accent"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line text-muted transition-colors hover:border-accent hover:text-accent"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
           <p className="ml-2 truncate text-sm font-semibold">{weekLabel(weekStart)}</p>
           {weekStart === mondayOf(now) ? (
-            <Chip tone="accent">This week</Chip>
+            // The dates already say it on a phone, where the row has to hold
+            // the pager, the week and Repeat without wrapping.
+            <span className="hidden sm:inline-flex">
+              <Chip tone="accent">This week</Chip>
+            </span>
           ) : (
             <Link
               href={`${basePath}${fromReview ? "?review=1" : ""}`}
-              className="ml-2 shrink-0 text-xs font-semibold text-accent"
+              className="ml-1 inline-flex h-11 shrink-0 items-center px-2 text-xs font-semibold text-accent"
             >
-              Back to this week
+              This week
             </Link>
           )}
         </div>
 
         {/* A block already repeats, so this is for a week that has been changed
             away from it — a deload, a holiday, a fortnight built by hand. */}
-        <form action={copyPlanWeek}>
+        <form action={copyPlanWeek} className="shrink-0">
           <input type="hidden" name="clientId" value={profile.id} />
           <input type="hidden" name="from" value={weekStart} />
           <input type="hidden" name="to" value={shiftDate(weekStart, 7)} />
           <button
             type="submit"
-            className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
           >
             <CopyIcon className="h-4 w-4" />
-            Repeat onto next week
+            <span className="hidden sm:inline">Repeat onto next week</span>
+            <span className="sm:hidden">Repeat</span>
           </button>
         </form>
       </div>
@@ -276,6 +300,16 @@ export default async function AdminClientPlanPage({
               key={selected}
               action={savePlanDay}
               title={longDate(selected)}
+              subtitle={[
+                day.workout?.isRest || (day.workout?.exercises.length ?? 0) === 0
+                  ? "Rest day"
+                  : `${day.workout?.exercises.length} ${day.workout?.exercises.length === 1 ? "exercise" : "exercises"}`,
+                `${day.food?.meals.length ?? 0} ${(day.food?.meals.length ?? 0) === 1 ? "meal" : "meals"}`,
+                day.food?.calorieTarget ? `${day.food.calorieTarget.toLocaleString("en-GB")} kcal` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              defaultOpen={query.edit === "1"}
               hidden={
                 <>
                   <input type="hidden" name="clientId" value={profile.id} />
@@ -305,7 +339,7 @@ export default async function AdminClientPlanPage({
                       ) : null}
                       <button
                         type="submit"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                        className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-line px-4 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent"
                       >
                         <TrendingUp className="h-3.5 w-3.5" />
                         +2.5kg {label}

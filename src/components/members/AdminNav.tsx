@@ -10,9 +10,6 @@ const links = [
   { href: "/admin/checkin", label: "Check-ins", icon: ClipboardCheck },
   { href: "/admin/library", label: "Library", icon: BookOpen },
   { href: "/admin/schedule", label: "Schedule", icon: CalendarDays },
-  // Templates are the older way of assigning a day and are on their way out,
-  // but the check-in round and the Food tab still read from them, so the page
-  // that maintains them has to be reachable rather than URL-only.
 ];
 
 export function AdminNav() {
@@ -28,7 +25,7 @@ export function AdminNav() {
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-200",
+              "inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors duration-200",
               active ? "bg-accent/10 text-accent" : "text-muted hover:text-text",
             )}
           >

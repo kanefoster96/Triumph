@@ -25,7 +25,7 @@ export function ClientTabs({ clientId }: { clientId: string }) {
   ];
 
   return (
-    <nav aria-label="Client sections" className="no-scrollbar -mx-1 mb-8 overflow-x-auto px-1">
+    <nav aria-label="Client sections" className="no-scrollbar -mx-1 mb-5 overflow-x-auto px-1 sm:mb-8">
       <ul className="flex w-max min-w-full gap-1 rounded-full border border-line bg-surface p-1">
         {tabs.map((tab) => {
           const active = tab.href === base ? pathname === base : pathname.startsWith(tab.href);
@@ -35,7 +35,7 @@ export function ClientTabs({ clientId }: { clientId: string }) {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors duration-200",
+                  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-colors duration-200",
                   active ? "bg-accent text-accent-ink" : "text-muted hover:text-text",
                 )}
               >

@@ -77,6 +77,15 @@ together; a screen with two Save buttons is a day half-written.
 The Workouts tab still owns one date, in a month calendar with its history and
 comments. Both write through `savePlanDay`.
 
+The board is built to be used one-handed. On a phone the day editor is a
+full-height sheet with the day at the top and Save pinned to the bottom edge
+(`useIsPhone` picks the layout — the two are never both rendered, or every
+field would submit twice); exercises are an accordion, one open at a time;
+weights and reps have `NumberStepper` buttons so building a session does not
+mean thirty taps into a numeric keypad; and every library choice is a
+`PickerSheet` with search rather than a `<select>`, because these libraries are
+meant to grow. Controls in these flows are 44px.
+
 Nothing anywhere parses free text into sets, reps, portions or calories.
 Workouts and meals are built from library ids and number fields, and that is
 deliberate: the Templates page that did parse text is gone, replaced by "start

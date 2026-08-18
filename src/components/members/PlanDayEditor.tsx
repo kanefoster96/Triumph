@@ -1,9 +1,12 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Minus, Plus, Scale, TriangleAlert, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Scale, TriangleAlert, X, Zap } from "lucide-react";
 import type { Exercise, Meal, MealTag, PlanDay } from "@/lib/members/types";
 import { field, fieldLabel } from "./ui";
+import { NumberStepper } from "./NumberStepper";
+import { PickerSheet, type PickerOption } from "./PickerSheet";
+import { useIsPhone } from "./useIsPhone";
 import { cn } from "@/lib/utils";
 
 const SLOTS: MealTag[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -122,9 +125,10 @@ function shapeOf(row: ExerciseRow): string {
  * reaches every day that uses it. Sets are number fields because sets differ —
  * 10 / 8 / 6 up a ladder is the normal case.
  *
- * Each exercise is one line until it is opened. Five exercises of four sets is
- * forty number fields, and scrolling past all of them to reach the sixth was
- * the reason the old editor felt like a form rather than a plan.
+ * Each exercise is one line until it is opened, and on a phone only one is
+ * open at a time. Five exercises of four sets is forty number fields, and
+ * scrolling past all of them to reach the sixth was the reason the old editor
+ * felt like a form rather than a plan.
  */
 export function ExercisePlanner({
   day,
@@ -137,6 +141,7 @@ export function ExercisePlanner({
   lastEfforts?: Record<string, string>;
 }) {
   const domId = useId();
+  const phone = useIsPhone();
   // Seeded once. Any caller that can swap `day` underneath this component
   // must give it a `key` tied to that day, or the previous day's exercises
   // stay in the form and get saved onto the new one.
@@ -144,8 +149,35 @@ export function ExercisePlanner({
 
   const byId = useMemo(() => new Map(exercises.map((exercise) => [exercise.id, exercise])), [exercises]);
 
+  const options: PickerOption[] = useMemo(
+    () =>
+      exercises.map((exercise) => ({
+        id: exercise.id,
+        label: exercise.name,
+        hint: exercise.equipment ?? undefined,
+        group: exercise.muscleGroup ?? "Other",
+      })),
+    [exercises],
+  );
+
   const update = (key: string, patch: Partial<ExerciseRow>) =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+
+  /*
+   * One open at a time on a phone. Two expanded exercises is already more
+   * than a screen, so the second one only ever pushed the first out of sight
+   * while still costing the scroll to get past it.
+   */
+  const toggle = (key: string) =>
+    setRows((current) =>
+      current.map((row) =>
+        row.key === key
+          ? { ...row, open: !row.open }
+          : phone
+            ? { ...row, open: false }
+            : row,
+      ),
+    );
 
   /** Turn "3 × 8 @ 60" into three identical set rows. */
   const fillSets = (rowKey: string) =>
@@ -203,12 +235,12 @@ export function ExercisePlanner({
             <input type="hidden" name="exerciseId" value={row.exerciseId} />
             <input type="hidden" name="exerciseNotes" value={row.notes} />
 
-            <div className="flex items-center gap-1 p-2.5">
+            <div className="flex items-center gap-1 p-2">
               <button
                 type="button"
-                onClick={() => update(row.key, { open: !row.open })}
+                onClick={() => toggle(row.key)}
                 aria-expanded={row.open}
-                className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1.5 py-1.5 text-left transition-colors hover:bg-raised"
+                className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-raised"
               >
                 <span className="min-w-0 flex-1">
                   <span
@@ -234,7 +266,7 @@ export function ExercisePlanner({
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
                   aria-label={`Move ${library?.name ?? "exercise"} up`}
-                  className="rounded-full p-2 text-faint transition-colors enabled:hover:bg-raised enabled:hover:text-text disabled:opacity-30"
+                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors enabled:hover:bg-raised enabled:hover:text-text disabled:opacity-30"
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
@@ -243,7 +275,7 @@ export function ExercisePlanner({
                   onClick={() => move(index, 1)}
                   disabled={index === rows.length - 1}
                   aria-label={`Move ${library?.name ?? "exercise"} down`}
-                  className="rounded-full p-2 text-faint transition-colors enabled:hover:bg-raised enabled:hover:text-text disabled:opacity-30"
+                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors enabled:hover:bg-raised enabled:hover:text-text disabled:opacity-30"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
@@ -251,7 +283,7 @@ export function ExercisePlanner({
                   type="button"
                   onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
                   aria-label={`Remove ${library?.name ?? `exercise ${index + 1}`}`}
-                  className="rounded-full p-2 text-faint transition-colors hover:bg-raised hover:text-danger"
+                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-danger"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -260,27 +292,14 @@ export function ExercisePlanner({
 
             {row.open ? (
               <div className="border-t border-line p-3">
-                <label className="sr-only" htmlFor={`${domId}-ex-${index}`}>
-                  Exercise {index + 1}
-                </label>
-                {/* Not `required`: this can sit inside a collapsed section, and
-                    the browser refuses to submit a form it cannot focus the
-                    offending field in. An unpicked row is dropped server-side
-                    and flagged in the summary line above. */}
-                <select
-                  id={`${domId}-ex-${index}`}
-                  className={field}
+                <PickerSheet
                   value={row.exerciseId}
-                  onChange={(event) => update(row.key, { exerciseId: event.target.value })}
-                >
-                  <option value="">Pick an exercise…</option>
-                  {exercises.map((exercise) => (
-                    <option key={exercise.id} value={exercise.id}>
-                      {exercise.name}
-                      {exercise.muscleGroup ? ` — ${exercise.muscleGroup}` : ""}
-                    </option>
-                  ))}
-                </select>
+                  options={options}
+                  onChange={(exerciseId) => update(row.key, { exerciseId })}
+                  title="Pick an exercise"
+                  searchPlaceholder="Search exercises"
+                  placeholder="Pick an exercise…"
+                />
 
                 {last ? (
                   <p className="mt-2 text-xs text-muted">Last {last}</p>
@@ -288,68 +307,49 @@ export function ExercisePlanner({
                   <p className="mt-2 text-xs text-faint">Nothing logged yet.</p>
                 ) : null}
 
-                {/* Sets are usually the same thing three or four times.
-                    Building them one field at a time was most of the typing in
-                    setting a client up, so this writes the whole ladder in one
-                    go and the rows below stay editable for the odd set that
-                    differs. */}
-                <div className="mt-3 flex flex-wrap items-end gap-2 rounded-xl bg-raised/60 p-2.5">
-                  <span className="pb-3 text-xs font-semibold text-faint">Fill</span>
-                  <div className="w-14">
-                    <label className="sr-only" htmlFor={`${domId}-qs-${index}`}>
-                      Number of sets for exercise {index + 1}
-                    </label>
-                    <input
-                      id={`${domId}-qs-${index}`}
-                      className={field}
-                      type="number"
-                      min="1"
-                      max="10"
-                      inputMode="numeric"
-                      value={row.quickSets}
-                      onChange={(event) => update(row.key, { quickSets: event.target.value })}
-                      placeholder="3"
-                    />
-                  </div>
-                  <span className="pb-3 text-xs text-faint">×</span>
-                  <div className="w-14">
-                    <label className="sr-only" htmlFor={`${domId}-qr-${index}`}>
-                      Reps for exercise {index + 1}
-                    </label>
-                    <input
-                      id={`${domId}-qr-${index}`}
-                      className={field}
-                      type="number"
-                      min="1"
-                      inputMode="numeric"
-                      value={row.quickReps}
-                      onChange={(event) => update(row.key, { quickReps: event.target.value })}
-                      placeholder="8"
-                    />
-                  </div>
-                  <span className="pb-3 text-xs text-faint">@</span>
-                  <div className="w-20">
-                    <label className="sr-only" htmlFor={`${domId}-qw-${index}`}>
-                      Weight for exercise {index + 1}
-                    </label>
-                    <input
-                      id={`${domId}-qw-${index}`}
-                      className={field}
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      inputMode="decimal"
-                      value={row.quickWeight}
-                      onChange={(event) => update(row.key, { quickWeight: event.target.value })}
-                      placeholder="kg"
-                    />
+                {/* Sets are usually the same thing three or four times, so the
+                    fast path leads: say the shape once and stamp it. The rows
+                    below stay editable for the odd set that differs. */}
+                <div className="mt-3 rounded-xl border border-accent/25 bg-accent/[0.05] p-3">
+                  <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
+                    <Zap className="h-3.5 w-3.5" />
+                    Fill every set
+                  </p>
+                  {/* One per row on a phone: three steppers side by side is
+                      six 44px buttons across 300px, which left the fields
+                      themselves about a character wide. */}
+                  <div className="mt-2.5 space-y-2 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
+                    {(
+                      [
+                        ["sets", "quickSets", row.quickSets, 1, "3", undefined],
+                        ["reps", "quickReps", row.quickReps, 1, "8", undefined],
+                        ["weight", "quickWeight", row.quickWeight, 2.5, "0", "kg"],
+                      ] as const
+                    ).map(([label, key, value, step, placeholder, suffix]) => (
+                      <div key={key} className="flex items-center gap-3 sm:block">
+                        <span className="w-14 shrink-0 text-xs text-faint sm:mb-1 sm:block sm:w-auto sm:text-center sm:text-[11px]">
+                          {label}
+                        </span>
+                        <NumberStepper
+                          id={`${domId}-q${key}-${index}`}
+                          label={`${label} for exercise ${index + 1}`}
+                          value={value}
+                          onChange={(next) => update(row.key, { [key]: next } as Partial<ExerciseRow>)}
+                          step={step}
+                          max={key === "quickSets" ? 10 : undefined}
+                          placeholder={placeholder}
+                          suffix={suffix}
+                          className="min-w-0 flex-1"
+                        />
+                      </div>
+                    ))}
                   </div>
                   <button
                     type="button"
                     onClick={() => fillSets(row.key)}
-                    className="rounded-full border border-line px-3 py-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                    className="mt-2.5 h-11 w-full rounded-full bg-accent text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
                   >
-                    Apply
+                    Apply to all sets
                   </button>
                 </div>
 
@@ -363,64 +363,66 @@ export function ExercisePlanner({
 
                 <ul className="mt-3 space-y-2">
                   {row.sets.map((set, setIndex) => (
-                    <li key={set.key} className="flex items-end gap-2">
-                      <span className="w-10 shrink-0 pb-3 text-xs font-semibold text-faint">
-                        {setIndex + 1}
-                      </span>
-                      <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
-                        <label className="sr-only" htmlFor={`${domId}-w-${index}-${setIndex}`}>
-                          Set {setIndex + 1} weight in kg
-                        </label>
-                        <input
-                          id={`${domId}-w-${index}-${setIndex}`}
-                          className={field}
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          inputMode="decimal"
-                          name="setWeight"
-                          value={set.weight}
-                          onChange={(event) => updateSet(row.key, set.key, { weight: event.target.value })}
-                          placeholder="kg"
-                        />
+                    /*
+                     * Stacked on a phone. Two steppers side by side is four
+                     * 44px buttons and two fields across 300px; shrinking the
+                     * buttons to fit would have undone the point of having
+                     * them. The set's own number and its remove sit on the
+                     * line above, where there is room for both.
+                     */
+                    <li
+                      key={set.key}
+                      className="rounded-xl border border-line/60 p-2 sm:flex sm:items-center sm:gap-2 sm:border-0 sm:p-0"
+                    >
+                      <div className="flex items-center justify-between sm:contents">
+                        <span className="text-xs font-semibold text-faint tabular-nums sm:w-5 sm:shrink-0">
+                          Set {setIndex + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRows((current) =>
+                              current.map((entry) =>
+                                entry.key === row.key
+                                  ? { ...entry, sets: entry.sets.filter((s) => s.key !== set.key) }
+                                  : entry,
+                              ),
+                            )
+                          }
+                          aria-label={`Remove set ${setIndex + 1}`}
+                          className="order-last grid h-11 w-11 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-danger"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
                       </div>
-                      <div className="min-w-0 flex-1 sm:w-24 sm:flex-none">
-                        <label className="sr-only" htmlFor={`${domId}-r-${index}-${setIndex}`}>
-                          Set {setIndex + 1} reps
-                        </label>
-                        <input
-                          id={`${domId}-r-${index}-${setIndex}`}
-                          className={field}
-                          type="number"
-                          min="0"
-                          inputMode="numeric"
-                          name="setReps"
-                          value={set.reps}
-                          onChange={(event) => updateSet(row.key, set.key, { reps: event.target.value })}
-                          placeholder="reps"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRows((current) =>
-                            current.map((entry) =>
-                              entry.key === row.key
-                                ? { ...entry, sets: entry.sets.filter((s) => s.key !== set.key) }
-                                : entry,
-                            ),
-                          )
-                        }
-                        aria-label={`Remove set ${setIndex + 1}`}
-                        className="shrink-0 rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
+
+                      <NumberStepper
+                        id={`${domId}-w-${index}-${setIndex}`}
+                        name="setWeight"
+                        label={`Set ${setIndex + 1} weight in kg`}
+                        value={set.weight}
+                        onChange={(weight) => updateSet(row.key, set.key, { weight })}
+                        step={2.5}
+                        placeholder="kg"
+                        suffix="kg"
+                        className="mt-1.5 min-w-0 sm:mt-0 sm:flex-1"
+                      />
+                      <NumberStepper
+                        id={`${domId}-r-${index}-${setIndex}`}
+                        name="setReps"
+                        label={`Set ${setIndex + 1} reps`}
+                        value={set.reps}
+                        onChange={(reps) => updateSet(row.key, set.key, { reps })}
+                        step={1}
+                        placeholder="reps"
+                        suffix="reps"
+                        className="mt-1.5 min-w-0 sm:mt-0 sm:flex-1"
+                      />
                     </li>
                   ))}
                 </ul>
 
-                <div className="mt-3 flex flex-wrap items-end gap-2">
+                <div className="mt-3 space-y-2">
                   <button
                     type="button"
                     onClick={() =>
@@ -443,12 +445,12 @@ export function ExercisePlanner({
                         ),
                       )
                     }
-                    className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-text"
+                    className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
                   >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add set
+                    <Plus className="h-4 w-4" />
+                    Add a set
                   </button>
-                  <div className="min-w-0 flex-1">
+                  <div>
                     <label className="sr-only" htmlFor={`${domId}-n-${index}`}>
                       Note on exercise {index + 1}
                     </label>
@@ -471,7 +473,8 @@ export function ExercisePlanner({
         type="button"
         onClick={() =>
           setRows((current) => [
-            ...current,
+            // On a phone only one is open at a time, so adding one shuts the rest.
+            ...current.map((row) => (phone ? { ...row, open: false } : row)),
             {
               key: nextKey(),
               exerciseId: "",
@@ -487,10 +490,10 @@ export function ExercisePlanner({
             },
           ])
         }
-        className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-text"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent sm:w-auto sm:px-5"
       >
         <Plus className="h-4 w-4" />
-        Add exercise
+        Add an exercise
       </button>
     </div>
   );
@@ -525,6 +528,17 @@ export function MealPlanner({
   const [target, setTarget] = useState(calorieTarget === null ? "" : String(calorieTarget));
 
   const byId = useMemo(() => new Map(meals.map((meal) => [meal.id, meal])), [meals]);
+
+  const options: PickerOption[] = useMemo(
+    () =>
+      meals.map((meal) => ({
+        id: meal.id,
+        label: meal.name,
+        hint: meal.calories ? `${meal.calories} kcal · ${meal.proteinG ?? 0}g protein` : undefined,
+        group: meal.tag,
+      })),
+    [meals],
+  );
 
   const totals = rows.reduce(
     (sum, row) => {
@@ -643,7 +657,7 @@ export function MealPlanner({
 
       {/* The number being aimed at, moving as meals go on. Pinned while the
           list is scrolled, because the list is what changes it. */}
-      <div className="sticky top-[4.5rem] z-10 rounded-2xl border border-line bg-ink p-4">
+      <div className="sticky top-0 z-10 -mx-1 rounded-2xl border border-line bg-ink p-4 px-4 shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <p className="font-display text-2xl font-bold tabular-nums">
             {Math.round(totals.calories).toLocaleString("en-GB")}
@@ -672,9 +686,9 @@ export function MealPlanner({
           <button
             type="button"
             onClick={scaleToTarget}
-            className="mt-3 inline-flex items-center gap-2 rounded-full border border-line px-3.5 py-2 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-accent/50 bg-accent/10 text-sm font-semibold text-accent transition-colors hover:bg-accent/20"
           >
-            <Scale className="h-3.5 w-3.5" />
+            <Scale className="h-4 w-4" />
             Scale the day to {targetValue.toLocaleString("en-GB")}
           </button>
         ) : null}
@@ -690,97 +704,79 @@ export function MealPlanner({
              * to about 34px on a phone — a picker showing none of the names it
              * is picking between.
              */
-            <li
-              key={row.key}
-              className="rounded-2xl border border-line bg-ink p-3 sm:flex sm:flex-wrap sm:items-end sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
-            >
+            <li key={row.key} className="rounded-2xl border border-line bg-ink p-2.5">
               <input type="hidden" name="mealSlot" value={row.slot} />
 
-              <div className="flex items-end gap-2 sm:order-2 sm:min-w-0 sm:flex-1">
-                <div className="min-w-0 flex-1">
-                  <label className="sr-only" htmlFor={`${domId}-meal-${index}`}>
-                    Meal {index + 1}
-                  </label>
-                  <select
-                    id={`${domId}-meal-${index}`}
-                    className={field}
-                    name="mealId"
-                    value={row.mealId}
-                    onChange={(event) => update(row.key, { mealId: event.target.value })}
-                  >
-                    {/* Name only — the calories for the chosen portion are
-                        shown beside the row, so repeating them here just cost
-                        the name the width it needed. */}
-                    {meals.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <span className="w-16 shrink-0 pb-3 text-right text-xs text-faint tabular-nums sm:order-4 sm:w-20">
+              <div className="flex items-center gap-2">
+                <PickerSheet
+                  name="mealId"
+                  value={row.mealId}
+                  options={options}
+                  onChange={(mealId) => update(row.key, { mealId })}
+                  title="Pick a meal"
+                  searchPlaceholder="Search meals"
+                  hideChosenHint
+                  className="min-w-0 flex-1 border-0 bg-transparent px-1 hover:border-0"
+                />
+                <span className="shrink-0 text-xs text-faint tabular-nums">
                   {meal?.calories ? `${Math.round(meal.calories * row.multiplier)} kcal` : "—"}
                 </span>
                 <button
                   type="button"
                   onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
-                  aria-label={`Remove meal ${index + 1}`}
-                  className="shrink-0 rounded-full p-2.5 text-faint transition-colors hover:bg-raised hover:text-danger sm:order-5"
+                  aria-label={`Remove ${meal?.name ?? `meal ${index + 1}`}`}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-danger"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="mt-2 flex items-end gap-2 sm:order-1 sm:mt-0">
-                <div className="min-w-0 flex-1 sm:w-32 sm:flex-none">
-                  <label className="sr-only" htmlFor={`${domId}-slot-${index}`}>
-                    Slot for meal {index + 1}
-                  </label>
-                  <select
-                    id={`${domId}-slot-${index}`}
-                    className={field}
-                    value={row.slot}
-                    onChange={(event) => update(row.key, { slot: event.target.value as MealTag })}
-                  >
-                    {SLOTS.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="mt-1.5 flex items-center gap-2">
+                <label className="sr-only" htmlFor={`${domId}-slot-${index}`}>
+                  Slot for meal {index + 1}
+                </label>
+                <select
+                  id={`${domId}-slot-${index}`}
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-ink px-3 text-sm text-text capitalize transition-colors focus:border-accent focus:outline-none"
+                  value={row.slot}
+                  onChange={(event) => update(row.key, { slot: event.target.value as MealTag })}
+                >
+                  {SLOTS.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </select>
 
-                <div className="min-w-0 flex-1 sm:order-3 sm:w-40 sm:flex-none">
-                  <label className="sr-only" htmlFor={`${domId}-mult-${index}`}>
-                    Portion for meal {index + 1}
-                  </label>
-                  <select
-                    id={`${domId}-mult-${index}`}
-                    className={field}
-                    name="mealMultiplier"
-                    value={row.multiplier}
-                    onChange={(event) => update(row.key, { multiplier: Number(event.target.value) })}
-                  >
-                    {PORTIONS.map((portion) => (
-                      <option key={portion.value} value={portion.value}>
-                        Portion: {portion.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <label className="sr-only" htmlFor={`${domId}-mult-${index}`}>
+                  Portion for meal {index + 1}
+                </label>
+                <select
+                  id={`${domId}-mult-${index}`}
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-ink px-3 text-sm text-text transition-colors focus:border-accent focus:outline-none"
+                  name="mealMultiplier"
+                  value={row.multiplier}
+                  onChange={(event) => update(row.key, { multiplier: Number(event.target.value) })}
+                >
+                  {PORTIONS.map((portion) => (
+                    <option key={portion.value} value={portion.value}>
+                      Portion: {portion.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </li>
           );
         })}
       </ul>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         {SLOTS.map((slot) => (
           <button
             key={slot}
             type="button"
             onClick={() => addMeal(slot)}
-            className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted capitalize transition-colors hover:border-accent hover:text-accent sm:px-5"
           >
             <Plus className="h-4 w-4" />
             {slot}

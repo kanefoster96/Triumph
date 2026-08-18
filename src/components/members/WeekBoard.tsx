@@ -74,21 +74,22 @@ export function WeekBoard({
 
   return (
     <div className="space-y-4">
-      {/* The strip is the phone's way back to a day that has scrolled off. On
-          a wide screen every card is already visible, so it would be a second
-          copy of the same control. */}
+      {/* The strip is the phone's way straight to a day without swiping
+          through the ones in between. On a wide screen every card is already
+          visible, so it would be a second copy of the same control. */}
       <div className="flex gap-1.5 sm:hidden">
         {days.map((day) => (
           <Link
             key={day.date}
             href={day.href}
+            aria-label={`${day.weekday} ${day.dayNumber}`}
             aria-current={day.date === selected ? "page" : undefined}
             className={cn(
-              "flex-1 rounded-xl border py-2 text-center text-[11px] font-semibold transition-colors",
+              "grid h-11 flex-1 place-items-center rounded-xl border text-xs font-semibold transition-colors",
               day.date === selected
-                ? "border-accent bg-accent/10 text-accent"
+                ? "border-accent bg-accent/15 text-accent"
                 : day.isToday
-                  ? "border-accent/40 text-text"
+                  ? "border-accent/50 text-accent"
                   : "border-line text-faint",
             )}
           >
@@ -245,8 +246,8 @@ function DayCard({
         <button
           type="button"
           onClick={onMenu}
-          aria-label={`More for ${day.weekday} ${day.dayNumber}`}
-          className="absolute top-0.5 right-0.5 rounded-full p-2 text-faint transition-colors hover:bg-raised hover:text-text"
+          aria-label={`Copy or move ${day.weekday} ${day.dayNumber}`}
+          className="absolute top-0 right-0 grid h-11 w-11 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-text"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -315,7 +316,7 @@ function DayMenu({
                     {review ? <input type="hidden" name="review" value="1" /> : null}
                     <button
                       type="submit"
-                      className="rounded-full border border-line px-3.5 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                      className="inline-flex h-11 items-center rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
                     >
                       {target.weekday} {target.dayNumber}
                     </button>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getProfile } from "@/lib/members/service";
-import { ScreenTitle } from "@/components/members/ui";
 import { ClientTabs } from "@/components/members/ClientTabs";
 import { Chip } from "@/components/ui/Chip";
 import { Avatar } from "@/components/members/Avatar";
@@ -30,19 +29,38 @@ export default async function AdminClientLayout({
       </Link>
 
       {/* Whose plan this is, at the top of every tab — Dean can be four
-          screens into a week and still be sure who he is editing. */}
-      <div className="mt-6 flex flex-wrap items-center gap-4">
-        <Avatar name={profile.fullName} src={profile.avatarUrl} size="lg" ring />
+          screens into a week and still be sure who he is editing.
+
+          Compact on a phone: the full-size version was an avatar, a name, a
+          wrapped goal and a status chip on four separate lines, and the week
+          he opened the page for started below the fold because of it. */}
+      <div className="mt-4 flex items-center gap-3 sm:mt-6 sm:gap-4">
+        <Avatar
+          name={profile.fullName}
+          src={profile.avatarUrl}
+          size="md"
+          ring
+          className="sm:hidden"
+        />
+        <Avatar
+          name={profile.fullName}
+          src={profile.avatarUrl}
+          size="lg"
+          ring
+          className="hidden sm:grid"
+        />
         <div className="min-w-0 flex-1">
-          <ScreenTitle
-            title={profile.fullName}
-            subtitle={`${profile.goal ?? "No goal set"} · with Dean since ${relativeDate(profile.startedOn)}`}
-            action={
-              <Chip tone={profile.status === "active" ? "success" : "default"}>{profile.status}</Chip>
-            }
-          />
+          <div className="flex items-center gap-2">
+            <h1 className="min-w-0 truncate text-xl sm:text-3xl">{profile.fullName}</h1>
+            <Chip tone={profile.status === "active" ? "success" : "default"}>{profile.status}</Chip>
+          </div>
+          <p className="mt-0.5 truncate text-sm text-muted sm:mt-1.5 sm:whitespace-normal">
+            {profile.goal ?? "No goal set"} · with Dean since {relativeDate(profile.startedOn)}
+          </p>
         </div>
       </div>
+
+      <div className="mt-5 sm:mt-8" />
 
       <ClientTabs clientId={profile.id} />
 

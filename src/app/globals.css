@@ -35,6 +35,21 @@
   --font-display: var(--font-outfit), "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
 
   --ease-out-app: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /*
+   * How tall the admin's sticky header is, so anything that pins itself below
+   * it can say so once. Not a design token and deliberately not mirrored into
+   * lib/theme/tokens.ts — it is a measurement of a web layout, and the app has
+   * no sticky header to measure. Two rows on a phone (the nav wraps), one on a
+   * wide screen; see src/app/admin/layout.tsx.
+   */
+  --admin-header-h: 7.2rem;
+}
+
+@media (min-width: 40rem) {
+  @theme {
+    --admin-header-h: 4rem;
+  }
 }
 
 @layer base {

@@ -16,11 +16,12 @@ export function ScreenTitle({
   action,
 }: {
   title: string;
-  subtitle?: string;
+  /** A node rather than a string so a screen can hide its blurb on a phone. */
+  subtitle?: ReactNode;
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
       <div>
         <h1 className="text-2xl sm:text-3xl">{title}</h1>
         {subtitle ? <p className="mt-1.5 text-sm text-muted">{subtitle}</p> : null}
