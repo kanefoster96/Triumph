@@ -36,11 +36,19 @@ const PORTIONS: Array<{ value: number; label: string }> = [
 
 const STEPS = PORTIONS.map((portion) => portion.value);
 
-/** The planned portion nearest a wanted one — never off the end of the scale. */
-function nearestPortion(wanted: number): number {
-  return STEPS.reduce((best, step) =>
-    Math.abs(step - wanted) < Math.abs(best - wanted) ? step : best,
-  );
+/**
+ * The largest planned portion at or below a wanted one.
+ *
+ * Rounding down rather than to the nearest is what keeps a scaled day under
+ * its calorie target: flooring every meal's share can only take calories off,
+ * so the total starts below the number and is walked back up towards it.
+ * Nothing goes below the smallest portion on the scale — half a meal is the
+ * least Dean can plan.
+ */
+function floorPortion(wanted: number): number {
+  let best = STEPS[0];
+  for (const step of STEPS) if (step <= wanted) best = step;
+  return best;
 }
 
 interface SetRow {
@@ -566,13 +574,19 @@ export function MealPlanner({
   };
 
   /**
-   * Every meal's portion moved together until the day lands on the target.
+   * Every meal's portion moved together until the day lands just under target.
+   *
+   * Under, never over. A calorie target is a ceiling in this product — it is
+   * what somebody is eating to — so landing forty calories short of it is a
+   * rounding error and landing twenty over is the plan telling them to do the
+   * opposite of what it says on the front of it.
    *
    * Portions come in fixed steps, so the proportional answer has to be snapped
-   * to one — and snapping every meal the same way tends to miss the same way
-   * too. The second pass walks the largest meal one step at a time while that
-   * keeps closing the gap, which is what gets a day from "roughly right" to
-   * within a portion of the number Dean typed.
+   * to one. Flooring each meal's share can only take calories off, which puts
+   * the day below the target to start with; the passes then walk it back up,
+   * biggest meal first, taking any step that stays at or under. Biggest first
+   * because one step on a 700 kcal dinner closes more of the gap than one on a
+   * 120 kcal snack, and moves fewer things about.
    */
   const scaleToTarget = () => {
     if (targetValue <= 0 || totals.calories <= 0) return;
@@ -580,12 +594,10 @@ export function MealPlanner({
     const kcal = (row: MealRow) => byId.get(row.mealId)?.calories ?? 0;
     const factor = targetValue / totals.calories;
 
-    let next = rows.map((row) => ({ ...row, multiplier: nearestPortion(row.multiplier * factor) }));
+    let next = rows.map((row) => ({ ...row, multiplier: floorPortion(row.multiplier * factor) }));
     const totalOf = (list: MealRow[]) =>
       list.reduce((sum, row) => sum + kcal(row) * row.multiplier, 0);
 
-    // Biggest meal first: one step on a 700 kcal dinner closes more of the gap
-    // than one on a 120 kcal snack, and moves fewer things about.
     const order = next
       .map((row, index) => index)
       .sort((a, b) => kcal(next[b]) - kcal(next[a]));
@@ -594,15 +606,25 @@ export function MealPlanner({
       for (const index of order) {
         const row = next[index];
         if (kcal(row) === 0) continue;
-        const step = totalOf(next) > targetValue ? -1 : 1;
         const at = STEPS.indexOf(row.multiplier);
-        const to = STEPS[at + step];
-        if (to === undefined) continue;
 
-        const candidate = next.map((entry, i) => (i === index ? { ...entry, multiplier: to } : entry));
-        if (Math.abs(totalOf(candidate) - targetValue) < Math.abs(totalOf(next) - targetValue)) {
-          next = candidate;
+        /*
+         * Still over after flooring means a meal was already at the smallest
+         * portion the scale offers and could not come down any further. Take
+         * whatever can, so the ceiling holds wherever it is possible at all.
+         */
+        if (totalOf(next) > targetValue) {
+          const down = STEPS[at - 1];
+          if (down === undefined) continue;
+          next = next.map((entry, i) => (i === index ? { ...entry, multiplier: down } : entry));
+          continue;
         }
+
+        const up = STEPS[at + 1];
+        if (up === undefined) continue;
+        const candidate = next.map((entry, i) => (i === index ? { ...entry, multiplier: up } : entry));
+        // Under the target already, so any step that stays under is closer.
+        if (totalOf(candidate) <= targetValue) next = candidate;
       }
     }
 
