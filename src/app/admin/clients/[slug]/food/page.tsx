@@ -13,6 +13,7 @@ import {
   getPlanBlock,
   getPlanDay,
   getProfile,
+  getRecentNotes,
   shiftDate,
   sumCalories,
   today,
@@ -20,6 +21,7 @@ import {
 import { assignDayPlan, savePlanDay, saveFoodPlan, setFoodMode } from "@/lib/members/actions";
 import { MealPlanner } from "@/components/members/PlanDayEditor";
 import { MealBreakdown } from "@/components/members/MealBreakdown";
+import { ReviewBanner } from "@/components/members/ReviewBanner";
 import { cn } from "@/lib/utils";
 import { PlanAssigner } from "@/components/members/PlanAssigner";
 import {
@@ -80,7 +82,11 @@ export default async function AdminClientFoodPage({
       getMeals(),
     ]);
 
-  const swaps = await getMealSwaps(profile.id, selected);
+  const fromReview = query.review === "1";
+  const [swaps, reviewNotes] = await Promise.all([
+    getMealSwaps(profile.id, selected),
+    fromReview ? getRecentNotes(profile.id) : Promise.resolve([]),
+  ]);
   // The unswapped recipes, so the breakdown can name what a swap replaced.
   const library = new Map(meals.map((meal) => [meal.id, meal]));
 
@@ -96,6 +102,7 @@ export default async function AdminClientFoodPage({
 
   return (
     <div className="space-y-5">
+      {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
       {/* Who holds the pen. Switching it never touches the plan already
           written — it only changes who may edit from here on. */}
       <Panel title="Who plans the food">
@@ -154,7 +161,7 @@ export default async function AdminClientFoodPage({
             {days.map((entry) => (
               <li key={entry}>
                 <Link
-                  href={`/admin/clients/${profile.id}/food?date=${entry}`}
+                  href={`/admin/clients/${profile.id}/food?date=${entry}${fromReview ? "&review=1" : ""}`}
                   aria-current={entry === selected ? "page" : undefined}
                   className={cn(
                     "block rounded-2xl border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
@@ -181,15 +188,45 @@ export default async function AdminClientFoodPage({
               <input type="hidden" name="dayIndex" value={dayIndex} />
               <input type="hidden" name="kind" value="food" />
               <input type="hidden" name="from" value={selected} />
-              <input type="hidden" name="scope" value="date" />
+              {fromReview ? <input type="hidden" name="review" value="1" /> : null}
               <p className="text-sm font-semibold">{longLabel(selected)}</p>
               <MealPlanner key={selected} day={planDay} meals={meals} calorieTarget={planDay.calorieTarget} />
+
+              {/* This was pinned to the single date, which made half of what a
+                  review decides impossible here — "they don't like salmon" is
+                  almost never about one Tuesday. Same two choices, same words,
+                  as everywhere else a day is edited. */}
+              <fieldset className="rounded-2xl border border-line bg-ink p-4">
+                <legend className={fieldLabel}>How far does this reach?</legend>
+                <div className="mt-2 space-y-2">
+                  <label className="flex items-center gap-3 text-sm text-muted">
+                    <input
+                      type="radio"
+                      name="scope"
+                      value="date"
+                      defaultChecked
+                      className="h-4 w-4 accent-[var(--color-accent)]"
+                    />
+                    Just {longLabel(selected)}
+                  </label>
+                  <label className="flex items-center gap-3 text-sm text-muted">
+                    <input
+                      type="radio"
+                      name="scope"
+                      value="weekday"
+                      className="h-4 w-4 accent-[var(--color-accent)]"
+                    />
+                    Every {longLabel(selected).split(" ")[0]} from then on
+                  </label>
+                </div>
+                <p className="mt-3 text-xs text-faint">
+                  Days already gone are never changed.
+                </p>
+              </fieldset>
+
               <button type="submit" className={submitButton}>
                 Save {longLabel(selected)}
               </button>
-              <p className="text-xs text-faint">
-                Saves this date only. Use the Plan tab to change the shape of every week.
-              </p>
             </form>
           )}
         </div>
@@ -216,6 +253,7 @@ export default async function AdminClientFoodPage({
             slots={planDay.meals}
             library={library}
             swaps={swaps}
+            fromReview={fromReview}
           />
         </Panel>
       ) : null}

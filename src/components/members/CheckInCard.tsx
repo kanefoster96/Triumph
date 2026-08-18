@@ -1,12 +1,15 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Dumbbell,
   MessageSquareText,
   RefreshCw,
+  Repeat,
+  Salad,
   SlidersHorizontal,
   TriangleAlert,
 } from "lucide-react";
-import type { CheckInSummary, DayPlan, SessionPlan } from "@/lib/members/types";
+import type { CheckInSummary } from "@/lib/members/types";
 import { recordCheckIn } from "@/lib/members/actions";
 import { commentsFor } from "@/lib/members/service";
 import { Chip } from "@/components/ui/Chip";
@@ -36,52 +39,44 @@ function shortDate(date: string) {
 }
 
 /** A toggle that works without JavaScript — the checkbox drives the styling. */
-function WeekdayChip({ value, label, checked }: { value: number; label: string; checked: boolean }) {
-  return (
-    <label className="cursor-pointer">
-      <input
-        type="checkbox"
-        name="weekdays"
-        value={value}
-        aria-label={label}
-        defaultChecked={checked}
-        className="peer sr-only"
-      />
-      <span className="inline-flex rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
-        {label}
-      </span>
-    </label>
-  );
-}
-
-/** The shared tail of both forms: how far ahead, when to look again, the note. */
 function DecisionFields({
   id,
   noteLabel,
   placeholder,
   weeksLabel,
+  hideWeeks = false,
 }: {
   id: string;
   noteLabel: string;
   placeholder: string;
   weeksLabel: string;
+  /**
+   * Adjusting no longer writes weeks forward — Dean edits the repeating plan
+   * himself, which covers every week until he changes it again. Asking "apply
+   * for how long" would be asking about something that no longer happens.
+   */
+  hideWeeks?: boolean;
 }) {
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className={fieldLabel} htmlFor={`${id}-weeks`}>
-            {weeksLabel}
-          </label>
-          <select id={`${id}-weeks`} name="weeks" className={field} defaultValue="4">
-            {WEEK_OPTIONS.map((week) => (
-              <option key={week} value={week}>
-                {week} week{week === 1 ? "" : "s"}
-              </option>
-            ))}
-            <option value="0">Don&rsquo;t plan anything yet</option>
-          </select>
-        </div>
+      <div className={cn("grid gap-4", !hideWeeks && "sm:grid-cols-2")}>
+        {hideWeeks ? (
+          <input type="hidden" name="weeks" value="0" />
+        ) : (
+          <div>
+            <label className={fieldLabel} htmlFor={`${id}-weeks`}>
+              {weeksLabel}
+            </label>
+            <select id={`${id}-weeks`} name="weeks" className={field} defaultValue="4">
+              {WEEK_OPTIONS.map((week) => (
+                <option key={week} value={week}>
+                  {week} week{week === 1 ? "" : "s"}
+                </option>
+              ))}
+              <option value="0">Don&rsquo;t plan anything yet</option>
+            </select>
+          </div>
+        )}
         <div>
           <label className={fieldLabel} htmlFor={`${id}-review`}>
             Review again in
@@ -112,17 +107,8 @@ function DecisionFields({
   );
 }
 
-export function CheckInCard({
-  summary,
-  sessionPlans,
-  dayPlans,
-}: {
-  summary: CheckInSummary;
-  sessionPlans: SessionPlan[];
-  dayPlans: DayPlan[];
-}) {
-  const { profile, flags, lastCheckIn, notes, trainingDays, checkInComments, plannedAhead } =
-    summary;
+export function CheckInCard({ summary }: { summary: CheckInSummary }) {
+  const { profile, flags, lastCheckIn, notes, trainingDays, checkInComments } = summary;
   const missedDays = summary.missedDays;
   const earlier = summary.recentCheckIns.slice(1);
   const id = profile.id;
@@ -138,7 +124,10 @@ export function CheckInCard({
     : "—";
 
   return (
-    <article className="rounded-[var(--radius-sheet)] border border-line bg-surface">
+    <article
+      id={`client-${id}`}
+      className="scroll-mt-24 rounded-[var(--radius-sheet)] border border-line bg-surface"
+    >
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
         <div className="min-w-0">
           <Link href={`/admin/clients/${id}`} className="text-base font-semibold hover:text-accent">
@@ -308,6 +297,38 @@ export function CheckInCard({
           <p className="text-xs text-faint">No check-in recorded yet.</p>
         )}
 
+        {/* The change itself happens in the real editors, not here.
+            Adjusting used to mean picking a pre-built template and letting it
+            overwrite the week — which could not swap one meal, move one day, or
+            do any of the things a review actually decides. These open the week
+            with their notes at the top and come back when he saves. */}
+        <div className="rounded-2xl border border-line bg-ink p-4">
+          <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+            Change something
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(
+              [
+                ["The week", `/admin/clients/${id}/plan?review=1`, Repeat],
+                ["Workouts", `/admin/clients/${id}/workouts?review=1`, Dumbbell],
+                ["Food", `/admin/clients/${id}/food?review=1`, Salad],
+              ] as const
+            ).map(([label, href, Icon]) => (
+              <Link
+                key={label}
+                href={href}
+                className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-faint">
+            Each one asks whether a change is just that date or every week from then on.
+          </p>
+        </div>
+
         {/* Both decisions are <details> so the board stays scannable and the
             whole screen still works with no JavaScript. */}
         <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
@@ -352,87 +373,19 @@ export function CheckInCard({
             <form action={recordCheckIn} className="space-y-4 border-t border-line p-4">
               <input type="hidden" name="clientId" value={id} />
               <input type="hidden" name="outcome" value="adjusted" />
-
-              {/* The counterpart to Continue's "only ever adds". Adjust is a
-                  deliberate replacement, so it has to say so before it writes. */}
               <p className="text-sm text-muted">
-                Where continuing only ever adds, adjusting <strong>replaces</strong>. Pick a workout plan and
-                the weeks ahead become exactly the days you tick — anything queued on other days is cleared.
-                Leave a picker on &ldquo;as they are&rdquo; and that half is not touched at all. Days already
-                in the past are never touched.
+                Make the change first — the links above open their week with these notes at the top,
+                and bring you back here when you save. Then record what you told them.
               </p>
-              {plannedAhead.workouts > 0 || plannedAhead.foodDays > 0 ? (
-                <p className="text-sm text-amber">
-                  {plannedAhead.workouts} workout{plannedAhead.workouts === 1 ? "" : "s"} and{" "}
-                  {plannedAhead.foodDays} food day{plannedAhead.foodDays === 1 ? "" : "s"} are currently
-                  planned ahead.
-                </p>
-              ) : null}
-
-              <div>
-                <label className={fieldLabel} htmlFor={`adj-${id}-workout`}>
-                  Workout plan
-                </label>
-                <select id={`adj-${id}-workout`} name="workoutPlanId" className={field} defaultValue="">
-                  <option value="">Leave workouts as they are</option>
-                  {sessionPlans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <span className={fieldLabel}>Training days</span>
-                <div className="flex flex-wrap gap-2">
-                  {WEEKDAYS.map((day) => (
-                    <WeekdayChip
-                      key={day.value}
-                      value={day.value}
-                      label={day.label}
-                      // Start from the days they already train on, so a small
-                      // change is a small edit rather than a fresh selection.
-                      checked={
-                        trainingDays.length > 0
-                          ? trainingDays.includes(day.value)
-                          : day.value >= 1 && day.value <= 5
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className={fieldLabel} htmlFor={`adj-${id}-time`}>
-                  Suggested time (optional)
-                </label>
-                <input id={`adj-${id}-time`} className={field} type="time" name="suggestedTime" />
-              </div>
-
-              <div>
-                <label className={fieldLabel} htmlFor={`adj-${id}-food`}>
-                  Food plan
-                </label>
-                <select id={`adj-${id}-food`} name="dayPlanId" className={field} defaultValue="">
-                  <option value="">Leave food as it is</option>
-                  {dayPlans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-2 text-xs text-faint">Applies to every day, not just training days.</p>
-              </div>
-
               <DecisionFields
                 id={`adj-${id}`}
-                weeksLabel="Apply for"
+                weeksLabel=""
                 noteLabel="Note to them"
-                placeholder="Dropping you to three days while the school run settles, and I've swapped the salmon out."
+                placeholder="Swapped the salmon for cod from next week, and dropped Friday while the school run settles."
+                hideWeeks
               />
               <button type="submit" className={submitButton}>
-                Adjust and send note
+                Record and send note
               </button>
             </form>
           </details>

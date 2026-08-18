@@ -23,6 +23,7 @@ export function MealBreakdown({
   slots,
   library,
   swaps,
+  fromReview = false,
 }: {
   clientId: string;
   date: string;
@@ -31,6 +32,8 @@ export function MealBreakdown({
   /** The unswapped meals, by id. */
   library: Map<string, Meal>;
   swaps: IngredientSwap[];
+  /** Came in from the weekly review, so a save goes back to it. */
+  fromReview?: boolean;
 }) {
   if (slots.length === 0) {
     return <p className="text-sm text-faint">No meals on this day yet.</p>;
@@ -120,6 +123,7 @@ export function MealBreakdown({
                           <input type="hidden" name="clientId" value={clientId} />
                           <input type="hidden" name="replaces" value={ingredient.name} />
                           <input type="hidden" name="from" value={date} />
+                          {fromReview ? <input type="hidden" name="review" value="1" /> : null}
 
                           <div>
                             <label className={fieldLabel} htmlFor={`swap-${slot.id}-${ingredient.id}`}>

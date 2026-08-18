@@ -816,6 +816,24 @@ function meanWeight(entries: WeightEntry[]): number | null {
 }
 
 /** Everything the client wrote in the window, newest first. */
+/**
+ * Everything a client has written lately, for the top of an editor.
+ *
+ * Dean opens the food page *because* of something they said, and by the time
+ * he is three screens deep the wording of it has gone. This puts it back in
+ * front of him while he is making the change it prompted.
+ */
+export async function getRecentNotes(clientId: string, days = 14): Promise<ClientNote[]> {
+  const end = today();
+  const start = shiftDate(end, -(days - 1));
+  const [workouts, foodLogs, weights] = await Promise.all([
+    getWorkouts(clientId),
+    getFoodLogs(clientId),
+    getWeightEntries(clientId),
+  ]);
+  return gatherNotes(workouts, foodLogs, weights, start, end);
+}
+
 function gatherNotes(
   workouts: Workout[],
   foodLogs: FoodLog[],

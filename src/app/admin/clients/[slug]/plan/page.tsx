@@ -8,6 +8,7 @@ import {
   getPlanBlock,
   getPlanCycle,
   getProfile,
+  getRecentNotes,
   today,
 } from "@/lib/members/service";
 import { bumpPlanWeights, createPlanBlock, savePlanDay } from "@/lib/members/actions";
@@ -15,6 +16,7 @@ import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from 
 import { Chip } from "@/components/ui/Chip";
 import { cn } from "@/lib/utils";
 import { ExercisePlanner, MealPlanner } from "@/components/members/PlanDayEditor";
+import { ReviewBanner } from "@/components/members/ReviewBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +38,18 @@ export default async function AdminClientPlanPage({
   if (!profile) notFound();
 
   const now = today();
-  const block = await getPlanBlock(profile.id);
+  // Arrived from the weekly review: bring the notes and the way back with him.
+  const fromReview = query.review === "1";
+  const [block, reviewNotes] = await Promise.all([
+    getPlanBlock(profile.id),
+    fromReview ? getRecentNotes(profile.id) : Promise.resolve([]),
+  ]);
 
   if (!block) {
     return (
-      <Panel title="No repeating plan yet">
+      <>
+        {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
+        <Panel title="No repeating plan yet">
         <form action={createPlanBlock} className="space-y-4">
           <input type="hidden" name="clientId" value={profile.id} />
           <p className="text-sm text-muted">
@@ -67,8 +76,9 @@ export default async function AdminClientPlanPage({
           <button type="submit" className={submitButton}>
             Start a repeating plan
           </button>
-        </form>
-      </Panel>
+          </form>
+        </Panel>
+      </>
     );
   }
 
@@ -89,6 +99,7 @@ export default async function AdminClientPlanPage({
 
   return (
     <div className="space-y-5">
+      {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
       <ScreenTitle
         title="Plan"
         subtitle={`A ${block.cycleWeeks === 2 ? "two week" : "one week"} block, repeating from ${block.startsOn}. Edit a day and choose how far the change reaches.`}
@@ -115,7 +126,7 @@ export default async function AdminClientPlanPage({
             return (
               <li key={index}>
                 <Link
-                  href={`${basePath}?day=${index}`}
+                  href={`${basePath}?day=${index}${fromReview ? "&review=1" : ""}`}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors",
@@ -207,6 +218,7 @@ export default async function AdminClientPlanPage({
               <input type="hidden" name="clientId" value={profile.id} />
               <input type="hidden" name="dayIndex" value={dayIndex as number} />
               <input type="hidden" name="kind" value="workout" />
+              {fromReview ? <input type="hidden" name="review" value="1" /> : null}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -279,6 +291,7 @@ export default async function AdminClientPlanPage({
               <input type="hidden" name="clientId" value={profile.id} />
               <input type="hidden" name="dayIndex" value={dayIndex as number} />
               <input type="hidden" name="kind" value="food" />
+              {fromReview ? <input type="hidden" name="review" value="1" /> : null}
 
               <MealPlanner
                 key={`f-${dayIndex}`}

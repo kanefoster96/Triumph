@@ -85,20 +85,25 @@ worth looking at is flagged with the reason (`2 of 3 workouts not finished`,
 `Left a note`, `Plan runs out within a week`, `Review due`) and sorted to the
 top; the rest read **On track** and can be skimmed past.
 
-Two decisions, and both write the plan forward and send the client a note.
+A review is read-then-change, so the card carries **Change something** — three
+links into the real editors (the week, workouts, food). Each opens with the
+client's recent notes pinned at the top and a way back, keeps that context
+while Dean moves between dates, and returns him to the card he was working
+through when he saves. Every one of those editors asks the same question in
+the same words: just that date, or every week from then on.
+
+Two decisions, and both send the client a note.
 Their rules are deliberately opposite, and each panel says which it is:
 
 - **Continue plan** only ever adds. It reads the last fortnight, keeps the most
   recent workout for each weekday, and clones that shape forward up to four
   weeks. Days that already have a workout are left alone. Food needs no writes
   — an assigned target carries itself forward.
-- **Adjust plan** replaces. Pick a workout plan and the weeks ahead become
-  exactly the weekdays ticked: anything queued on other days is cleared, so
-  dropping someone from five days to three actually leaves them on three. Leave
-  a picker on "as they are" and that half is untouched. Nothing before tomorrow
-  is ever altered, and the panel shows how much is currently queued before Dean
-  commits. This is also the one place both halves of the week are set in a
-  single pass.
+- **Adjust plan** records the decision and the note. It used to pick a
+  pre-built template and overwrite the weeks ahead with it, which could not
+  swap one meal, move one day, or do any of the things a review actually
+  decides — the editing happens in the editors now, and this is where Dean says
+  what he told them.
 
 Either way Dean picks when to look again, the decision is stored against the
 client, and the note lands on their dashboard as **Your check-in from Dean**.

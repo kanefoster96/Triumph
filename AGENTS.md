@@ -85,6 +85,12 @@ looks exactly like a save that worked and then vanished. Plan revisions are
 stored packed (`packRevision`), with ids rebuilt deterministically on read so
 a workout tick keyed to an item id is never orphaned.
 
+The check-in card does not edit anything itself: it links into the real
+editors with `?review=1`, which shows `ReviewBanner` (their recent notes plus a
+way back) and makes a save redirect to `/admin/checkin#client-<id>`. Anything
+that navigates within those pages has to carry the flag, or the notes vanish
+mid-edit — see `MonthCalendar`'s `carry` prop.
+
 The meal library is shared, so a recipe edit reaches every client — which is
 why a client who does not want salmon gets an **ingredient swap** instead
 (`client_meal_swaps`), matched on the ingredient's name and scoped exactly like

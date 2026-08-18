@@ -10,6 +10,7 @@ import {
   getPlanBlock,
   getPlanDay,
   getProfile,
+  getRecentNotes,
   getSessions,
   getTrainingDates,
   getWorkoutFor,
@@ -22,6 +23,7 @@ import { EmptyState, Panel, field, fieldLabel, submitButton } from "@/components
 import { MonthCalendar, resolveCalendarParams, type DayMarker } from "@/components/members/MonthCalendar";
 import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
 import { ExercisePlanner } from "@/components/members/PlanDayEditor";
+import { ReviewBanner } from "@/components/members/ReviewBanner";
 import { CommentThread } from "@/components/members/Comments";
 import { Chip } from "@/components/ui/Chip";
 
@@ -50,6 +52,9 @@ export default async function AdminClientWorkoutsPage({
   const monthStart = `${month}-01`;
   const rangeFrom = monthStart < now ? monthStart : now;
   const rangeTo = shiftDate(monthStart, 40);
+
+  const fromReview = query.review === "1";
+  const reviewNotes = fromReview ? await getRecentNotes(profile.id) : [];
 
   const [onSelectedDay, trainingDates, workouts, sessions, comments, block, exercises, efforts] =
     await Promise.all([
@@ -89,7 +94,9 @@ export default async function AdminClientWorkoutsPage({
   const planPath = `/admin/clients/${profile.id}/plan`;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
+    <>
+      {fromReview ? <ReviewBanner clientId={profile.id} notes={reviewNotes} /> : null}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
       <div className="space-y-5">
         <Panel title="Calendar">
           <MonthCalendar
@@ -98,6 +105,7 @@ export default async function AdminClientWorkoutsPage({
             today={now}
             markers={markers}
             basePath={basePath}
+            carry={fromReview ? { review: "1" } : undefined}
           />
         </Panel>
 
@@ -199,6 +207,7 @@ export default async function AdminClientWorkoutsPage({
               <input type="hidden" name="dayIndex" value={dayIndex as number} />
               <input type="hidden" name="kind" value="workout" />
               <input type="hidden" name="from" value={selected} />
+              {fromReview ? <input type="hidden" name="review" value="1" /> : null}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -361,6 +370,7 @@ export default async function AdminClientWorkoutsPage({
           )}
         </Panel>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

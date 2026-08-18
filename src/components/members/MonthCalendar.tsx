@@ -21,6 +21,8 @@ interface MonthCalendarProps {
   markers: Record<string, DayMarker>;
   /** Day links are appended to this path as ?month=&date=. */
   basePath: string;
+  /** Anything else the page needs to keep across a day click — see `review`. */
+  carry?: Record<string, string>;
 }
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -35,7 +37,14 @@ function shiftMonth(month: string, by: number): string {
  * A month grid built entirely from links — no client JavaScript, so it works
  * on a slow phone and the selected day is shareable as a URL.
  */
-export function MonthCalendar({ month, selected, today, markers, basePath }: MonthCalendarProps) {
+export function MonthCalendar({
+  month,
+  selected,
+  today,
+  markers,
+  basePath,
+  carry,
+}: MonthCalendarProps) {
   const [year, monthNumber] = month.split("-").map(Number);
   const first = new Date(Date.UTC(year, monthNumber - 1, 1));
   const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
@@ -52,7 +61,7 @@ export function MonthCalendar({ month, selected, today, markers, basePath }: Mon
   while (cells.length % 7 !== 0) cells.push(null);
 
   const href = (params: { month?: string; date?: string }) => {
-    const search = new URLSearchParams();
+    const search = new URLSearchParams(carry);
     search.set("month", params.month ?? month);
     if (params.date) search.set("date", params.date);
     return `${basePath}?${search.toString()}`;

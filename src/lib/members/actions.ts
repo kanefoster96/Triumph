@@ -1855,6 +1855,9 @@ export async function savePlanDay(formData: FormData) {
   }
 
   refresh();
+  // Came in from the weekly review, so go back to the card he was working
+  // through rather than leaving him to find his place in a list of thirty.
+  if (formData.get("review") === "1") redirect(`/admin/checkin#client-${clientId}`);
 }
 
 /**
@@ -1924,6 +1927,7 @@ export async function swapIngredient(formData: FormData) {
   }
 
   refresh();
+  if (formData.get("review") === "1") redirect(`/admin/checkin#client-${clientId}`);
 }
 
 /** Undo a swap. The meal goes back to whatever the library says. */

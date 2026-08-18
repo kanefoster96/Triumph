@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCheckInBoard, getDayPlans, getSessionPlans } from "@/lib/members/service";
+import { getCheckInBoard } from "@/lib/members/service";
 import { BoardStat, CheckInCard } from "@/components/members/CheckInCard";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,7 @@ export default async function AdminCheckInPage({ searchParams }: PageProps<"/adm
   const requested = Number(typeof params.days === "string" ? params.days : "");
   const windowDays = WINDOWS.some((w) => w.days === requested) ? requested : 7;
 
-  const [board, sessionPlans, dayPlans] = await Promise.all([
-    getCheckInBoard(windowDays),
-    getSessionPlans(),
-    getDayPlans(),
-  ]);
+  const board = await getCheckInBoard(windowDays);
 
   const needALook = board.filter((row) => row.flags.length > 0);
   const settled = board.filter((row) => row.flags.length === 0);
@@ -78,8 +74,6 @@ export default async function AdminCheckInPage({ searchParams }: PageProps<"/adm
             <CheckInCard
               key={summary.profile.id}
               summary={summary}
-              sessionPlans={sessionPlans}
-              dayPlans={dayPlans}
             />
           ))}
         </div>
