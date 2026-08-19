@@ -9,10 +9,14 @@
 -- ---------------------------------------------------------------------------
 
 create type public.user_role as enum ('client', 'admin');
--- 'applicant' is somebody who has signed up through the public wizard and is
--- waiting on Dean. A real account that can sign in, with no plan behind it and
--- no place in his client list until he enrols them.
-create type public.client_status as enum ('applicant', 'active', 'paused');
+-- What an account is to Dean.
+--
+-- 'basic' is somebody who made an account and nothing more: they can sign in
+-- and look round, they are not waiting on him, and they are not one of his
+-- clients. 'applicant' has asked to train and is waiting. 'active' is a client
+-- he has taken on. Keeping the first apart from the other two is what stops
+-- every self-signup landing in his client list or his requests inbox.
+create type public.client_status as enum ('basic', 'applicant', 'active', 'paused');
 
 -- Who builds this client's food week. 'coach' is the default and how most
 -- clients are coached: Dean assigns the meals and they follow the plan. 'self'
@@ -72,8 +76,8 @@ declare
   is_coach boolean;
 begin
   select exists (
-    select 1 from public.coach_emails
-    where lower(email) = lower(new.email)
+    select 1 from public.coach_emails c
+    where lower(c.email) = lower(new.email)
   ) into is_coach;
 
   insert into public.profiles (id, email, full_name, role, status)
@@ -82,7 +86,7 @@ begin
     new.email,
     coalesce(new.raw_user_meta_data ->> 'full_name', ''),
     case when is_coach then 'admin' else 'client' end::public.user_role,
-    case when is_coach then 'active' else 'applicant' end::public.client_status
+    case when is_coach then 'active' else 'basic' end::public.client_status
   )
   on conflict (id) do nothing;
   return new;
@@ -1037,6 +1041,46 @@ create policy "own shopping list items" on public.shopping_list_items
     exists (
       select 1 from public.shopping_lists l where l.id = list_id and l.client_id = auth.uid()
     )
+  );
+
+-- ---------------------------------------------------------------------------
+-- Avatars
+--
+-- A real upload rather than a pasted URL. Public read, because an avatar is
+-- shown on screens the browser loads directly; writes are scoped to a folder
+-- named after the person, so nobody can overwrite somebody else's face.
+-- ---------------------------------------------------------------------------
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'avatars', 'avatars', true, 5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do nothing;
+
+create policy "avatars are public" on storage.objects
+  for select using (bucket_id = 'avatars');
+
+-- The first path segment is the owner's id, so "my folder" is a prefix check.
+create policy "upload own avatar" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'avatars'
+    and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
+  );
+
+create policy "replace own avatar" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'avatars'
+    and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
+  );
+
+create policy "delete own avatar" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'avatars'
+    and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
   );
 
 -- ---------------------------------------------------------------------------

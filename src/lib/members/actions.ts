@@ -439,48 +439,42 @@ async function signInAs(profileId: string) {
 export async function submitApplication(formData: FormData) {
   const email = normalise(String(formData.get("email") ?? ""));
   const fullName = String(formData.get("fullName") ?? "").trim();
-  if (!email || !fullName) return;
+  if (!fullName) return;
 
   const supabase = await createClient();
+  const existing = await getCurrentProfile();
+
   if (supabase) {
     /*
-     * A real account and an application, in that order.
-     *
-     * The account has to exist first: `applications.account_id` points at the
-     * profile, and the profile is created by a trigger on the auth user. The
-     * trigger also decides what they are — the coach allowlist, or an
-     * applicant with nothing behind them until Dean enrols them.
+     * Two ways in. Somebody already signed in — a basic account deciding they
+     * want coaching after all — keeps the account they have; anybody else gets
+     * one made here. Either way an application is written and the profile
+     * moves to 'applicant', which is what puts them in Dean's inbox.
      */
-    const { error } = await supabase.auth.signUp({
-      email,
-      password: String(formData.get("password") ?? ""),
-      options: { data: { full_name: fullName } },
-    });
+    if (!existing) {
+      if (!email) return;
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: String(formData.get("password") ?? ""),
+        options: { data: { full_name: fullName } },
+      });
 
-    if (error) {
-      const taken = error.message.toLowerCase().includes("registered");
-      // Anything else is a connection or configuration problem, and the log is
-      // the only place it would otherwise show up.
-      if (!taken) console.error("[signup] supabase.auth.signUp failed:", error.message);
-      // "Already registered" has a better answer than a second account.
-      redirect(`/join?e=${taken ? "taken" : "1"}`);
+      if (error) {
+        const taken = error.message.toLowerCase().includes("registered");
+        if (!taken) console.error("[apply] signUp failed:", error.message);
+        redirect(`/join?e=${taken ? "taken" : "1"}`);
+      }
     }
 
-    const raw = String(formData.get("avatarUrl") ?? "").trim();
     const { data: session } = await supabase.auth.getUser();
     if (!session.user) {
-      console.error("[signup] no session after signUp — is email confirmation on?");
+      console.error("[apply] no session after signUp");
       redirect("/join?e=1");
     }
 
-    /*
-     * A coach who signs up here is a coach, not an applicant.
-     *
-     * The database decides that from the allowlist, so this only has to
-     * respect it: writing an application would put Dean in his own requests
-     * inbox, and sending him to /app would show him a client's screen.
-     */
-    const profile = await getCurrentProfile();
+    // A coach who fills this in is still a coach, and is not his own
+    // applicant.
+    const profile = existing ?? (await getCurrentProfile());
     if (profile?.role === "admin") {
       refresh();
       redirect("/admin");
@@ -489,36 +483,44 @@ export async function submitApplication(formData: FormData) {
     const { error: appError } = await supabase.from("applications").insert({
       account_id: session.user.id,
       full_name: fullName,
-      email,
-      avatar_url: raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null,
+      email: email || profile?.email || session.user.email,
       current_weight_kg: readNumber(formData, "currentWeightKg"),
       goal_weight_kg: readNumber(formData, "goalWeightKg"),
       goal_type: readGoal(formData),
       goal_other: readGoalOther(formData),
     });
-    if (appError) console.error("[signup] application insert failed:", appError.message);
+    if (appError) console.error("[apply] application insert failed:", appError.message);
+
+    // Waiting on Dean now, which is what his inbox and their dashboard read.
+    await supabase
+      .from("profiles")
+      .update({ full_name: fullName, status: "applicant" })
+      .eq("id", session.user.id);
 
     refresh();
     redirect("/join/thanks");
   }
 
-  const existing = await demoAccountFor(email);
+  // --- Demo mode ------------------------------------------------------------
   if (existing) {
-    // Already has an account. Sign them in rather than making a second one —
-    // and their application, if any, is on their dashboard.
-    await signInAs(existing.id);
+    await writeDemoPeople((people) => {
+      const mine = people.profiles.find((entry) => entry.id === existing.id);
+      if (mine) Object.assign(mine, { fullName, status: "applicant" as const });
+      people.applications.push(demoApplication(existing.id, fullName, existing.email ?? email, formData));
+    });
+    refresh();
+    redirect("/join/thanks");
+  }
+
+  if (!email) return;
+  const already = await demoAccountFor(email);
+  if (already) {
+    await signInAs(already.id);
     refresh();
     redirect("/app");
   }
 
-  const raw = String(formData.get("avatarUrl") ?? "").trim();
-  const avatarUrl = raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null;
-  const goalType = readGoal(formData);
-  const goalOther = readGoalOther(formData);
-
   const accountId = crypto.randomUUID();
-  const now = new Date().toISOString();
-
   const profile: Profile = {
     id: accountId,
     fullName,
@@ -528,36 +530,44 @@ export async function submitApplication(formData: FormData) {
     // them, and the requests inbox is the only place they show up.
     status: "applicant",
     goal: null,
-    startedOn: now.slice(0, 10),
+    startedOn: new Date().toISOString().slice(0, 10),
     foodMode: "coach",
     // Online until Dean says otherwise — he picks when he enrols them.
     coachingMode: "online",
-    avatarUrl,
-  };
-
-  const application: Application = {
-    id: crypto.randomUUID(),
-    accountId,
-    fullName,
-    email,
-    avatarUrl,
-    currentWeightKg: readNumber(formData, "currentWeightKg"),
-    goalWeightKg: readNumber(formData, "goalWeightKg"),
-    goalType,
-    goalOther,
-    status: "pending",
-    createdAt: now,
-    decidedAt: null,
+    avatarUrl: null,
   };
 
   await writeDemoPeople((people) => {
     people.profiles.push(profile);
-    people.applications.push(application);
+    people.applications.push(demoApplication(accountId, fullName, email, formData));
   });
 
   await signInAs(accountId);
   refresh();
   redirect("/join/thanks");
+}
+
+/** One application, built the same way whichever demo path wrote it. */
+function demoApplication(
+  accountId: string,
+  fullName: string,
+  email: string,
+  formData: FormData,
+): Application {
+  return {
+    id: crypto.randomUUID(),
+    accountId,
+    fullName,
+    email,
+    avatarUrl: null,
+    currentWeightKg: readNumber(formData, "currentWeightKg"),
+    goalWeightKg: readNumber(formData, "goalWeightKg"),
+    goalType: readGoal(formData),
+    goalOther: readGoalOther(formData),
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    decidedAt: null,
+  };
 }
 
 /**
@@ -622,6 +632,104 @@ export async function markQuestionAnswered(formData: FormData) {
 }
 
 /** Sign in to an account made through the signup. */
+/**
+ * Make an account. Email, password, in.
+ *
+ * No approval, no confirmation and nothing to wait for: somebody who wants to
+ * look round should be looking round. Their name and their face are asked for
+ * afterwards, on their own profile, where they are optional — a signup that
+ * demands four fields before it will let you see anything is a signup people
+ * abandon.
+ *
+ * Applying to train is a different thing and lives at /join. This does not
+ * make anybody Dean's client; the allowlist still decides who is a coach.
+ */
+export async function createAccount(formData: FormData) {
+  const email = normalise(String(formData.get("email") ?? ""));
+  const password = String(formData.get("password") ?? "");
+  if (!email || password.length < 6) redirect("/signup?e=short");
+
+  const supabase = await createClient();
+
+  if (supabase) {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      const taken = error.message.toLowerCase().includes("registered");
+      if (!taken) console.error("[signup] createAccount failed:", error.message);
+      redirect(`/signup?e=${taken ? "taken" : "1"}`);
+    }
+
+    // Straight in, and to the right side of the app: the allowlist may have
+    // made this a coach, and a coach does not want a client's dashboard.
+    const profile = await getCurrentProfile();
+    refresh();
+    redirect(profile?.role === "admin" ? "/admin" : "/app");
+  }
+
+  // Demo mode: the same shape, minus the database.
+  const existing = await demoAccountFor(email);
+  if (existing) {
+    await signInAs(existing.id);
+    refresh();
+    redirect(existing.role === "admin" ? "/admin" : "/app");
+  }
+
+  const accountId = crypto.randomUUID();
+  await writeDemoPeople((people) => {
+    people.profiles.push({
+      id: accountId,
+      fullName: "",
+      email,
+      role: "client",
+      status: "basic",
+      goal: null,
+      startedOn: new Date().toISOString().slice(0, 10),
+      foodMode: "coach",
+      coachingMode: "online",
+      avatarUrl: null,
+    });
+  });
+
+  await signInAs(accountId);
+  refresh();
+  redirect("/app");
+}
+
+/**
+ * Their own name and face, set after the fact.
+ *
+ * Optional on purpose — the account works without either — and writable only
+ * by the person it belongs to.
+ */
+export async function saveMyProfile(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const fullName = String(formData.get("fullName") ?? "").trim().slice(0, 80);
+  const raw = String(formData.get("avatarUrl") ?? "").trim();
+  const avatarUrl = raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null;
+
+  const supabase = await createClient();
+  if (supabase) {
+    await supabase
+      .from("profiles")
+      .update({ full_name: fullName, avatar_url: avatarUrl })
+      .eq("id", profile.id);
+  } else {
+    await writeDemoData((data) => {
+      if (avatarUrl) data.avatars[profile.id] = avatarUrl;
+      else delete data.avatars[profile.id];
+    });
+    await writeDemoPeople((people) => {
+      const mine = people.profiles.find((entry) => entry.id === profile.id);
+      if (mine) Object.assign(mine, { fullName, avatarUrl });
+    });
+  }
+
+  refresh();
+  redirect("/app/profile?saved=1");
+}
+
 export async function signIn(formData: FormData) {
   const email = normalise(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
@@ -654,6 +762,22 @@ export async function signIn(formData: FormData) {
  * them in Dean's list and lets a plan be built for them. Payment is not part
  * of it — see the placeholder on the request itself.
  */
+/** The goal every screen shows, in their words where they gave some. */
+const GOAL_FOR: Record<GoalType, string> = {
+  muscle: "Build muscle",
+  lose: "Lose weight",
+  fitness: "Get fitter",
+  other: "Get started",
+};
+
+/**
+ * Take somebody on, or turn them down.
+ *
+ * Approving is two writes that have to agree: the application is decided, and
+ * the profile becomes an actual client — status, how they are coached, and the
+ * goal carried across from what they applied with. Without the second one the
+ * inbox empties and nothing else changes, which is exactly how it read.
+ */
 export async function decideApplication(formData: FormData) {
   const coach = await getCurrentProfile();
   if (coach?.role !== "admin") return;
@@ -664,32 +788,50 @@ export async function decideApplication(formData: FormData) {
   if (!id) return;
 
   let accountId: string | null = null;
+  const supabase = await createClient();
 
-  await writeDemoPeople((people) => {
-    const application = people.applications.find((entry) => entry.id === id);
-    if (!application || application.status !== "pending") return;
+  if (supabase) {
+    const { data: application } = await supabase
+      .from("applications")
+      .update({ status: approve ? "approved" : "declined", decided_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "pending")
+      .select("account_id, goal_type, goal_other")
+      .maybeSingle();
 
-    application.status = approve ? "approved" : "declined";
-    application.decidedAt = new Date().toISOString();
-    accountId = application.accountId;
+    if (application) {
+      accountId = application.account_id;
 
-    const profile = people.profiles.find((entry) => entry.id === application.accountId);
-    if (profile && approve) {
-      profile.status = "active";
-      // Online or 1-to-1 is Dean's call and he makes it here. Either way they
-      // get the whole app; 1-to-1 adds sessions in his diary on top.
-      profile.coachingMode = coaching;
-      // Their words, carried onto the profile as the goal every screen shows.
-      profile.goal =
-        application.goalOther ??
-        {
-          muscle: "Build muscle",
-          lose: "Lose weight",
-          fitness: "Get fitter",
-          other: "Get started",
-        }[application.goalType];
+      if (approve) {
+        await supabase
+          .from("profiles")
+          .update({
+            status: "active",
+            // Online or 1-to-1 is Dean's call and he makes it here. Either way
+            // they get the whole app; 1-to-1 adds sessions in his diary.
+            coaching_mode: coaching,
+            goal: application.goal_other ?? GOAL_FOR[application.goal_type as GoalType],
+          })
+          .eq("id", application.account_id);
+      }
     }
-  });
+  } else {
+    await writeDemoPeople((people) => {
+      const application = people.applications.find((entry) => entry.id === id);
+      if (!application || application.status !== "pending") return;
+
+      application.status = approve ? "approved" : "declined";
+      application.decidedAt = new Date().toISOString();
+      accountId = application.accountId;
+
+      const profile = people.profiles.find((entry) => entry.id === application.accountId);
+      if (profile && approve) {
+        profile.status = "active";
+        profile.coachingMode = coaching;
+        profile.goal = application.goalOther ?? GOAL_FOR[application.goalType];
+      }
+    });
+  }
 
   refresh();
   // Straight into building their week, which is the next thing he does.

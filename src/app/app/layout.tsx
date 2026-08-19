@@ -5,6 +5,7 @@ import { MemberTabBar, MemberTabsInline } from "@/components/members/MemberTabBa
 import { DemoBanner } from "@/components/members/DemoBanner";
 import { Logo } from "@/components/layout/Logo";
 import { Avatar } from "@/components/members/Avatar";
+import { displayName } from "@/lib/utils";
 
 /** Per-client and private, so never cached. */
 export const dynamic = "force-dynamic";
@@ -34,8 +35,16 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
               Sign out
             </Link>
             {/* Their own face, ringed — small, but it is their app and it
-                should look like it belongs to them. */}
-            <Avatar name={profile.fullName} src={profile.avatarUrl} size="sm" ring />
+                should look like it belongs to them, and it is the way to the
+                one screen that is about them rather than about today. */}
+            <Link href="/app/profile" aria-label="Your profile" className="shrink-0">
+              <Avatar
+                name={displayName(profile)}
+                src={profile.avatarUrl}
+                size="sm"
+                ring
+              />
+            </Link>
           </div>
         </div>
       </header>

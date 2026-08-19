@@ -12,7 +12,14 @@ export type UserRole = "client" | "admin";
  * a real account and can sign in — they just have no plan yet, and they are
  * not in his client list until he enrols them.
  */
-export type ClientStatus = "applicant" | "active" | "paused";
+/**
+ * What an account is to Dean.
+ *
+ * `basic` is somebody who made an account and nothing more — they can sign in
+ * and look round, they are not waiting on him and they are not his client.
+ * `applicant` has asked to train. `active` is somebody he has taken on.
+ */
+export type ClientStatus = "basic" | "applicant" | "active" | "paused";
 export type SessionStatus = "scheduled" | "completed" | "cancelled";
 export type CommentTarget = "workout" | "food_log" | "weight_entry" | "session" | "check_in";
 export type CheckInOutcome = "continued" | "adjusted";

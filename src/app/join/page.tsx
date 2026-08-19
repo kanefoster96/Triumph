@@ -22,9 +22,16 @@ export const metadata: Metadata = {
  * collects what he needs to do that and nothing else.
  */
 export default async function JoinPage({ searchParams }: PageProps<"/join">) {
-  // Already signed in: there is nothing to apply for.
   const [profile, query] = await Promise.all([getCurrentProfile(), searchParams]);
-  if (profile) redirect(profile.role === "admin" ? "/admin" : "/app");
+  /*
+   * Signed in already? Only a basic account has anything to do here — they
+   * made an account first and have decided they want coaching after all, so
+   * the wizard runs without asking them to make a second one. Anybody who has
+   * already applied, or is already a client, has nothing to apply for.
+   */
+  if (profile && (profile.role === "admin" || profile.status !== "basic")) {
+    redirect(profile.role === "admin" ? "/admin" : "/app");
+  }
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:py-16">
@@ -56,7 +63,7 @@ export default async function JoinPage({ searchParams }: PageProps<"/join">) {
       ) : null}
 
       <div className="mt-9">
-        <JoinWizard demo={await isDemoMode()} />
+        <JoinWizard demo={await isDemoMode()} signedIn={Boolean(profile)} name={profile?.fullName ?? ""} />
       </div>
 
       <p className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-sm">

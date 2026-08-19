@@ -19,14 +19,42 @@ dataset in `src/lib/members/demo.ts` and shows an amber banner saying so.
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
    ```
 
-4. Dean signs up at `/join` with an email on the coach allowlist in the
-   migration. The trigger reads that list and makes him an admin, active
-   immediately, and no application is written — he is not his own applicant.
-   Adding another coach is one insert into `public.coach_emails`.
+4. Dean creates an account at `/signup` with an email on the coach allowlist
+   in the migration. The trigger reads that list and makes him an admin,
+   active immediately, straight onto `/admin` — there is no acceptance step
+   and no application. Adding another coach is one insert into
+   `public.coach_emails`.
 
-5. Everybody else who signs up at `/join` lands as an **applicant**: a real
-   account they can sign into, with nothing behind it until Dean enrols them
-   from `/admin/requests`. That is what keeps a new coach's dashboard empty.
+## Three kinds of account
+
+Anybody can make one and get straight in. Nothing waits on approval.
+
+- **basic** — `/signup`, email and password, active immediately. Not one of
+  Dean's clients and not in his inbox. Name and photo come afterwards, on
+  `/app/profile`, both optional.
+- **applicant** — applied at `/join`. That writes an application and moves the
+  profile to `applicant`, which is what puts them in `/admin/requests`. A basic
+  account can apply later without making a second account; the wizard skips the
+  email and password step when somebody is already signed in.
+- **active / paused** — a client Dean has enrolled. Only these two appear in
+  his client list and on his board, which is what keeps a new coach's dashboard
+  empty rather than filling it with everyone who ever made an account.
+
+Plus his own **admin** account, decided by the allowlist and nothing else —
+role governs what every RLS policy will show you, so it must never be
+something a signup can ask for.
+
+## Avatars
+
+A real upload, not a pasted URL. `AvatarUpload` puts the file straight into the
+`avatars` bucket from the browser, under a folder named after whoever owns it —
+the storage policy checks that prefix, so nobody can overwrite somebody else's
+face — and hands the public URL to the surrounding form in a hidden input. That
+is why it never has to know which form it is in. Initials stay the fallback:
+most people upload nothing, and the empty state has to look deliberate.
+
+The `/join` wizard has no photo field on purpose: an upload needs an account to
+own the file, and the account does not exist until the last step.
 
 The banner disappears and every read and write switches to Postgres. No code
 changes — `src/lib/supabase/config.ts` detects the variables.

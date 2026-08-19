@@ -62,13 +62,18 @@ export function TopBar({ demoSlot }: { demoSlot?: ReactNode }) {
             href="/login"
             className="hidden rounded-full px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-text md:inline-flex"
           >
-            Members
+            Log in
           </Link>
           {/* Wrapped rather than given `hidden` directly: the Button sets its
               own `inline-flex`, which wins over a `hidden` passed in. */}
+          <span className="hidden lg:inline-flex">
+            <Button href="/join" size="sm" variant="secondary">
+              Apply for training
+            </Button>
+          </span>
           <span className="hidden md:inline-flex">
-            <Button href="/join" size="sm">
-              Free consultation
+            <Button href="/signup" size="sm">
+              Create account
             </Button>
           </span>
           <MobileMenu demoSlot={demoSlot} />

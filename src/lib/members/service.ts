@@ -20,6 +20,7 @@ import { demoData, demoPeople, demoWeights, unpackRevision, withFoodMode } from 
 import type {
   Application,
   CheckIn,
+  ClientStatus,
   DaySubmission,
   IngredientSwap,
   CheckInSummary,
@@ -1085,11 +1086,22 @@ export async function listClients(): Promise<ClientOverview[]> {
   const date = today();
   const supabase = await createClient();
 
+  // The same filter `getClients` uses: somebody with an account but no
+  // coaching is not a row on Dean's board.
   const profiles = supabase
-    ? ((await supabase.from("profiles").select("*").eq("role", "client").order("full_name")).data ?? []).map(
-        toProfile,
-      )
-    : await Promise.all(demoProfiles.filter((p) => p.role === "client").map(withFoodMode));
+    ? (
+        (
+          await supabase
+            .from("profiles")
+            .select("*")
+            .eq("role", "client")
+            .in("status", [...ENROLLED])
+            .order("full_name")
+        ).data ?? []
+      ).map(toProfile)
+    : await Promise.all(
+        demoProfiles.filter((p) => p.role === "client" && ENROLLED.has(p.status)).map(withFoodMode),
+      );
 
   return Promise.all(
     profiles.map(async (profile) => {
@@ -1134,14 +1146,18 @@ export async function listClients(): Promise<ClientOverview[]> {
 }
 
 /** Just the clients, for pickers. Cheaper than listClients(). */
+/** The statuses that mean "this is one of Dean's clients". */
+const ENROLLED = new Set<ClientStatus>(["active", "paused"]);
+
 export async function getClients(): Promise<Profile[]> {
   const supabase = await createClient();
   if (!supabase) {
     // Seeded clients plus anyone Dean has enrolled through the requests inbox.
-    // Applicants are deliberately absent: they have an account, not a plan.
+    // Anybody who has only made an account, or is still waiting on him, is
+    // deliberately absent: they have an account, not a plan.
     const { profiles } = await demoPeople();
     const all = [...demoProfiles, ...profiles].filter(
-      (profile) => profile.role === "client" && profile.status !== "applicant",
+      (profile) => profile.role === "client" && ENROLLED.has(profile.status),
     );
     return (await Promise.all(all.map(withFoodMode))).sort((a, b) =>
       a.fullName.localeCompare(b.fullName),
@@ -1152,7 +1168,7 @@ export async function getClients(): Promise<Profile[]> {
     .from("profiles")
     .select("*")
     .eq("role", "client")
-    .neq("status", "applicant")
+    .in("status", [...ENROLLED])
     .order("full_name");
   return (data ?? []).map(toProfile);
 }

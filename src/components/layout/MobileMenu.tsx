@@ -198,19 +198,6 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                   ))}
               </ul>
 
-              {!demoSlot ? (
-                <>
-                  <p className="mt-8 mb-3 px-4 text-xs font-semibold tracking-[0.16em] text-faint uppercase">
-                    Members
-                  </p>
-                  <Link
-                    href="/login"
-                    className="block rounded-2xl px-4 py-2.5 text-sm text-muted transition-colors hover:bg-raised hover:text-text"
-                  >
-                    Sign in
-                  </Link>
-                </>
-              ) : null}
             </nav>
 
             <div className="border-t border-line px-5 py-5">
@@ -225,11 +212,17 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                 </div>
               ) : null}
 
-              <Button href="/join" fullWidth>
-                Request a free consultation
+              {/* Three ways in, named for what they do. "Create account" is
+                  the quick one and leads; applying for training is a different
+                  decision and says so. */}
+              <Button href="/signup" fullWidth>
+                Create account
               </Button>
-              <Button href="/contact" variant="secondary" fullWidth>
-                Ask a question
+              <Button href="/login" variant="secondary" fullWidth>
+                Log in
+              </Button>
+              <Button href="/join" variant="secondary" fullWidth>
+                Apply for training
               </Button>
               <a
                 href={`tel:${site.phone.replace(/\s/g, "")}`}

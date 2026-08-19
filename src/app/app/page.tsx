@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/Button";
 import { FinishAnyway } from "@/components/members/FinishAnyway";
 import { Avatar } from "@/components/members/Avatar";
 import { coach } from "@/lib/data/coach";
-import { cn, relativeDate } from "@/lib/utils";
+import { cn, displayName, firstNameOf, relativeDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
     getDaySubmissionDetail(profile.id, date),
   ]);
   const step = nextStep(summary);
-  const firstName = profile.fullName.split(" ")[0];
+  const firstName = firstNameOf(profile);
 
   const outstanding = [
     progress.workout === "todo" ? "today's workout" : null,
@@ -108,7 +108,7 @@ export default async function DashboardPage() {
       {/* Their face beside their name — the one place in the app that is
           purely theirs rather than a task waiting to be done. */}
       <div className="mb-2 flex items-center gap-4">
-        <Avatar name={profile.fullName} src={profile.avatarUrl} size="lg" ring />
+        <Avatar name={displayName(profile)} src={profile.avatarUrl} size="lg" ring />
         <div className="min-w-0 flex-1">
           <ScreenTitle title={`Morning, ${firstName}`} subtitle={profile.goal ?? undefined} />
         </div>

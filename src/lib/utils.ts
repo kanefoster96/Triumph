@@ -38,3 +38,26 @@ export function initials(name: string): string {
 export function compactNumber(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, "")}k` : `${value}`;
 }
+
+/**
+ * What to call somebody.
+ *
+ * A name is optional now — an account is an email and a password — so every
+ * screen that greets a person has to cope with not having one. Their first
+ * name if they gave one, the part of their email before the @ if they did
+ * not, and "you" as the last resort.
+ */
+export function displayName(profile: { fullName?: string | null; email?: string | null }): string {
+  const given = (profile.fullName ?? "").trim();
+  if (given) return given;
+
+  const local = (profile.email ?? "").split("@")[0].trim();
+  if (local) return local;
+
+  return "you";
+}
+
+/** The same, cut to a first name for a greeting. */
+export function firstNameOf(profile: { fullName?: string | null; email?: string | null }): string {
+  return displayName(profile).split(/[\s._-]+/)[0];
+}
