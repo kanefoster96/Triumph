@@ -26,10 +26,20 @@ dataset in `src/lib/members/demo.ts` and shows an amber banner saying so.
    update public.profiles set role = 'admin' where email = 'dean@…';
    ```
 
-5. Dean invites clients the same way. There is no public signup.
+5. Clients arrive through `/join`, which creates their auth user and an
+   application. Dean enrols them from `/admin/requests`, which flips the
+   profile from `applicant` to `active`.
 
 The banner disappears and every read and write switches to Postgres. No code
 changes — `src/lib/supabase/config.ts` detects the variables.
+
+The migration has been applied to a clean Postgres 16 and checked: every table
+the code reads has RLS on and a policy; every column the code names exists;
+each enum matches its TypeScript union; a client can see only their own rows
+and Dean's profile, and nobody else's. Two things it deliberately does not do —
+`submitApplication` and `signIn` still `redirect("/login")` when Supabase is
+configured, because real auth is the next piece of work, and
+`lib/services/payments.ts` is still a stub.
 
 ## Client tabs
 

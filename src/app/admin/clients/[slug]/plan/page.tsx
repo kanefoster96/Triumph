@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronDown, ChevronUp, TrendingUp, TriangleAlert } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, Lock, TrendingUp, TriangleAlert } from "lucide-react";
 import {
   findLastLike,
   getExercises,
@@ -12,6 +12,7 @@ import {
   mondayOf,
   shiftDate,
   today,
+  weekdayOf,
 } from "@/lib/members/service";
 import { bumpPlanWeights, savePlanDay } from "@/lib/members/actions";
 import { ScreenTitle, field, fieldLabel } from "@/components/members/ui";
@@ -65,6 +66,13 @@ function emptyDay<T extends { exercises: unknown[]; meals: unknown[] }>(day: T):
     exercises: [],
     meals: [],
   };
+}
+
+/** The next time this weekday comes round, from today. */
+function nextSame(date: string, now: string): string {
+  let cursor = shiftDate(now, 1);
+  while (weekdayOf(cursor) !== weekdayOf(date)) cursor = shiftDate(cursor, 1);
+  return cursor;
 }
 
 const isDate = (value: unknown): value is string =>
@@ -172,7 +180,30 @@ export default async function AdminClientPlanPage({
       </Link>
 
       <PlanDayList rows={rows} open={selected}>
-        {day ? (
+        {day && day.past ? (
+          /*
+           * A day that has been and gone is shown, never edited. Nothing here
+           * can reach back into it — `savePlanDay` never backdates — so an
+           * editor with a Save button on it was a form that quietly did
+           * nothing, which is worse than no form at all. The way to change
+           * this session is to change the next one.
+           */
+          <PastDay
+            title={longDate(day.date)}
+            summary={summarise(day.workout, day.food)}
+            exercises={day.workout.exercises.map((exercise) => exercise.name)}
+            meals={day.food.meals.map((slot) => slot.meal.name)}
+            notes={
+              day.notes.length > 0 ? (
+                <DayNotes clientId={profile.id} notes={day.notes} firstName={firstName} />
+              ) : null
+            }
+            closeHref={page(from)}
+            nextHref={`${page(from)}&date=${nextSame(day.date, now)}#day-${nextSame(day.date, now)}`}
+            weekdayName={weekdayName(day.date)}
+            historyHref={`/admin/clients/${profile.id}/history?date=${day.date}&month=${day.date.slice(0, 7)}`}
+          />
+        ) : day ? (
           /*
            * Keyed on the date, and on whether this is a blanked day. The
            * title, the suggested time, the note and the rest-day box are
@@ -362,6 +393,104 @@ export default async function AdminClientPlanPage({
         <ChevronDown className="h-4 w-4" />
         Later days
       </Link>
+    </div>
+  );
+}
+
+/**
+ * A day that has already happened.
+ *
+ * Read only, and it says so. The plan never rewrites the past — the client
+ * has already trained, or not — so the useful thing to offer is the next one
+ * of these, which is where a change can actually land.
+ */
+function PastDay({
+  title,
+  summary,
+  exercises,
+  meals,
+  notes,
+  closeHref,
+  nextHref,
+  weekdayName,
+  historyHref,
+}: {
+  title: string;
+  summary: string;
+  exercises: string[];
+  meals: string[];
+  notes: React.ReactNode;
+  closeHref: string;
+  nextHref: string;
+  weekdayName: string;
+  historyHref: string;
+}) {
+  return (
+    <div className="rounded-[var(--radius-sheet)] border border-line bg-surface">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <div className="min-w-0">
+          <h2 className="truncate text-base font-semibold">{title}</h2>
+          <p className="truncate text-xs text-faint">{summary}</p>
+        </div>
+        <Link
+          href={closeHref}
+          className="inline-flex h-11 shrink-0 items-center rounded-full border border-line px-4 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+        >
+          Close
+        </Link>
+      </header>
+
+      <div className="space-y-5 p-5">
+        <p className="inline-flex items-start gap-2 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
+          This day has been and gone, so it stays as it was. Change next{" "}
+          {weekdayName} instead.
+        </p>
+
+        {notes}
+
+        {exercises.length > 0 ? (
+          <div>
+            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">Training</p>
+            <ul className="mt-2 space-y-1">
+              {exercises.map((name) => (
+                <li key={name} className="text-sm text-muted">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {meals.length > 0 ? (
+          <div>
+            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">Meals</p>
+            <ul className="mt-2 space-y-1">
+              {meals.map((name) => (
+                <li key={name} className="text-sm text-muted">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            href={nextHref}
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+          >
+            <ArrowRight className="h-4 w-4" />
+            Edit next {weekdayName}
+          </Link>
+          <Link
+            href={historyHref}
+            className="inline-flex h-12 flex-1 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+          >
+            See what they did
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

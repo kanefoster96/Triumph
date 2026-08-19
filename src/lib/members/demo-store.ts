@@ -45,6 +45,20 @@ const COOKIE = "triumph-demo-data";
 const PLAN_COOKIE = "triumph-demo-plan";
 
 /**
+ * …and its overflow.
+ *
+ * One cookie holds about seven days of plan, which is less than a week of
+ * training and food — so building a client's week ran the cookie out and the
+ * pruner started dropping the oldest days. Dean saw Monday revert while he was
+ * building Thursday, which reads as a save that did not take.
+ *
+ * Four cookies, filled oldest-first so the newest edit is always in the last
+ * one, gets that to a month. It is a demo-mode ceiling and it disappears the
+ * day Supabase is connected; until then it is better spent than explained.
+ */
+const PLAN_COOKIES = [PLAN_COOKIE, "triumph-demo-plan-2", "triumph-demo-plan-3", "triumph-demo-plan-4"];
+
+/**
  * People, in a third cookie.
  *
  * Accounts and applications are not day-to-day data and not the plan: they are
@@ -169,11 +183,11 @@ function empty(): DemoData {
  */
 export const demoData = cache(async (): Promise<DemoData> => {
   let raw: string | undefined;
-  let rawPlan: string | undefined;
+  let planParts: Array<string | undefined> = [];
   try {
     const store = await cookies();
     raw = store.get(COOKIE)?.value;
-    rawPlan = store.get(PLAN_COOKIE)?.value;
+    planParts = PLAN_COOKIES.map((name) => store.get(name)?.value);
   } catch {
     return empty();
   }
@@ -191,7 +205,9 @@ export const demoData = cache(async (): Promise<DemoData> => {
   return {
     ...empty(),
     ...parse<Partial<DemoData>>(raw, {}),
-    planRevisions: parse<PackedRevision[]>(rawPlan, []),
+    // Read in cookie order, which is the order they were written: oldest
+    // first, so the newest edit to a date is still the last one in the list.
+    planRevisions: planParts.flatMap((part) => parse<PackedRevision[]>(part, [])),
   };
 });
 
@@ -220,27 +236,52 @@ export async function writeDemoData(mutate: (data: DemoData) => void): Promise<v
       maxAge: 60 * 60 * 24 * 7,
     };
     store.set(COOKIE, value, options);
-    store.set(PLAN_COOKIE, plan, options);
+    // Every part is written, empty ones included: a cookie left behind from a
+    // bigger plan would be read back in and resurrect days that were deleted.
+    PLAN_COOKIES.forEach((name, index) => store.set(name, plan[index] ?? "[]", options));
   } catch {
     /* Called outside a request that can set cookies — nothing to persist to. */
   }
 }
 
 /**
- * Keep the plan under its own ceiling, dropping the oldest edit first.
+ * Split the plan across its cookies, dropping the oldest edit if it still will
+ * not fit.
  *
  * Losing the oldest revision is the least bad thing that can happen here: a
- * day still resolves from whatever came before it, so the week degrades to an
- * earlier version of itself rather than to nothing.
+ * day still resolves from whatever came before it, so the plan degrades to an
+ * earlier version of itself rather than to nothing. With four cookies it takes
+ * a month of edits to get there.
  */
-function prunePlan(revisions: PackedRevision[]): string {
-  const kept = [...revisions];
-  let value = JSON.stringify(kept);
-  while (kept.length > 1 && wireSize(value) > MAX_PLAN_BYTES) {
-    kept.shift();
-    value = JSON.stringify(kept);
+function prunePlan(revisions: PackedRevision[]): string[] {
+  let kept = [...revisions];
+  let parts = chunkPlan(kept);
+
+  while (kept.length > 1 && parts.length > PLAN_COOKIES.length) {
+    kept = kept.slice(1);
+    parts = chunkPlan(kept);
   }
-  return value;
+
+  return parts.slice(0, PLAN_COOKIES.length);
+}
+
+/** Fill each cookie in turn, in order, so the newest edit is in the last one. */
+function chunkPlan(revisions: PackedRevision[]): string[] {
+  const parts: string[] = [];
+  let current: PackedRevision[] = [];
+
+  for (const revision of revisions) {
+    const next = [...current, revision];
+    if (current.length > 0 && wireSize(JSON.stringify(next)) > MAX_PLAN_BYTES) {
+      parts.push(JSON.stringify(current));
+      current = [revision];
+    } else {
+      current = next;
+    }
+  }
+
+  parts.push(JSON.stringify(current));
+  return parts;
 }
 
 /**

@@ -730,10 +730,21 @@ alter table public.client_meal_swaps  enable row level security;
 alter table public.day_submissions    enable row level security;
 alter table public.shopping_lists     enable row level security;
 alter table public.shopping_list_items enable row level security;
+-- Added later than the rest and easy to forget: a policy on a table without
+-- RLS enabled is inert, so these three were readable by anyone holding the
+-- anon key — which for applications and questions means names and emails.
+alter table public.applications       enable row level security;
+alter table public.questions          enable row level security;
+alter table public.day_swap_requests  enable row level security;
 
 -- Profiles
 create policy "read own profile" on public.profiles
   for select using (id = auth.uid() or public.is_admin());
+-- The coach's own row is readable by anyone signed in, because his name is on
+-- every note and comment they read. Without this the client's app joins to a
+-- row it cannot see and Dean's replies arrive unsigned.
+create policy "read the coach" on public.profiles
+  for select using (role = 'admin');
 create policy "update own profile" on public.profiles
   for update using (id = auth.uid() or public.is_admin())
   with check (id = auth.uid() or public.is_admin());

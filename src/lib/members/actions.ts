@@ -12,7 +12,13 @@ import {
   demoProfiles,
   demoSessions,
 } from "./demo";
-import { demoPeople, packRevision, writeDemoData, writeDemoPeople } from "./demo-store";
+import {
+  demoPeople,
+  packRevision,
+  writeDemoData,
+  writeDemoPeople,
+  type PackedRevision,
+} from "./demo-store";
 import {
   DEMO_ROLE_COOKIE,
   getClients,
@@ -31,6 +37,7 @@ import {
   shiftDate,
   today,
   weekdayOf,
+  type RawRevision,
 } from "./service";
 import type {
   Application,
@@ -1166,6 +1173,26 @@ function readPlanMeals(formData: FormData) {
  * Insert one revision with its exercises and meals. Every plan edit goes
  * through here, so "insert, never rewrite" holds in one place.
  */
+/**
+ * Whether a stored revision is completely replaced by a new one.
+ *
+ * Two ways that happens: another day written for the same date, or another
+ * standing day for the same weekday coming into force on the same date. In
+ * both cases `pickRevision` would take the newer one every time, so the older
+ * is bytes nothing can ever read.
+ */
+function supersededBy(packed: PackedRevision, next: RawRevision): boolean {
+  const [clientId, weekday, kind, effectiveFrom, onlyOn] = packed;
+  if (clientId !== next.clientId) return false;
+  if ((kind === 1 ? "food" : "workout") !== next.kind) return false;
+
+  if (next.onlyOn) return onlyOn === next.onlyOn;
+  // A standing day also clears the pin on the date it is saved from, or the
+  // day being edited would be the only one that did not change.
+  if (onlyOn) return onlyOn === next.effectiveFrom && weekday === next.weekday;
+  return weekday === next.weekday && effectiveFrom === next.effectiveFrom;
+}
+
 async function writeRevision(
   clientId: string,
   weekday: number,
@@ -1213,12 +1240,46 @@ async function writeRevision(
       })),
       meals: body.meals.map((entry) => ({ id: crypto.randomUUID(), ...entry })),
     };
-    // Appended, never reordered — the newest edit to a date is the one that
-    // counts, and that is decided by position in this list.
+    /*
+     * Appended, never reordered — the newest edit to a date is the one that
+     * counts, and that is decided by position in this list.
+     *
+     * Anything this revision completely replaces goes first, though. The
+     * cookie is a few kilobytes, and a superseded revision is bytes spent on
+     * something no read will ever pick: once the plan cookie is full the
+     * pruner starts dropping the *oldest* edits, so dead weight at the front
+     * is paid for by a day Dean built last week quietly reverting.
+     */
     await writeDemoData((data) => {
+      data.planRevisions = data.planRevisions.filter((packed) => !supersededBy(packed, revision));
       data.planRevisions.push(packRevision(revision));
     });
     return;
+  }
+
+  /*
+   * Same clear-out as the demo path, so the table does not accumulate rows no
+   * read can reach — and, for a standing day, so the pin on the date it is
+   * saved from actually goes.
+   */
+  const dead = supabase.from("plan_day_revisions").delete().eq("client_id", clientId).eq("kind", kind);
+  if (onlyOn) await dead.eq("only_on", onlyOn);
+  else {
+    await supabase
+      .from("plan_day_revisions")
+      .delete()
+      .eq("client_id", clientId)
+      .eq("kind", kind)
+      .eq("weekday", weekday)
+      .eq("only_on", effectiveFrom);
+    await supabase
+      .from("plan_day_revisions")
+      .delete()
+      .eq("client_id", clientId)
+      .eq("kind", kind)
+      .eq("weekday", weekday)
+      .is("only_on", null)
+      .eq("effective_from", effectiveFrom);
   }
 
   const { data: revision } = await supabase
@@ -1294,6 +1355,13 @@ export async function savePlanDay(formData: FormData) {
   const clientId = String(formData.get("clientId") ?? "");
   const date = String(formData.get("date") ?? "");
   if (!clientId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  /*
+   * A day that has been and gone is never rewritten. The screen does not offer
+   * it, but a pinned revision for a past date would resolve — `pickRevision`
+   * takes a pinned day whatever its effective date — so the rule is kept here
+   * rather than only in the UI that usually enforces it.
+   */
+  if (date < today()) return;
 
   /*
    * "both" is one save for the whole day — the editor shows the training and
@@ -1333,19 +1401,14 @@ export async function savePlanDay(formData: FormData) {
       meals: kind === "food" ? meals : [],
     };
 
-    await writeRevision(clientId, weekday, kind, from, scope === "date" ? date : null, body);
-
     /*
-     * "All future Mondays" has to include the Monday he is looking at.
-     *
-     * Pinned days beat standing ones, which is what protects a week he made
-     * special — but this date may already carry a pin of its own, from a
-     * weight nudge or an earlier one-off, and without this the day he just
-     * edited would be the only Monday that did not change.
+     * "All future Mondays" has to include the Monday he is looking at, and
+     * this date may already carry a pin of its own from a weight nudge or an
+     * earlier one-off. `writeRevision` clears that pin rather than writing a
+     * second copy over the top of it: the day stops being an exception, which
+     * is what he asked for, and it costs no extra room in the store.
      */
-    if (scope === "weekday") {
-      await writeRevision(clientId, weekday, kind, from, date, body);
-    }
+    await writeRevision(clientId, weekday, kind, from, scope === "date" ? date : null, body);
   }
 
   refresh();
