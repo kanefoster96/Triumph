@@ -52,32 +52,40 @@ new table.
 Marketing pages live in the `(marketing)` route group with their own layout;
 the root layout is only the document shell.
 
-`/admin/clients/[slug]` is tabbed with the same five sections as the client's
-own app, one route each, sharing a layout. Keep the two in step: what Dean
-edits should map onto what the client is looking at. Concretely, that means
-any screen showing a day must resolve it the way the client's app does —
-`getWorkoutFor` and `getTrainingDates`, never a raw `getWorkouts`, which
-returns logged rows only and so reports planned days as empty.
+`/admin/clients/[slug]` is tabbed: Overview, **Plan**, Sessions, What they did,
+Weight. Plan is the only place a day is changed, training and food together, so
+there is no second editor to keep in step with it. "What they did" is read
+only. Any screen showing a day must resolve it the way the client's app does —
+`getWorkoutFor`, `getPlanDay` and `getTrainingDates`, never a raw
+`getWorkouts`, which returns logged rows only and so reports planned days as
+empty.
 
-A plan block always starts on a **Monday** — `createPlanBlock` snaps the date
-back, and the schema constrains it. Day 0 of the cycle is therefore a Monday,
-so the repeat lines up with the Monday-to-Sunday week the board, the compliance
-grid and the schedule all draw. Anchored anywhere else the cycle ran a day out
-of step with every screen showing it, and the first day of the week on screen
-fell outside the plan entirely.
+**A plan is a pile of days.** There is no block, no cycle length and no start
+date. Each revision in `plan_day_revisions` either stands for its weekday from
+`effective_from` onwards (`only_on` null) or belongs to one date alone
+(`only_on` set), and `pickRevision` always prefers the second. That single rule
+is the whole of the recurrence: saving "all future Mondays" cannot reach back
+over a Monday somebody already pinned, so a week built by hand is never quietly
+overwritten. A date nothing has been written for is a **rest day** — `getPlanDay`
+never returns null, and nothing is "before the plan starts" any more.
 
-The Plan tab is a **week board**: seven day cards resolved through
-`getPlanWeek` (a wide-screen row, a snapping carousel on a phone) with the
-editor for the open day underneath, so the week never leaves the screen. It is
-date-first — the repeating cycle is how a plan is stored, not how anyone reads
-one — and every save asks how far it reaches: just that date, or that weekday
-from here on. `savePlanDay` takes `kind=both` so training and food commit
-together; a screen with two Save buttons is a day half-written.
+Weekdays are Monday-first (`weekdayOf`: 0 = Monday), because that is how every
+screen draws a week.
 
-The Workouts tab still owns one date, in a month calendar with its history and
-comments. Both write through `savePlanDay`.
+The Plan tab is a **list of days**: `getPlanDays` resolves a run of dates, each
+collapsed to one line ("Mon 25 Aug · Lower body · 1,950 kcal"), and the open
+day expands in place. Every save asks one question in a popup — **just this
+day**, or **all future Mondays**. `savePlanDay` takes `kind=both` so training
+and food commit together; a screen with two Save buttons is a day half-written.
+Saving to a weekday also pins that date, or the day being edited would be the
+only one that did not change.
 
-The board is built to be used one-handed. On a phone the day editor is a
+Each half of a day offers three ways to fill it, on every day: **Copy last
+Monday** (`copyLastLike`, sourced by `findLastLike`), **From another client**,
+**Start blank** (a `?blank=` link, so no second copy of the editor is
+rendered). None of them may be a `<form>` — they sit inside the day's own form.
+
+The list is built to be used one-handed. On a phone the day editor is a
 full-height sheet with the day at the top and Save pinned to the bottom edge
 (`useIsPhone` picks the layout — the two are never both rendered, or every
 field would submit twice); exercises are an accordion, one open at a time;
@@ -88,15 +96,27 @@ meant to grow. Controls in these flows are 44px.
 
 Nothing anywhere parses free text into sets, reps, portions or calories.
 Workouts and meals are built from library ids and number fields, and that is
-deliberate: the Templates page that did parse text is gone, replaced by "start
-from another client", which copies a day Dean already built. If you find
+deliberate: the Templates page that did parse text is gone, replaced by "from
+another client", which copies a day Dean already built. If you find
 yourself adding a textarea, it is for prose — a note, a cue, a method step —
 never for structure.
 
 `/admin` opens on a compliance grid (`getComplianceBoard`): one row per client,
-one column per day, three marks per day for training, food and weight. Nothing
-is scored on a date the plan does not cover, and a day that has not happened is
-shown but never judged.
+one column per day, three marks per day for training, food and weight. A day
+with nothing on it asks nothing and is never scored, and a day that has not
+happened is shown but never judged.
+
+The check-in board never says how far ahead a plan reaches, because a plan does
+not run out. The only thing worth flagging is a client with nothing planned at
+all.
+
+Notes the client leaves — after training, on their food, with a weigh-in —
+surface on the plan day they belong to as a collapsed "Left you a note" chip
+(`getNotesBetween`, `DayNotes`). Replying (`replyToNote`) posts a comment on the
+row they wrote it on, so they read the answer under their own words.
+
+The Sessions tab is for 1-to-1 clients. An **online** client has no diary, so it
+shows their next three weeks of training days instead of an empty booking form.
 
 Demo writes go through `lib/members/demo-store.ts`, not module-level arrays.
 The site runs as serverless functions, so a module array is per-instance: a
@@ -187,6 +207,10 @@ yes and the plan never changing.
 - Nothing inside a collapsed `<details>` may be `required`: the browser cannot
   focus a hidden field to complain about it and refuses to submit at all. Flag
   what is missing in the UI and drop it server-side.
+- Anything rendered inside the day editor that needs to post — a note reply, a
+  fill button — must call the server action through `useTransition` rather than
+  wrapping itself in a `<form>`. A form inside a form is dropped by the browser
+  without a word, and the inner button silently submits the outer one instead.
 
 ## Checks
 

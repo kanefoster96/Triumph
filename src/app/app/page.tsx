@@ -99,7 +99,7 @@ export default async function DashboardPage() {
             With Dean
           </p>
           <p className="mt-2.5 text-sm leading-relaxed text-muted">
-            Your application is in. Dean will review your details and get back to you to propose
+            Your application is in. I&rsquo;ll read it and come back to you with what I&rsquo;d do
             your plan and get you enrolled — until then there is nothing in here to do.
           </p>
         </div>
@@ -143,8 +143,8 @@ export default async function DashboardPage() {
               </p>
               <p className="mt-1.5 text-lg font-semibold">
                 {submission.missed.length > 0
-                  ? "Day closed. Dean has your note."
-                  : "Everything Dean asked for, done. He\u2019ll see it at your next check-in."}
+                  ? "Day closed. I\u2019ve got your note."
+                  : "Nice work \u2014 that\u2019s today done."}
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <h2 className="inline-flex items-center gap-2 text-base font-semibold">
               <MessageCircle className="h-4 w-4 text-accent" />
-              New from Dean
+              New from me
             </h2>
             <form action={markCommentsRead}>
               <button type="submit" className="text-xs font-semibold text-muted hover:text-text">
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
               <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
               <div>
                 <p className="text-base font-semibold">{formatSession(summary.nextSession.startsAt)}</p>
-                <p className="mt-1 text-sm text-muted">With Dean · {summary.nextSession.location}</p>
+                <p className="mt-1 text-sm text-muted">With me · {summary.nextSession.location}</p>
               </div>
             </div>
           ) : summary.nextWorkout ? (
@@ -299,7 +299,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-faint">Nothing planned past today yet.</p>
+            <p className="text-sm text-faint">Nothing after today yet.</p>
           )}
         </Panel>
 
@@ -349,7 +349,7 @@ export default async function DashboardPage() {
           {!summary.foodPlan?.calorieTarget ? (
             <p className="mt-3 inline-flex items-center gap-2 text-xs text-faint">
               <Salad className="h-3.5 w-3.5" />
-              No target set — Dean will add one.
+              No target yet — I&rsquo;ll set one.
             </p>
           ) : null}
         </Panel>

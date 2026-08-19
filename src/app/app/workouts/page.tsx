@@ -9,7 +9,7 @@ import {
   shiftDate,
   today,
 } from "@/lib/members/service";
-import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
+import { EmptyState, FoldPanel, Panel, ScreenTitle } from "@/components/members/ui";
 import { ArrowRight, Clock } from "lucide-react";
 import { WorkoutChecklist } from "@/components/members/WorkoutChecklist";
 import { MoveWorkout } from "@/components/members/MoveWorkout";
@@ -54,7 +54,7 @@ export default async function WorkoutsPage() {
 
   return (
     <>
-      <ScreenTitle title="Workouts" subtitle="Tick each item off as you go, then leave Dean a note." />
+      <ScreenTitle title="Workouts" subtitle="Tick each one off as you go, then tell me how it went." />
 
       <div className="space-y-5">
         <Panel
@@ -72,7 +72,7 @@ export default async function WorkoutsPage() {
             <>
               {todays.coachNotes ? (
                 <div className="mb-5 rounded-2xl bg-raised p-4">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">From Dean</p>
+                  <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">From me</p>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{todays.coachNotes}</p>
                 </div>
               ) : null}
@@ -138,13 +138,13 @@ export default async function WorkoutsPage() {
               className={`mt-4 text-sm ${answered.status === "approved" ? "text-success" : "text-muted"}`}
             >
               {answered.status === "approved"
-                ? `Dean moved ${answered.title ?? "your session"} to ${new Date(`${answered.toDate}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" })}.`
-                : `Dean would rather keep ${answered.title ?? "that session"} where it is.`}
+                ? `Moved ${answered.title ?? "your session"} to ${new Date(`${answered.toDate}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" })} for you.`
+                : `I\u2019d rather keep ${answered.title ?? "that session"} where it is.`}
             </p>
           ) : null}
         </Panel>
 
-        <Panel title="Past workouts">
+        <FoldPanel title="Past workouts" hint={`${past.length} finished`}>
           {past.length === 0 ? (
             <EmptyState>Your finished workouts will show up here.</EmptyState>
           ) : (
@@ -185,7 +185,7 @@ export default async function WorkoutsPage() {
               })}
             </ul>
           )}
-        </Panel>
+        </FoldPanel>
       </div>
     </>
   );

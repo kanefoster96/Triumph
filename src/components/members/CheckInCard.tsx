@@ -5,7 +5,6 @@ import {
   MessageSquareText,
   RefreshCw,
   Repeat,
-  Salad,
   SlidersHorizontal,
   TriangleAlert,
 } from "lucide-react";
@@ -137,11 +136,8 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
           <Link href={`/admin/clients/${id}`} className="text-base font-semibold hover:text-accent">
             {profile.fullName}
           </Link>
-          <p className="mt-0.5 text-xs text-faint">
-            {summary.plannedThrough
-              ? `Planned through ${shortDate(summary.plannedThrough)}`
-              : "Nothing assigned yet"}
-            {profile.goal ? ` · ${profile.goal}` : ""}
+          <p className="mt-0.5 truncate text-xs text-faint">
+            {profile.goal ?? "No goal set"}
           </p>
         </div>
         <Chip tone={settled ? "success" : "amber"}>{settled ? "On track" : "Needs a look"}</Chip>
@@ -301,10 +297,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
           <p className="text-xs text-faint">No check-in recorded yet.</p>
         )}
 
-        {/* The change itself happens in the real editors, not here.
-            Adjusting used to mean picking a pre-built template and letting it
-            overwrite the week — which could not swap one meal, move one day, or
-            do any of the things a review actually decides. These open the week
+        {/* The change itself happens on their plan, not here. These open it
             with their notes at the top and come back when he saves. */}
         <div className="rounded-2xl border border-line bg-ink p-4">
           <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
@@ -313,24 +306,20 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
           <div className="mt-3 flex flex-wrap gap-2">
             {(
               [
-                ["The week", `/admin/clients/${id}/plan?review=1`, Repeat],
-                ["Workouts", `/admin/clients/${id}/workouts?review=1`, Dumbbell],
-                ["Food", `/admin/clients/${id}/food?review=1`, Salad],
+                ["Their plan", `/admin/clients/${id}/plan?review=1`, Repeat],
+                ["What they did", `/admin/clients/${id}/history`, Dumbbell],
               ] as const
             ).map(([label, href, Icon]) => (
               <Link
                 key={label}
                 href={href}
-                className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
               >
                 <Icon className="h-4 w-4" />
                 {label}
               </Link>
             ))}
           </div>
-          <p className="mt-3 text-xs text-faint">
-            Each one asks whether a change is just that date or every week from then on.
-          </p>
         </div>
 
         {/* Both decisions are <details> so the board stays scannable and the

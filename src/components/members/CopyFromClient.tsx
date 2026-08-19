@@ -30,10 +30,13 @@ export function CopyFromClient({
   clientId,
   date,
   review,
+  kind = "workout",
 }: {
   clientId: string;
   date: string;
   review: boolean;
+  /** Which half of their day to borrow — the button sits in that section. */
+  kind?: "workout" | "food";
 }) {
   const [open, setOpen] = useState(false);
   const [sources, setSources] = useState<CopySource[] | null>(null);
@@ -72,17 +75,17 @@ export function CopyFromClient({
       <button
         type="button"
         onClick={openSheet}
-        className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-line px-4 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex h-11 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent"
       >
         <Sparkles className="h-3.5 w-3.5" />
-        Start from another client
+        From another client
       </button>
 
       {open ? (
         <BottomSheet
           open
           onClose={() => setOpen(false)}
-          title={preview ? (preview.title ?? preview.label) : (picked?.name ?? "Start from another client")}
+          title={preview ? (preview.title ?? preview.label) : (picked?.name ?? "From another client")}
           description={
             preview
               ? "A copy. Editing it here never touches theirs."
@@ -109,6 +112,7 @@ export function CopyFromClient({
             </p>
           ) : preview ? (
             <Preview
+              kind={kind}
               day={preview}
               clientId={clientId}
               sourceClientId={picked!.id}
@@ -173,7 +177,7 @@ function DayList({ days, onPick }: { days: CopyDay[]; onPick: (day: CopyDay) => 
   return (
     <ul className="space-y-2">
       {days.map((day) => (
-        <li key={day.dayIndex}>
+        <li key={day.date}>
           <button
             type="button"
             onClick={() => onPick(day)}
@@ -200,12 +204,14 @@ function DayList({ days, onPick }: { days: CopyDay[]; onPick: (day: CopyDay) => 
 }
 
 function Preview({
+  kind,
   day,
   clientId,
   sourceClientId,
   date,
   review,
 }: {
+  kind: "workout" | "food";
   day: CopyDay;
   clientId: string;
   sourceClientId: string;
@@ -245,23 +251,24 @@ function Preview({
           somebody's whole day are different intentions, and the difference is
           worth a press rather than a setting. */}
       <div className="flex flex-col gap-2">
-        {(
-          [
-            ["0", "Use the training"],
-            ["1", "Use the whole day"],
-          ] as const
-        ).map(([withFood, label]) => (
-          <form key={withFood} action={copyPlanDayFromClient}>
+        {(kind === "food"
+          ? ([["food", "Use their meals", day.meals.length === 0]] as const)
+          : ([
+              ["workout", "Use the training", day.exercises.length === 0],
+              ["both", "Use the whole day", day.meals.length === 0],
+            ] as const)
+        ).map(([parts, label, disabled]) => (
+          <form key={parts} action={copyPlanDayFromClient}>
             <input type="hidden" name="clientId" value={clientId} />
             <input type="hidden" name="sourceClientId" value={sourceClientId} />
-            <input type="hidden" name="sourceDayIndex" value={day.dayIndex} />
+            <input type="hidden" name="sourceDate" value={day.date} />
             <input type="hidden" name="date" value={date} />
-            <input type="hidden" name="withFood" value={withFood} />
+            <input type="hidden" name="parts" value={parts} />
             {review ? <input type="hidden" name="review" value="1" /> : null}
             <button
               type="submit"
-              disabled={withFood === "1" && day.meals.length === 0}
-              className="w-full rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint"
+              disabled={disabled}
+              className="inline-flex h-12 w-full items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint"
             >
               {label}
             </button>
@@ -270,8 +277,7 @@ function Preview({
       </div>
 
       <p className="text-xs text-faint">
-        Lands on this date only, so nothing else in their week moves. Adjust it, then choose how far
-        your version reaches when you save.
+        Lands on this day only. Adjust it, then choose how far it goes when you save.
       </p>
     </div>
   );

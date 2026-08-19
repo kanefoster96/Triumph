@@ -1,7 +1,15 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProfile, getSessions, partitionSessions } from "@/lib/members/service";
+import { Clock, Dumbbell } from "lucide-react";
+import {
+  getPlanDays,
+  getProfile,
+  getSessions,
+  partitionSessions,
+  today,
+} from "@/lib/members/service";
 import { deleteSession, saveSession } from "@/lib/members/actions";
-import { EmptyState, Panel, field, fieldLabel, submitButton } from "@/components/members/ui";
+import { EmptyState, Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
 import { Chip } from "@/components/ui/Chip";
 import { site } from "@/lib/data/site";
 
@@ -28,6 +36,68 @@ export default async function AdminClientSessionsPage({
   const { slug } = await params;
   const profile = await getProfile(slug);
   if (!profile) notFound();
+
+  /*
+   * Online clients have no diary to fill, so this tab used to be an empty
+   * booking form for a thing that is never going to happen. What Dean actually
+   * wants from it is the same thing — when are they training — so that is what
+   * it shows.
+   */
+  if (profile.coachingMode === "online") {
+    const days = (await getPlanDays(profile.id, today(), 21)).filter(
+      (day) => !day.workout.isRest && day.workout.exercises.length > 0,
+    );
+
+    return (
+      <div className="space-y-5">
+        <ScreenTitle
+          title="Training days"
+          subtitle={`${profile.fullName.split(" ")[0]} trains online, so there is nothing in your diary. This is what is on their plan.`}
+        />
+
+        <Panel title="Next three weeks">
+          {days.length === 0 ? (
+            <EmptyState>No training on the plan yet.</EmptyState>
+          ) : (
+            <ul className="space-y-2">
+              {days.map((day) => (
+                <li key={day.date}>
+                  <Link
+                    href={`/admin/clients/${profile.id}/plan?date=${day.date}#day-${day.date}`}
+                    className="flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-ink px-4 py-3 transition-colors hover:border-accent/40"
+                  >
+                    <Dumbbell className="h-4 w-4 shrink-0 text-faint" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">
+                        {day.workout.title ?? "Training"}
+                      </span>
+                      <span className="block text-xs text-faint">
+                        {new Date(`${day.date}T12:00:00Z`).toLocaleDateString("en-GB", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "short",
+                          timeZone: "UTC",
+                        })}
+                        {" · "}
+                        {day.workout.exercises.length}{" "}
+                        {day.workout.exercises.length === 1 ? "exercise" : "exercises"}
+                      </span>
+                    </span>
+                    {day.workout.suggestedTime ? (
+                      <Chip>
+                        <Clock className="h-3 w-3" />
+                        {day.workout.suggestedTime}
+                      </Chip>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+    );
+  }
 
   const { upcoming, past } = await partitionSessions(await getSessions(profile.id));
 
@@ -139,7 +209,7 @@ export default async function AdminClientSessionsPage({
                   }}
                   className="mt-3 border-t border-line pt-3"
                 >
-                  <button type="submit" className="text-xs font-semibold text-danger">
+                  <button type="submit" className="-my-2 inline-flex min-h-11 items-center text-xs font-semibold text-danger">
                     Cancel this session
                   </button>
                 </form>
@@ -178,7 +248,7 @@ export default async function AdminClientSessionsPage({
                     aria-label="Session notes"
                     className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2 text-sm placeholder:text-faint focus:border-accent focus:outline-none"
                   />
-                  <button type="submit" className="shrink-0 text-sm font-semibold text-accent">
+                  <button type="submit" className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-accent">
                     Save this note
                   </button>
                 </form>

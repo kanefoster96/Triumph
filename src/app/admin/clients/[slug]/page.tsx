@@ -22,7 +22,7 @@ import {
   submitButton,
 } from "@/components/members/ui";
 import { Avatar } from "@/components/members/Avatar";
-import { setAvatar } from "@/lib/members/actions";
+import { setAvatar, setFoodMode } from "@/lib/members/actions";
 import { Chip } from "@/components/ui/Chip";
 import { relativeDate } from "@/lib/utils";
 
@@ -51,7 +51,9 @@ export default async function AdminClientOverviewPage({
   const nextSession = upcoming[0] ?? null;
   const base = `/admin/clients/${profile.id}`;
 
-  // Client notes are where Dean most often needs to respond.
+  // Client notes are where Dean most often needs to respond, so each one links
+  // to the day it was left on — where he can read it, reply and change the
+  // plan without going looking for the date.
   const recentNotes = [
     ...workouts
       .filter((w) => w.clientNote)
@@ -60,7 +62,7 @@ export default async function AdminClientOverviewPage({
         kind: "Workout" as const,
         date: w.scheduledFor,
         body: w.clientNote as string,
-        href: `${base}/workouts`,
+        href: `${base}/plan?date=${w.scheduledFor}#day-${w.scheduledFor}`,
       })),
     ...todaysLogs
       .filter((l) => l.note)
@@ -69,7 +71,7 @@ export default async function AdminClientOverviewPage({
         kind: "Food" as const,
         date: l.loggedFor,
         body: l.note as string,
-        href: `${base}/food`,
+        href: `${base}/plan?date=${l.loggedFor}#day-${l.loggedFor}`,
       })),
     ...weights
       .filter((w) => w.note)
@@ -78,7 +80,7 @@ export default async function AdminClientOverviewPage({
         kind: "Weight" as const,
         date: w.loggedFor,
         body: w.note as string,
-        href: `${base}/weight`,
+        href: `${base}/plan?date=${w.loggedFor}#day-${w.loggedFor}`,
       })),
   ]
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -89,7 +91,7 @@ export default async function AdminClientOverviewPage({
       <Panel
         title="Next session"
         action={
-          <Link href={`${base}/sessions`} className="text-xs font-semibold text-accent">
+          <Link href={`${base}/sessions`} className="-my-2 inline-flex min-h-11 items-center text-xs font-semibold text-accent">
             Manage
           </Link>
         }
@@ -120,7 +122,7 @@ export default async function AdminClientOverviewPage({
       <Panel
         title="Today's workout"
         action={
-          <Link href={`${base}/workouts`} className="text-xs font-semibold text-accent">
+          <Link href={`${base}/plan`} className="-my-2 inline-flex min-h-11 items-center text-xs font-semibold text-accent">
             Edit
           </Link>
         }
@@ -151,8 +153,8 @@ export default async function AdminClientOverviewPage({
       <Panel
         title="Today's calories"
         action={
-          <Link href={`${base}/food`} className="text-xs font-semibold text-accent">
-            Set plan
+          <Link href={`${base}/plan`} className="-my-2 inline-flex min-h-11 items-center text-xs font-semibold text-accent">
+            Open the plan
           </Link>
         }
       >
@@ -165,7 +167,7 @@ export default async function AdminClientOverviewPage({
       <Panel
         title="Latest weight"
         action={
-          <Link href={`${base}/weight`} className="text-xs font-semibold text-accent">
+          <Link href={`${base}/weight`} className="-my-2 inline-flex min-h-11 items-center text-xs font-semibold text-accent">
             History
           </Link>
         }
@@ -185,6 +187,44 @@ export default async function AdminClientOverviewPage({
           <EmptyState>Nothing logged yet.</EmptyState>
         )}
       </Panel>
+
+      <div className="md:col-span-2">
+        <Panel title="Who plans the food">
+          <form action={setFoodMode} className="space-y-3">
+            <input type="hidden" name="clientId" value={profile.id} />
+            {(
+              [
+                ["coach", "You do", "You assign the meals. They follow the finished plan."],
+                [
+                  "self",
+                  "They do",
+                  "They build their own week from the meal library, to the targets you set. You can still see and edit it.",
+                ],
+              ] as const
+            ).map(([value, label, blurb]) => (
+              <label
+                key={value}
+                className="flex min-h-14 gap-3 rounded-2xl border border-line bg-ink p-4 has-checked:border-accent has-checked:bg-accent/[0.07]"
+              >
+                <input
+                  type="radio"
+                  name="foodMode"
+                  value={value}
+                  defaultChecked={profile.foodMode === value}
+                  className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold">{label}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-muted">{blurb}</span>
+                </span>
+              </label>
+            ))}
+            <button type="submit" className={submitButton}>
+              Save this choice
+            </button>
+          </form>
+        </Panel>
+      </div>
 
       <div className="md:col-span-2">
         <Panel title="Photo">

@@ -46,12 +46,48 @@ export function Panel({
     <section className={cn("rounded-[var(--radius-sheet)] border border-line bg-surface", className)}>
       {title ? (
         <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
-          <h2 className="text-base font-semibold">{title}</h2>
+          <h2 className="min-w-0 truncate text-base font-semibold">{title}</h2>
           {action}
         </header>
       ) : null}
       <div className="p-5">{children}</div>
     </section>
+  );
+}
+
+/**
+ * A panel that starts shut.
+ *
+ * For the parts of a screen that are not today — past workouts, earlier days,
+ * the shopping lists already made. `<details>` rather than state so it works
+ * before the page hydrates and costs nothing to render.
+ */
+export function FoldPanel({
+  title,
+  hint,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="group rounded-[var(--radius-sheet)] border border-line bg-surface"
+    >
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-4 px-5 py-4 marker:content-none">
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-semibold">{title}</span>
+          {hint ? <span className="block truncate text-xs text-faint">{hint}</span> : null}
+        </span>
+        <span className="text-xs font-semibold text-accent group-open:hidden">Open</span>
+        <span className="hidden text-xs font-semibold text-faint group-open:inline">Close</span>
+      </summary>
+      <div className="border-t border-line p-5">{children}</div>
+    </details>
   );
 }
 

@@ -69,7 +69,7 @@ export function ReasonNote({ name = "note", id = "reason-note" }: { name?: strin
         required
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Anything else worth Dean knowing?"
+        placeholder="Anything else I should know?"
         className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
       />
     </div>

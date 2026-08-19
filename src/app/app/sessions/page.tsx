@@ -114,7 +114,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
     <>
       <ScreenTitle
         title="Sessions"
-        subtitle="Everything Dean has planned for you, and any sessions with him in person."
+        subtitle="What I've got you doing, and any sessions with me in person."
       />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
@@ -145,7 +145,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                               hour: "2-digit",
                               minute: "2-digit",
                             })}{" "}
-                            with Dean
+                            with me
                           </p>
                           <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-muted">
                             <MapPin className="h-3.5 w-3.5" />
@@ -183,7 +183,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
 
           <Panel title="Coming up">
             {comingUp.length === 0 ? (
-              <EmptyState>Nothing planned yet — Dean will fill your week in.</EmptyState>
+              <EmptyState>Nothing here yet — I&rsquo;ll fill your week in.</EmptyState>
             ) : (
               <ul className="space-y-3">
                 {comingUp.map((item) =>
@@ -199,7 +199,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                           {item.session.location} · {item.session.durationMinutes} minutes
                         </p>
                       </div>
-                      <Chip tone="accent">With Dean</Chip>
+                      <Chip tone="accent">With me</Chip>
                     </li>
                   ) : (
                     <li
@@ -245,7 +245,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                     {session.coachNotes ? (
                       <div className="mt-4 rounded-2xl bg-raised p-4">
                         <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-                          Dean&rsquo;s notes
+                          My notes
                         </p>
                         <p className="mt-2 text-sm leading-relaxed text-muted">{session.coachNotes}</p>
                       </div>

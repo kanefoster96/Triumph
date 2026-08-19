@@ -6,7 +6,6 @@ import type {
   FoodDayFeedback,
   Meal,
   MealLog,
-  PlanBlock,
   PlanSet,
   ShoppingList,
   Comment,
@@ -38,8 +37,7 @@ function isoDate(offsetDays: number): string {
 /**
  * The Monday of the week a date falls in.
  *
- * A plan block always starts on a Monday — see `createPlanBlock` — so day 0 of
- * the cycle is a Monday and the fixture's day indices mean the same weekday
+ * Fixtures date themselves from a Monday so a seeded plan means the same thing
  * whatever day of the week the demo happens to be looked at on.
  */
 function isoMonday(offsetDays: number): string {
@@ -1210,20 +1208,14 @@ export const demoMeals: Meal[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Repeating plans
+// Plans
 //
-// Priya is on a one week block that took over today: everything before it is
-// the days the old per-date system assigned, still there and still readable.
-// Danny is on a fortnight. Sofia has no block yet, so the editor's empty state
-// is reachable.
+// A plan is a pile of days. Each one either stands for its weekday from a date
+// onwards (`onlyOn: null`) or belongs to one date alone (`onlyOn`), and the
+// second kind always beats the first. Priya trains Mon/Wed/Fri and eats to a
+// plan every day; Danny trains Mon/Thu/Sat with one Thursday rewritten for a
+// week he is away; Sofia has nothing yet, so the empty state is reachable.
 // ---------------------------------------------------------------------------
-
-export const demoPlanBlocks: PlanBlock[] = [
-  // Monday-anchored, so day 0 is Monday: Priya trains 0/2/4 (Mon, Wed, Fri)
-  // and Danny 0/3/5 then 7/10/12 (Mon, Thu, Sat, both weeks).
-  { id: "blk-priya", clientId: DEMO_CLIENT_ID, cycleWeeks: 1, startsOn: isoMonday(0) },
-  { id: "blk-danny", clientId: "demo-client-2", cycleWeeks: 2, startsOn: isoMonday(-7) },
-];
 
 const sets = (rows: Array<[number, number]>, prefix: string): PlanSet[] =>
   rows.map(([weight, reps], position) => ({
@@ -1237,8 +1229,8 @@ export const demoPlanRevisions: RawRevision[] = [
   // --- Priya, one week -----------------------------------------------------
   {
     id: "rev-p0",
-    blockId: "blk-priya",
-    dayIndex: 0,
+    clientId: DEMO_CLIENT_ID,
+    weekday: 0,
     kind: "workout",
     effectiveFrom: isoMonday(0),
     onlyOn: null,
@@ -1309,8 +1301,8 @@ export const demoPlanRevisions: RawRevision[] = [
   },
   {
     id: "rev-p2",
-    blockId: "blk-priya",
-    dayIndex: 2,
+    clientId: DEMO_CLIENT_ID,
+    weekday: 2,
     kind: "workout",
     effectiveFrom: isoMonday(0),
     onlyOn: null,
@@ -1382,8 +1374,8 @@ export const demoPlanRevisions: RawRevision[] = [
   },
   {
     id: "rev-p4",
-    blockId: "blk-priya",
-    dayIndex: 4,
+    clientId: DEMO_CLIENT_ID,
+    weekday: 4,
     kind: "workout",
     effectiveFrom: isoMonday(0),
     onlyOn: null,
@@ -1440,10 +1432,10 @@ export const demoPlanRevisions: RawRevision[] = [
     meals: [],
   },
   // Priya's food: the same day every day, meals plus a target.
-  ...[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => ({
-    id: `rev-pf${dayIndex}`,
-    blockId: "blk-priya",
-    dayIndex,
+  ...[0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
+    id: `rev-pf${weekday}`,
+    clientId: DEMO_CLIENT_ID,
+    weekday,
     kind: "food" as const,
     effectiveFrom: isoMonday(0),
     onlyOn: null,
@@ -1455,34 +1447,40 @@ export const demoPlanRevisions: RawRevision[] = [
     isRest: false,
     exercises: [],
     meals: [
-      { id: `pm-${dayIndex}-1`, slot: "breakfast" as const, position: 0, mealId: "meal-oats", multiplier: 1 },
+      { id: `pm-${weekday}-1`, slot: "breakfast" as const, position: 0, mealId: "meal-oats", multiplier: 1 },
       {
-        id: `pm-${dayIndex}-2`,
+        id: `pm-${weekday}-2`,
         slot: "lunch" as const,
         position: 0,
-        mealId: dayIndex % 2 === 0 ? "meal-chicken-rice" : "meal-jacket",
+        mealId: weekday % 2 === 0 ? "meal-chicken-rice" : "meal-jacket",
         multiplier: 1,
       },
       {
-        id: `pm-${dayIndex}-3`,
+        id: `pm-${weekday}-3`,
         slot: "dinner" as const,
         position: 0,
-        mealId: dayIndex % 2 === 0 ? "meal-cod" : "meal-bolognese",
+        mealId: weekday % 2 === 0 ? "meal-cod" : "meal-bolognese",
         multiplier: 1,
       },
-      { id: `pm-${dayIndex}-4`, slot: "snack" as const, position: 0, mealId: "meal-yoghurt", multiplier: 1 },
+      { id: `pm-${weekday}-4`, slot: "snack" as const, position: 0, mealId: "meal-yoghurt", multiplier: 1 },
     ],
   })),
 
-  // --- Danny, a fortnight: heavy week, then a lighter one ------------------
-  ...[0, 3, 5, 7, 10, 12].map((dayIndex, i) => ({
-    id: `rev-d${dayIndex}`,
-    blockId: "blk-danny",
-    dayIndex,
+  // --- Danny: Mon/Thu/Sat, plus one Thursday he asked to go lighter --------
+  ...[
+    [0, null],
+    [3, null],
+    [5, null],
+    // Same weekday, pinned to one date: this is the week Dean left alone.
+    [3, isoMonday(7) as string | null],
+  ].map(([weekday, onlyOn], i) => ({
+    id: `rev-d${i}`,
+    clientId: "demo-client-2",
+    weekday: weekday as number,
     kind: "workout" as const,
     effectiveFrom: isoMonday(-7),
-    onlyOn: null,
-    title: dayIndex < 7 ? "Full body — heavy" : "Full body — volume",
+    onlyOn: onlyOn as string | null,
+    title: onlyOn ? "Full body — volume" : "Full body — heavy",
     suggestedTime: "07:00",
     coachNotes: null,
     calorieTarget: null,
@@ -1495,16 +1493,16 @@ export const demoPlanRevisions: RawRevision[] = [
         exerciseId: "ex-trapbar",
         notes: null,
         sets: sets(
-          dayIndex < 7
+          onlyOn
             ? [
+                [100, 8],
+                [100, 8],
+                [100, 8],
+              ]
+            : [
                 [120, 5],
                 [125, 5],
                 [130, 3],
-              ]
-            : [
-                [100, 8],
-                [100, 8],
-                [100, 8],
               ],
           `de-${i}-1`,
         ),
@@ -1515,16 +1513,16 @@ export const demoPlanRevisions: RawRevision[] = [
         exerciseId: "ex-bench",
         notes: null,
         sets: sets(
-          dayIndex < 7
+          onlyOn
             ? [
+                [70, 10],
+                [70, 10],
+                [70, 10],
+              ]
+            : [
                 [80, 6],
                 [82.5, 5],
                 [85, 4],
-              ]
-            : [
-                [70, 10],
-                [70, 10],
-                [70, 10],
               ],
           `de-${i}-2`,
         ),

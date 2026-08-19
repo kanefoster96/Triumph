@@ -47,7 +47,7 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 | --- | --- |
 | **Requests** `/admin/requests` | People who applied through the website, with everything they sent. Enrolling one makes them a client and opens their week. Taking payment is a separate, clearly-stubbed step. |
 | **Clients** `/admin` | A grid of everyone's week: one row per client, one column per day, three marks a day for training, food and weight, sorted by who needs looking at first. Pending day-swap requests sit above it. A card view with today's numbers is behind a toggle. |
-| **Client** `/admin/clients/[id]` | The same tabs the client sees, but editable. Plan is the week board — seven day cards with the editor for the open day underneath, one save for training and food together. Overview mirrors their dashboard and surfaces recent notes; Sessions schedules, edits and cancels; Workouts owns one date with its history; Food sets targets and meals; Weight shows the trend. Dean can reply to any note from its tab. |
+| **Client** `/admin/clients/[id]` | Overview, Plan, Sessions, What they did, Weight. **Plan** is a list of days, each collapsed to one line, with the open day's editor in place — training and food, one save. Sessions books 1-to-1s, or shows an online client's training days. **What they did** is read only. Weight shows the trend. |
 | **Check-ins** `/admin/checkin` | The weekly round. Every active client with how their last stretch went, anything they wrote, and how far ahead they are planned — then continue the plan or adjust it, both with a note. |
 | **Schedule** `/admin/schedule` | A month calendar of every session across all clients. Pick a day to see it and add to it — client, time, location picker with a free-text override. Anything added shows up in that client's Sessions tab. |
 
@@ -62,10 +62,8 @@ Online coaching involves no video call, so an online client has no sessions at
 all — their location picker offers places, never "Online", and nothing in the
 client UI implies Dean will be on a screen.
 
-A **workout** is the client training alone, so it is assigned from that client's
-**Workouts** tab, which shows their calendar. Dean adds a one-off to the picked
-day, or uses **Plan ahead** to repeat a plan weekly on chosen weekdays. A
-suggested time is optional: give one and the client sees "Suggested 07:00";
+A **workout** is the client training alone, so it is built on that client's
+**Plan** — open the day and fill it in. A suggested time is optional: give one and the client sees "Suggested 07:00";
 leave it blank and it is simply a workout to complete that day, whenever suits
 them. Workouts carry a muted dot.
 
@@ -123,19 +121,23 @@ records the weeks it actually wrote, so continuing a client who has no pattern
 yet does not claim four weeks are covered; that case disables **Continue** and
 points at **Adjust** instead.
 
-## Planning ahead
+## How a plan works
 
-The daily job is not writing a plan per day. It is: build the plan once on
-**Plans**, then on a client's Workouts or Food tab use **Plan ahead** — pick the
-plan, pick a date range, tick the weekdays it lands on. Ticking Mon/Wed/Fri
-over four weeks fills twelve days in one action. Ranges are capped at 30 days.
+A plan is a pile of days. Each one either **stands for its weekday** from a
+date onwards, or belongs to **one date alone** — and the pinned kind always
+wins. That is the whole model. There is no block to start, no cycle length to
+choose and no start date to keep in step with the calendar.
 
-Days that already have something assigned are skipped unless "replace" is
-ticked, so a bulk assignment never wipes a day a client has already worked
-through. **Planned ahead** on each tab lists what is queued.
+So saving a day asks one question: **just this day**, or **all future
+Mondays**. Applying forward skips any future Monday already pinned to its own
+date, which is what makes a deload week or a holiday safe to leave sitting in
+the middle of a plan.
 
-Food is assigned per date, and a date with no plan of its own inherits the most
-recent earlier one — so a target set once carries forward until it is changed.
+A date nothing has been written for is a rest day. Nothing runs out, so nothing
+needs topping up, and the check-in board no longer counts weeks ahead.
+
+Food targets carry the same way: a day with a target set stands for that
+weekday until it is changed.
 
 Everything Dean sets stays editable after the fact — adjust one day's workout
 without touching the rest of the week, change a calorie target, reschedule a
@@ -190,7 +192,7 @@ section disappears once the environment variables are set.
 
 ## Who plans the food
 
-Each client carries a `foodMode`, set by Dean on their Food tab.
+Each client carries a `foodMode`, set by Dean on their Overview.
 
 - **coach** (default) — Dean assigns the meals; the client sees the finished
   plan and follows it. `/app/food/plan` redirects away.
@@ -199,9 +201,9 @@ Each client carries a `foodMode`, set by Dean on their Food tab.
   `saveMyFoodDay`, which only ever writes food, only for the signed-in client,
   only on a date that has not happened, and only in self mode.
 
-Dean sees and edits either mode's days on the Food tab's date picker, which
-writes a one-off revision through `savePlanDay`. Switching mode never touches
-the plan — it only changes who may edit.
+Dean sees and edits either mode's days on the Plan, which writes through
+`savePlanDay`. Switching mode never touches the plan — it only changes who may
+edit.
 
 Portions are shown to the client as **Portion: ½ / 1 / 1½ / 2** and never
 explained. Nothing on any client screen mentions a multiplier, a base amount,
@@ -239,16 +241,12 @@ did is gone.
 
 Four things make a week quick to build:
 
-- **Start from another client** — pick a client, pick one of their days,
-  preview it, take the training or the whole day. A copy, landing on that date
-  only, which Dean then adjusts.
-- **Use this for other weekdays too** — one save writes the same day onto as
-  many weekdays as he ticks, which is most of setting a client up.
-- **Copy to / Move to** — a day onto another date in two taps, from the card's
-  own menu.
-- **Repeat onto next week** — for a week that has been changed away from the
-  repeating block: a deload, a holiday, a fortnight built by hand.
+- **Copy last Monday** — the fast path, and the one that leads. This Monday is
+  usually last Monday with a bit more weight on it.
+- **From another client** — pick a client, pick one of their days, preview it,
+  take the training or the whole day. A copy, landing on that date only.
+- **Start blank** — a clean sheet for that half of the day.
 
-**+2.5kg** reaches this weekday from here on, this week only, or every day from
-here on. **Scale the day to 1,950** moves every portion together until the
-day's total lands on the target.
+**+2.5kg on every set** nudges the open day; the save then decides how far the
+heavier version reaches. **Scale the day to 1,950** moves every portion
+together until the day's total lands at or under the target.

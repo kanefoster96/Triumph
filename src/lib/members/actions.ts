@@ -7,34 +7,30 @@ import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/data/site";
 import {
   demoCheckIns,
-  demoComments,
   demoExercises,
   demoMeals,
-  demoPlanBlocks,
   demoProfiles,
   demoSessions,
-  demoWorkouts,
 } from "./demo";
 import { demoPeople, packRevision, writeDemoData, writeDemoPeople } from "./demo-store";
 import {
   DEMO_ROLE_COOKIE,
-  dayIndexFor,
   getClients,
   getCurrentProfile,
   getDayProgress,
   getMeal,
   getPlanDay,
+  getPlanDays,
+  findLastLike,
   getMealLogs,
-  getPlanBlock,
   getLearnedOrder,
-  getPlanCycle,
   getShoppingList,
   getShoppingListById,
-  mondayOf,
   getWorkoutFor,
   scaleMeal,
   shiftDate,
   today,
+  weekdayOf,
 } from "./service";
 import type {
   Application,
@@ -234,9 +230,11 @@ export async function markCommentsRead() {
   const now = new Date().toISOString();
 
   if (!supabase) {
-    for (const comment of demoComments) {
-      if (comment.clientId === profile.id && comment.readAt === null) comment.readAt = now;
-    }
+    await writeDemoData((data) => {
+      for (const comment of data.comments) {
+        if (comment.clientId === profile.id && comment.readAt === null) comment.readAt = now;
+      }
+    });
   } else {
     await supabase.from("comments").update({ read_at: now }).eq("client_id", profile.id).is("read_at", null);
   }
@@ -260,17 +258,19 @@ export async function addComment(
   const supabase = await createClient();
 
   if (!supabase) {
-    demoComments.push({
-      id: crypto.randomUUID(),
-      clientId,
-      authorId: author.id,
-      authorName: author.fullName,
-      authorRole: author.role,
-      targetType,
-      targetId,
-      body: body.trim(),
-      readAt: null,
-      createdAt: new Date().toISOString(),
+    await writeDemoData((data) => {
+      data.comments.push({
+        id: crypto.randomUUID(),
+        clientId,
+        authorId: author.id,
+        authorName: author.fullName,
+        authorRole: author.role,
+        targetType,
+        targetId,
+        body: body.trim(),
+        readAt: null,
+        createdAt: new Date().toISOString(),
+      });
     });
   } else {
     await supabase.from("comments").insert({
@@ -653,143 +653,6 @@ export async function getDemoClients() {
 // Check-ins
 // ---------------------------------------------------------------------------
 
-/** Every date from tomorrow up to `weeks` weeks out. */
-function datesAhead(from: string, weeks: number): string[] {
-  return Array.from({ length: weeks * 7 }, (_, i) => shiftDate(from, i + 1));
-}
-
-const weekdayOf = (date: string) => new Date(`${date}T00:00:00Z`).getUTCDay();
-
-/**
- * Repeat the client's current training week forward.
- *
- * Takes the last fortnight of assigned workouts, keeps the most recent one for
- * each weekday, and clones that shape across the coming weeks. Days that
- * already have a workout are left alone, so continuing can only ever add.
- *
- * Food needs no writes at all — an assigned target carries forward on its own
- * until Dean changes it.
- */
-async function repeatCurrentWeek(clientId: string, weeks: number): Promise<number> {
-  const from = today();
-  const lookback = shiftDate(from, -13);
-  const dates = datesAhead(from, weeks);
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const recent = demoWorkouts
-      .filter((w) => w.clientId === clientId && w.scheduledFor >= lookback && w.scheduledFor <= from)
-      .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
-
-    const pattern = new Map<number, (typeof recent)[number]>();
-    for (const workout of recent) pattern.set(weekdayOf(workout.scheduledFor), workout);
-
-    let written = 0;
-    for (const date of dates) {
-      const template = pattern.get(weekdayOf(date));
-      if (!template) continue;
-      if (demoWorkouts.some((w) => w.clientId === clientId && w.scheduledFor === date)) continue;
-
-      const id = crypto.randomUUID();
-      demoWorkouts.push({
-        id,
-        clientId,
-        scheduledFor: date,
-        title: template.title,
-        suggestedTime: template.suggestedTime,
-        coachNotes: template.coachNotes,
-        clientNote: null,
-        feeling: null,
-        completedAt: null,
-        fromPlan: false,
-        items: template.items.map((item) => ({
-          id: crypto.randomUUID(),
-          workoutId: id,
-          position: item.position,
-          label: item.label,
-          target: item.target,
-          exerciseId: null,
-          muscleGroup: null,
-          equipment: null,
-          howTo: null,
-          skippedReason: null,
-          sets: [],
-          done: false,
-          doneAt: null,
-        })),
-      });
-      written += 1;
-    }
-    return written;
-  }
-
-  const { data: recent } = await supabase
-    .from("workouts")
-    .select("*, workout_items(*)")
-    .eq("client_id", clientId)
-    .gte("scheduled_for", lookback)
-    .lte("scheduled_for", from)
-    .order("scheduled_for", { ascending: true });
-
-  /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
-  const pattern = new Map<number, any>();
-  for (const row of (recent ?? []) as any[]) pattern.set(weekdayOf(row.scheduled_for), row);
-  if (pattern.size === 0) return 0;
-
-  const { data: existing } = await supabase
-    .from("workouts")
-    .select("scheduled_for")
-    .eq("client_id", clientId)
-    .in("scheduled_for", dates);
-  const taken = new Set((existing ?? []).map((row) => row.scheduled_for));
-
-  let written = 0;
-  for (const date of dates) {
-    const template = pattern.get(weekdayOf(date));
-    if (!template || taken.has(date)) continue;
-
-    const { data: workout } = await supabase
-      .from("workouts")
-      .insert({
-        client_id: clientId,
-        scheduled_for: date,
-        title: template.title,
-        suggested_time: template.suggested_time,
-        coach_notes: template.coach_notes,
-      })
-      .select("id")
-      .single();
-
-    if (!workout) continue;
-
-    const items = (template.workout_items ?? []) as any[];
-    if (items.length > 0) {
-      await supabase.from("workout_items").insert(
-        items.map((item) => ({
-          workout_id: workout.id,
-          position: item.position,
-          label: item.label,
-          target: item.target,
-        })),
-      );
-    }
-    written += 1;
-  }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-
-  return written;
-}
-
-
-
-/**
- * Record a weekly check-in.
- *
- * "Continue" repeats what the client is already doing; "adjust" paints the
- * chosen plans over the coming weeks instead, both halves of the week in one
- * pass. Either way the decision is stored with Dean's note, the note is
- * delivered to the client, and the next review is dated.
- */
 export async function recordCheckIn(formData: FormData) {
   const coach = await getCurrentProfile();
   if (!coach || coach.role !== "admin") return;
@@ -799,27 +662,19 @@ export async function recordCheckIn(formData: FormData) {
   if (!clientId || !note) return;
 
   const outcome = formData.get("outcome") === "adjusted" ? "adjusted" : "continued";
-  const weeks = Math.min(4, Math.max(0, Number(formData.get("weeks") ?? 4) || 0));
   const reviewInDays = Math.min(28, Math.max(1, Number(formData.get("reviewInDays") ?? 7) || 7));
 
   const periodEnd = today();
   const periodStart = shiftDate(periodEnd, -6);
   const nextReviewOn = shiftDate(periodEnd, reviewInDays);
 
-  // Recorded as what was actually written, not what was asked for: continuing
-  // a client who has no pattern yet writes nothing, and the history should say
-  // so rather than claim four weeks are covered.
-  let weeksPlanned = 0;
-
   /*
-   * Carrying on is a thing this action can do on its own; changing the plan is
-   * not. Adjusting means opening the week board and editing days, which is
-   * what the check-in card's three links are for — a template picker bolted on
-   * here could only ever assign somebody else's idea of the week.
+   * Nothing to write forward. A weekday's plan stands until Dean changes it,
+   * so "carry on" is exactly that: the note goes out and the plan is already
+   * where it needs to be. Changing it means opening the day and editing it,
+   * which is what this card's links are for.
    */
-  if (weeks > 0 && outcome === "continued" && (await repeatCurrentWeek(clientId, weeks)) > 0) {
-    weeksPlanned = weeks;
-  }
+  const weeksPlanned = 0;
 
   const supabase = await createClient();
   let checkInId: string;
@@ -1312,8 +1167,8 @@ function readPlanMeals(formData: FormData) {
  * through here, so "insert, never rewrite" holds in one place.
  */
 async function writeRevision(
-  blockId: string,
-  dayIndex: number,
+  clientId: string,
+  weekday: number,
   kind: "workout" | "food",
   effectiveFrom: string,
   onlyOn: string | null,
@@ -1338,8 +1193,8 @@ async function writeRevision(
   if (!supabase) {
     const revision = {
       id: crypto.randomUUID(),
-      blockId,
-      dayIndex,
+      clientId,
+      weekday,
       kind,
       effectiveFrom,
       onlyOn,
@@ -1369,8 +1224,8 @@ async function writeRevision(
   const { data: revision } = await supabase
     .from("plan_day_revisions")
     .insert({
-      block_id: blockId,
-      day_index: dayIndex,
+      client_id: clientId,
+      weekday,
       kind,
       effective_from: effectiveFrom,
       only_on: onlyOn,
@@ -1421,85 +1276,38 @@ async function writeRevision(
   }
 }
 
-/** Start a client on a repeating plan. The start date is also the takeover. */
-export async function createPlanBlock(formData: FormData) {
-  const coach = await getCurrentProfile();
-  if (coach?.role !== "admin") return;
-
-  const clientId = String(formData.get("clientId") ?? "");
-  if (!clientId) return;
-
-  const cycleWeeks = Number(formData.get("cycleWeeks")) === 2 ? 2 : 1;
-  /*
-   * A block always starts on a Monday, so day 0 of the cycle is a Monday and
-   * every week of it lines up with the week everything else shows — the board,
-   * the compliance grid, the schedule. Anchored anywhere else, the cycle ran
-   * Tuesday to Monday behind a Monday-to-Sunday display, and the first day of
-   * the week Dean was looking at fell outside the plan entirely.
-   */
-  const startsOn = mondayOf(String(formData.get("startsOn") ?? today()));
-
-  const supabase = await createClient();
-
-  if (!supabase) {
-    const seeded = demoPlanBlocks.find((b) => b.clientId === clientId);
-    await writeDemoData((data) => {
-      const existing = data.planBlocks.find((b) => b.clientId === clientId);
-      if (existing) Object.assign(existing, { cycleWeeks, startsOn });
-      else {
-        // Keep a seeded block's id so the days already written to it survive
-        // a change of cycle or start date.
-        data.planBlocks.push({
-          id: seeded?.id ?? crypto.randomUUID(),
-          clientId,
-          cycleWeeks,
-          startsOn,
-        });
-      }
-    });
-  } else {
-    await supabase
-      .from("plan_blocks")
-      .upsert(
-        { client_id: clientId, cycle_weeks: cycleWeeks, starts_on: startsOn },
-        { onConflict: "client_id" },
-      );
-  }
-
-  refresh();
-}
-
 /**
- * Write one day of the cycle.
+ * Write one day.
  *
- * Scope is the whole point: "weekday" inserts a revision effective from the
- * chosen date, so every future instance of that weekday changes; "date" writes
- * a one-off for that date alone. Neither is ever dated before today, which is
- * what keeps past days exactly as they were.
+ * Scope is the whole of the recurrence rule, and it is one question: "just
+ * this day" pins a day to its date, "all future Mondays" makes it the standing
+ * plan for that weekday from this date on. A future Monday that was already
+ * pinned to its own date keeps what it has — pinned always beats standing —
+ * so applying forward can never quietly overwrite a week somebody made
+ * special. Nothing is ever backdated, which is what keeps past days as they
+ * were.
  */
 export async function savePlanDay(formData: FormData) {
   const coach = await getCurrentProfile();
   if (coach?.role !== "admin") return;
 
   const clientId = String(formData.get("clientId") ?? "");
-  const dayIndex = Number(formData.get("dayIndex"));
+  const date = String(formData.get("date") ?? "");
+  if (!clientId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
   /*
-   * "both" is one save for the whole day — the week board's editor shows the
-   * training and the food together, and asking for two presses to commit one
-   * screen is how half a day ends up saved.
+   * "both" is one save for the whole day — the editor shows the training and
+   * the food together, and asking for two presses to commit one screen is how
+   * half a day ends up saved.
    */
   const requestedKind = String(formData.get("kind") ?? "");
   const kinds: PlanKind[] =
     requestedKind === "both" ? ["workout", "food"] : [requestedKind === "food" ? "food" : "workout"];
-  if (!clientId || !Number.isFinite(dayIndex)) return;
 
-  const block = await getPlanBlock(clientId);
-  if (!block) return;
-
-  const scope: EditScope = formData.get("scope") === "date" ? "date" : "weekday";
-  const requested = String(formData.get("from") ?? today());
+  const scope: EditScope = formData.get("scope") === "weekday" ? "weekday" : "date";
   // Never backdate: an edit reaches forward from today at the earliest.
-  const from = requested < today() ? today() : requested;
+  const from = date < today() ? today() : date;
+  const weekday = weekdayOf(date);
 
   const isRest = formData.get("isRest") === "on";
   const title = String(formData.get("title") ?? "").trim() || null;
@@ -1511,37 +1319,32 @@ export async function savePlanDay(formData: FormData) {
   const exercises = isRest ? [] : readPlanExercises(formData);
   const meals = isRest ? [] : readPlanMeals(formData);
 
-  /*
-   * The same day, written to more than one weekday.
-   *
-   * Most of a week is repetition — four food slots that barely change, a
-   * session that runs again on Wednesday — and setting each one from scratch
-   * was the bulk of the work. Ignored when the edit is scoped to a single
-   * date, because one date is one weekday and "also apply to Friday" has no
-   * meaning there.
-   */
-  const alsoDays =
-    scope === "date"
-      ? []
-      : formData
-          .getAll("alsoDay")
-          .map(Number)
-          .filter((n) => Number.isInteger(n) && n >= 0 && n < block.cycleWeeks * 7);
+  for (const kind of kinds) {
+    const body = {
+      title,
+      suggestedTime,
+      coachNotes,
+      calorieTarget,
+      proteinTarget,
+      isRest,
+      // A rest day is a training idea. It empties the exercises and leaves
+      // the food alone — nobody stops eating because they are not lifting.
+      exercises: kind === "workout" ? exercises : [],
+      meals: kind === "food" ? meals : [],
+    };
 
-  for (const index of new Set([dayIndex, ...alsoDays])) {
-    for (const kind of kinds) {
-      await writeRevision(block.id, index, kind, from, scope === "date" ? from : null, {
-        title,
-        suggestedTime,
-        coachNotes,
-        calorieTarget,
-        proteinTarget,
-        isRest,
-        // A rest day is a training idea. It empties the exercises and leaves
-        // the food alone — nobody stops eating because they are not lifting.
-        exercises: kind === "workout" ? exercises : [],
-        meals: kind === "food" ? meals : [],
-      });
+    await writeRevision(clientId, weekday, kind, from, scope === "date" ? date : null, body);
+
+    /*
+     * "All future Mondays" has to include the Monday he is looking at.
+     *
+     * Pinned days beat standing ones, which is what protects a week he made
+     * special — but this date may already carry a pin of its own, from a
+     * weight nudge or an earlier one-off, and without this the day he just
+     * edited would be the only Monday that did not change.
+     */
+    if (scope === "weekday") {
+      await writeRevision(clientId, weekday, kind, from, date, body);
     }
   }
 
@@ -1720,19 +1523,14 @@ export async function saveMyFoodDay(formData: FormData) {
   const date = String(formData.get("date") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today()) return;
 
-  const block = await getPlanBlock(profile.id);
-  if (!block) return;
-  const dayIndex = dayIndexFor(block, date);
-  if (dayIndex === null) return;
+  const existing = await getPlanDay(profile.id, date, "food");
 
-  const existing = await getPlanDay(block, date, "food");
-
-  await writeRevision(block.id, dayIndex, "food", date, date, {
-    title: existing?.title ?? null,
-    suggestedTime: existing?.suggestedTime ?? null,
-    coachNotes: existing?.coachNotes ?? null,
-    calorieTarget: existing?.calorieTarget ?? null,
-    proteinTarget: existing?.proteinTarget ?? null,
+  await writeRevision(profile.id, weekdayOf(date), "food", date, date, {
+    title: existing.title,
+    suggestedTime: existing.suggestedTime,
+    coachNotes: existing.coachNotes,
+    calorieTarget: existing.calorieTarget,
+    proteinTarget: existing.proteinTarget,
     isRest: false,
     exercises: [],
     meals: readPlanMeals(formData),
@@ -1799,33 +1597,24 @@ export async function copyPlanDay(formData: FormData) {
   const move = formData.get("mode") === "move";
   if (!clientId || !from || !to || from === to) return;
 
-  const block = await getPlanBlock(clientId);
-  if (!block) return;
-
   // Days already gone are never rewritten — the same rule every other edit
   // follows, and the reason a finished week stays finished.
   const now = today();
   if (to < now) return;
 
-  const toIndex = dayIndexFor(block, to);
-  if (toIndex === null) return;
-
   for (const kind of ["workout", "food"] as PlanKind[]) {
-    const source = await getPlanDay(block, from, kind);
-    await writeRevision(block.id, toIndex, kind, to, to, toWritable(source));
+    const source = await getPlanDay(clientId, from, kind);
+    await writeRevision(clientId, weekdayOf(to), kind, to, to, toWritable(source));
   }
 
   if (move && from >= now) {
-    const fromIndex = dayIndexFor(block, from);
-    if (fromIndex !== null) {
-      // Moved, not duplicated: the day it came from becomes a rest day rather
-      // than reverting to whatever the repeating plan says, which would put
-      // the session straight back where it was.
-      await writeRevision(block.id, fromIndex, "workout", from, from, {
-        ...toWritable(null),
-        isRest: true,
-      });
-    }
+    // Moved, not duplicated: the day it came from becomes a rest day rather
+    // than reverting to that weekday's standing plan, which would put the
+    // session straight back where it was.
+    await writeRevision(clientId, weekdayOf(from), "workout", from, from, {
+      ...toWritable(null),
+      isRest: true,
+    });
   }
 
   refresh();
@@ -1854,15 +1643,14 @@ export async function requestDaySwap(formData: FormData) {
   const now = today();
   if (from < now || to < now) return;
 
-  const block = await getPlanBlock(profile.id);
-  const day = block ? await getPlanDay(block, from, "workout") : null;
+  const day = await getPlanDay(profile.id, from, "workout");
 
   const request: SwapRequest = {
     id: crypto.randomUUID(),
     clientId: profile.id,
     fromDate: from,
     toDate: to,
-    title: day?.title ?? null,
+    title: day.title,
     reason,
     status: "pending",
     createdAt: new Date().toISOString(),
@@ -1971,22 +1759,30 @@ export async function decideDaySwap(formData: FormData) {
 
   if (approve && request) {
     const moved = request as SwapRequest;
-    const block = await getPlanBlock(moved.clientId);
     const now = today();
-    const toIndex = block ? dayIndexFor(block, moved.toDate) : null;
-    const fromIndex = block ? dayIndexFor(block, moved.fromDate) : null;
 
-    if (block && toIndex !== null && moved.toDate >= now) {
-      const source = await getPlanDay(block, moved.fromDate, "workout");
-      await writeRevision(block.id, toIndex, "workout", moved.toDate, moved.toDate, toWritable(source));
+    if (moved.toDate >= now) {
+      const source = await getPlanDay(moved.clientId, moved.fromDate, "workout");
+      await writeRevision(
+        moved.clientId,
+        weekdayOf(moved.toDate),
+        "workout",
+        moved.toDate,
+        moved.toDate,
+        toWritable(source),
+      );
 
       // The day it came from becomes a rest day. Left alone it would still
       // carry the session, and the client would have been given two.
-      if (fromIndex !== null && moved.fromDate >= now) {
-        await writeRevision(block.id, fromIndex, "workout", moved.fromDate, moved.fromDate, {
-          ...toWritable(null),
-          isRest: true,
-        });
+      if (moved.fromDate >= now) {
+        await writeRevision(
+          moved.clientId,
+          weekdayOf(moved.fromDate),
+          "workout",
+          moved.fromDate,
+          moved.fromDate,
+          { ...toWritable(null), isRest: true },
+        );
       }
     }
   }
@@ -2017,21 +1813,17 @@ export async function listCopySources(exceptClientId: string): Promise<CopySourc
   if (coach?.role !== "admin") return [];
 
   const clients = await getClients();
+  const now = today();
   const out: CopySource[] = [];
 
   for (const client of clients) {
     if (client.id === exceptClientId) continue;
-    const block = await getPlanBlock(client.id);
-    if (!block) {
-      out.push({ id: client.id, name: client.fullName, avatarUrl: client.avatarUrl, dayCount: 0 });
-      continue;
-    }
-    const cycle = await getPlanCycle(block, today(), "workout");
+    const days = await getPlanDays(client.id, now, 7);
     out.push({
       id: client.id,
       name: client.fullName,
       avatarUrl: client.avatarUrl,
-      dayCount: cycle.filter((day) => day.exercises.length > 0).length,
+      dayCount: days.filter((day) => day.workout.exercises.length > 0).length,
     });
   }
 
@@ -2040,7 +1832,7 @@ export async function listCopySources(exceptClientId: string): Promise<CopySourc
 
 /** One of that client's days, flattened enough to preview in the sheet. */
 export interface CopyDay {
-  dayIndex: number;
+  date: string;
   label: string;
   title: string | null;
   /** "Back squat — 4 × 5 @ 70kg", one per exercise. */
@@ -2053,40 +1845,28 @@ export async function listCopyDays(clientId: string): Promise<CopyDay[]> {
   const coach = await getCurrentProfile();
   if (coach?.role !== "admin") return [];
 
-  const block = await getPlanBlock(clientId);
-  if (!block) return [];
+  const days = await getPlanDays(clientId, today(), 7);
 
-  const now = today();
-  const [workouts, foods] = await Promise.all([
-    getPlanCycle(block, now, "workout"),
-    getPlanCycle(block, now, "food"),
-  ]);
-
-  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const offset = new Date(`${block.startsOn}T00:00:00Z`).getUTCDay();
-
-  return workouts
-    .map((day, dayIndex) => {
-      const food = foods[dayIndex];
-      const weekday = weekdays[(offset + 6 + dayIndex) % 7];
-      return {
-        dayIndex,
-        label:
-          block.cycleWeeks === 2
-            ? `${weekday} · week ${Math.floor(dayIndex / 7) + 1}`
-            : weekday,
-        title: day.title,
-        exercises: day.exercises.map((exercise) => {
-          const sets = exercise.sets.length;
-          const reps = exercise.sets[0]?.targetReps;
-          const weight = exercise.sets[0]?.targetWeightKg;
-          const shape = sets > 0 ? ` — ${sets} × ${reps ?? "?"}${weight ? ` @ ${weight}kg` : ""}` : "";
-          return `${exercise.name}${shape}`;
-        }),
-        meals: (food?.meals ?? []).map((slot) => slot.meal.name),
-        calorieTarget: food?.calorieTarget ?? null,
-      };
-    })
+  return days
+    .map((day) => ({
+      date: day.date,
+      label: new Date(`${day.date}T00:00:00Z`).toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      }),
+      title: day.workout.title,
+      exercises: day.workout.exercises.map((exercise) => {
+        const sets = exercise.sets.length;
+        const reps = exercise.sets[0]?.targetReps;
+        const weight = exercise.sets[0]?.targetWeightKg;
+        const shape = sets > 0 ? ` — ${sets} × ${reps ?? "?"}${weight ? ` @ ${weight}kg` : ""}` : "";
+        return `${exercise.name}${shape}`;
+      }),
+      meals: day.food.meals.map((slot) => slot.meal.name),
+      calorieTarget: day.food.calorieTarget,
+    }))
     .filter((day) => day.exercises.length > 0 || day.meals.length > 0);
 }
 
@@ -2104,26 +1884,18 @@ export async function copyPlanDayFromClient(formData: FormData) {
 
   const clientId = String(formData.get("clientId") ?? "");
   const sourceClientId = String(formData.get("sourceClientId") ?? "");
-  const sourceDayIndex = Number(formData.get("sourceDayIndex"));
+  const sourceDate = String(formData.get("sourceDate") ?? "");
   const date = String(formData.get("date") ?? "");
-  const withFood = formData.get("withFood") === "1";
-  if (!clientId || !sourceClientId || !date || !Number.isFinite(sourceDayIndex)) return;
+  const parts = String(formData.get("parts") ?? "workout");
+  if (!clientId || !sourceClientId || !date || !sourceDate) return;
   if (date < today()) return;
 
-  const [block, sourceBlock] = await Promise.all([
-    getPlanBlock(clientId),
-    getPlanBlock(sourceClientId),
-  ]);
-  if (!block || !sourceBlock) return;
+  const kinds: PlanKind[] =
+    parts === "food" ? ["food"] : parts === "both" ? ["workout", "food"] : ["workout"];
 
-  const dayIndex = dayIndexFor(block, date);
-  if (dayIndex === null) return;
-
-  const kinds: PlanKind[] = withFood ? ["workout", "food"] : ["workout"];
   for (const kind of kinds) {
-    const cycle = await getPlanCycle(sourceBlock, today(), kind);
-    const source = cycle[sourceDayIndex] ?? null;
-    await writeRevision(block.id, dayIndex, kind, date, date, toWritable(source));
+    const source = await getPlanDay(sourceClientId, sourceDate, kind);
+    await writeRevision(clientId, weekdayOf(date), kind, date, date, toWritable(source));
   }
 
   refresh();
@@ -2131,71 +1903,91 @@ export async function copyPlanDayFromClient(formData: FormData) {
 }
 
 /**
- * A whole week, repeated onto another one.
+ * Answer a note the client left.
  *
- * A block already repeats, so this earns its place only when the week has been
- * changed away from it — a deload, a holiday week, a fortnight built by hand.
- * Each day is written pinned to its target date for the same reason a moved
- * day is: repeating the shape is what the Plan does, this is one week.
+ * It lands on the thing they wrote it on — the workout, the meal log, the
+ * weigh-in — so their side shows the reply under the note rather than in a
+ * separate inbox they have to go and find.
+ *
+ * The note ids carry their own prefix (`w-`, `f-`, `fd-`, `we-`), which is
+ * what says which thread this belongs to; a note about a day's food with no
+ * row behind it hangs off the date instead.
  */
-export async function copyPlanWeek(formData: FormData) {
+export async function replyToNote(formData: FormData) {
   const coach = await getCurrentProfile();
   if (coach?.role !== "admin") return;
 
   const clientId = String(formData.get("clientId") ?? "");
-  const from = String(formData.get("from") ?? "");
-  const to = String(formData.get("to") ?? "");
-  if (!clientId || !from || !to || from === to) return;
+  const noteId = String(formData.get("noteId") ?? "");
+  const body = String(formData.get("body") ?? "").trim().slice(0, 600);
+  if (!clientId || !noteId || !body) return;
 
-  const block = await getPlanBlock(clientId);
-  if (!block) return;
+  const [prefix, ...rest] = noteId.split("-");
+  const targetId = rest.join("-");
+  const target: CommentTarget | null =
+    prefix === "w" ? "workout"
+    : prefix === "f" ? "food_log"
+    : prefix === "fd" ? "food_log"
+    : prefix === "we" ? "weight_entry"
+    : null;
+  if (!target || !targetId) return;
 
-  const now = today();
-  for (let offset = 0; offset < 7; offset += 1) {
-    const sourceDate = shiftDate(from, offset);
-    const targetDate = shiftDate(to, offset);
-    if (targetDate < now) continue;
-
-    const targetIndex = dayIndexFor(block, targetDate);
-    if (targetIndex === null) continue;
-
-    for (const kind of ["workout", "food"] as PlanKind[]) {
-      const source = await getPlanDay(block, sourceDate, kind);
-      await writeRevision(block.id, targetIndex, kind, targetDate, targetDate, toWritable(source));
-    }
-  }
-
+  await addComment(clientId, target, targetId, body);
   refresh();
-  // Land on the week just written, which is the one to tweak.
-  redirect(`/admin/clients/${clientId}/plan?week=${to}`);
 }
 
+/**
+ * Fill a day from the last time that weekday was used.
+ *
+ * The commonest thing Dean does: this Monday is last Monday with a bit more
+ * weight on it. Pinned to the date so it is a starting point — he adjusts it
+ * and then chooses how far his version reaches.
+ */
+export async function copyLastLike(formData: FormData) {
+  const coach = await getCurrentProfile();
+  if (coach?.role !== "admin") return;
+
+  const clientId = String(formData.get("clientId") ?? "");
+  const date = String(formData.get("date") ?? "");
+  const kind: PlanKind = formData.get("kind") === "food" ? "food" : "workout";
+  if (!clientId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today()) return;
+
+  const source = await findLastLike(clientId, date, kind);
+  if (!source) return;
+
+  const day = await getPlanDay(clientId, source, kind);
+  await writeRevision(clientId, weekdayOf(date), kind, date, date, toWritable(day));
+
+  refresh();
+}
+
+/**
+ * Add the same weight to every set of a day.
+ *
+ * Progression, as one press. Pinned to the date like every other fill: the
+ * heavier version is this day's, and Dean says how far it reaches when he
+ * saves.
+ */
 export async function bumpPlanWeights(formData: FormData) {
   const coach = await getCurrentProfile();
   if (coach?.role !== "admin") return;
 
   const clientId = String(formData.get("clientId") ?? "");
+  const date = String(formData.get("date") ?? "");
   const delta = Number(formData.get("delta") ?? 2.5) || 2.5;
+  if (!clientId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today()) return;
 
-  const block = await getPlanBlock(clientId);
-  if (!block) return;
+  const day = await getPlanDay(clientId, date, "workout");
+  if (day.exercises.length === 0) return;
 
-  const now = today();
-  const requested = String(formData.get("from") ?? "");
-  const from = /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested > now ? requested : now;
-
-  /*
-   * How far a nudge reaches. "day" and "everywhere" rewrite the repeating
-   * shape from a date onwards, which is what progression normally means.
-   * "week" is the deliberate exception: seven revisions pinned to seven dates,
-   * for a week that is heavier or lighter than the ones either side of it.
-   */
-  const reach = String(formData.get("reach") ?? "");
-  const scopeDay = formData.get("dayIndex");
-  const onlyDay = scopeDay === null || scopeDay === "" ? null : Number(scopeDay);
-
-  const bump = (day: PlanDay) =>
-    day.exercises.map((exercise) => ({
+  await writeRevision(clientId, weekdayOf(date), "workout", date, date, {
+    title: day.title,
+    suggestedTime: day.suggestedTime,
+    coachNotes: day.coachNotes,
+    calorieTarget: null,
+    proteinTarget: null,
+    isRest: false,
+    exercises: day.exercises.map((exercise) => ({
       position: exercise.position,
       exerciseId: exercise.exerciseId,
       notes: exercise.notes,
@@ -2208,53 +2000,9 @@ export async function bumpPlanWeights(formData: FormData) {
             : Number((set.targetWeightKg + delta).toFixed(2)),
         targetReps: set.targetReps,
       })),
-    }));
-
-  if (reach === "week") {
-    for (let offset = 0; offset < 7; offset += 1) {
-      const date = shiftDate(from, offset);
-      if (date < now) continue;
-      const dayIndex = dayIndexFor(block, date);
-      if (dayIndex === null) continue;
-
-      const day = await getPlanDay(block, date, "workout");
-      if (!day || day.exercises.length === 0) continue;
-
-      await writeRevision(block.id, dayIndex, "workout", date, date, {
-        title: day.title,
-        suggestedTime: day.suggestedTime,
-        coachNotes: day.coachNotes,
-        calorieTarget: null,
-        proteinTarget: null,
-        isRest: false,
-        exercises: bump(day),
-        meals: [],
-      });
-    }
-
-    refresh();
-    return;
-  }
-
-  const cycle = await getPlanCycle(block, from, "workout");
-  const days = onlyDay === null ? cycle.map((_, index) => index) : [onlyDay];
-
-  for (const dayIndex of days) {
-    const day = cycle[dayIndex];
-    // Only a day with weighted sets is worth writing a new revision for.
-    if (!day || day.exercises.length === 0) continue;
-
-    await writeRevision(block.id, dayIndex, "workout", from, null, {
-      title: day.title,
-      suggestedTime: day.suggestedTime,
-      coachNotes: day.coachNotes,
-      calorieTarget: null,
-      proteinTarget: null,
-      isRest: false,
-      exercises: bump(day),
-      meals: [],
-    });
-  }
+    })),
+    meals: [],
+  });
 
   refresh();
 }
@@ -2339,7 +2087,9 @@ export async function saveFoodDayFeedback(formData: FormData) {
   const profile = await getCurrentProfile();
   if (!profile) return;
 
-  const clientId = String(formData.get("clientId") ?? profile.id);
+  // Only Dean may write this for somebody else; a client writes their own.
+  const requested = String(formData.get("clientId") ?? "");
+  const clientId = profile.role === "admin" && requested ? requested : profile.id;
   const loggedFor = String(formData.get("date") ?? today());
   const value = Number(formData.get("feeling"));
   const feeling = value >= 1 && value <= 5 ? Math.round(value) : null;

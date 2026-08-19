@@ -414,30 +414,27 @@ create index shopping_list_items_list_idx on public.shopping_list_items (list_id
 
 create type public.plan_kind as enum ('workout', 'food');
 
-create table public.plan_blocks (
-  id          uuid primary key default gen_random_uuid(),
-  client_id   uuid not null references public.profiles(id) on delete cascade,
-  -- 1 = the same week every week, 2 = alternating weeks.
-  cycle_weeks int not null default 1 check (cycle_weeks in (1, 2)),
-  -- Always a Monday, so day 0 of the cycle is a Monday and every week of the
-  -- plan lines up with the Monday-to-Sunday week the board, the compliance
-  -- grid and the schedule all draw. A constraint rather than a convention:
-  -- anchored anywhere else the cycle silently runs a day out of step with
-  -- every screen that shows it.
-  starts_on   date not null check (extract(isodow from starts_on) = 1),
-  created_at  timestamptz not null default now(),
-  unique (client_id)
-);
-
+-- A plan is a pile of days. Each row either stands for its weekday from
+-- effective_from onwards (only_on null) or belongs to one date alone
+-- (only_on set), and the second kind always wins when both could apply.
+--
+-- That single rule is the whole of the recurrence: saving "every Monday from
+-- here" cannot reach back over a Monday somebody already pinned to its date,
+-- so a week built by hand is never quietly overwritten. There is no block, no
+-- cycle length and no start date to keep in step with the calendar.
 create table public.plan_day_revisions (
   id             uuid primary key default gen_random_uuid(),
-  block_id       uuid not null references public.plan_blocks(id) on delete cascade,
-  -- 0 .. cycle_weeks * 7 - 1, counted from starts_on.
-  day_index      int not null,
+  client_id      uuid not null references public.profiles(id) on delete cascade,
+  -- 0 = Monday .. 6 = Sunday, matching every screen that draws a week.
+  weekday        smallint not null check (weekday between 0 and 6),
   kind           public.plan_kind not null,
   effective_from date not null,
-  -- Set for a one-off change to a single date, which beats any effective_from.
+  -- Set for a day written for a single date, which beats any effective_from.
   only_on        date,
+  -- The date a pinned day is for has to be that weekday, or it would resolve
+  -- on a date it was never meant for.
+  constraint plan_day_revisions_only_on_weekday
+    check (only_on is null or (extract(isodow from only_on) - 1) = weekday),
   -- Workout side.
   title          text,
   suggested_time time,
@@ -452,9 +449,9 @@ create table public.plan_day_revisions (
 );
 
 create index plan_day_revisions_lookup_idx
-  on public.plan_day_revisions (block_id, kind, day_index, effective_from desc);
+  on public.plan_day_revisions (client_id, kind, weekday, effective_from desc);
 create index plan_day_revisions_only_on_idx
-  on public.plan_day_revisions (block_id, kind, only_on);
+  on public.plan_day_revisions (client_id, kind, only_on);
 
 create table public.plan_exercises (
   id          uuid primary key default gen_random_uuid(),
@@ -725,7 +722,6 @@ alter table public.meal_steps         enable row level security;
 alter table public.workout_sets       enable row level security;
 alter table public.meal_logs          enable row level security;
 alter table public.food_day_feedback  enable row level security;
-alter table public.plan_blocks        enable row level security;
 alter table public.plan_day_revisions enable row level security;
 alter table public.plan_exercises     enable row level security;
 alter table public.plan_sets          enable row level security;
@@ -940,20 +936,10 @@ create policy "write own food feedback" on public.food_day_feedback
   for all using (client_id = auth.uid() or public.is_admin())
   with check (client_id = auth.uid() or public.is_admin());
 
--- The repeating plan: the client reads theirs, Dean writes everyone's. The
--- nested tables reach the client through their block.
-create policy "read own plan block" on public.plan_blocks
-  for select using (client_id = auth.uid() or public.is_admin());
-create policy "admin manages plan blocks" on public.plan_blocks
-  for all using (public.is_admin()) with check (public.is_admin());
-
+-- The plan: the client reads theirs, Dean writes everyone's. The nested
+-- tables reach the client through the day they belong to.
 create policy "read own plan revisions" on public.plan_day_revisions
-  for select using (
-    exists (
-      select 1 from public.plan_blocks b
-      where b.id = block_id and (b.client_id = auth.uid() or public.is_admin())
-    )
-  );
+  for select using (client_id = auth.uid() or public.is_admin());
 create policy "admin manages plan revisions" on public.plan_day_revisions
   for all using (public.is_admin()) with check (public.is_admin());
 
@@ -961,8 +947,7 @@ create policy "read own plan exercises" on public.plan_exercises
   for select using (
     exists (
       select 1 from public.plan_day_revisions r
-      join public.plan_blocks b on b.id = r.block_id
-      where r.id = revision_id and (b.client_id = auth.uid() or public.is_admin())
+      where r.id = revision_id and (r.client_id = auth.uid() or public.is_admin())
     )
   );
 create policy "admin manages plan exercises" on public.plan_exercises
@@ -973,8 +958,7 @@ create policy "read own plan sets" on public.plan_sets
     exists (
       select 1 from public.plan_exercises e
       join public.plan_day_revisions r on r.id = e.revision_id
-      join public.plan_blocks b on b.id = r.block_id
-      where e.id = plan_exercise_id and (b.client_id = auth.uid() or public.is_admin())
+      where e.id = plan_exercise_id and (r.client_id = auth.uid() or public.is_admin())
     )
   );
 create policy "admin manages plan sets" on public.plan_sets
@@ -984,8 +968,7 @@ create policy "read own plan meal slots" on public.plan_meal_slots
   for select using (
     exists (
       select 1 from public.plan_day_revisions r
-      join public.plan_blocks b on b.id = r.block_id
-      where r.id = revision_id and (b.client_id = auth.uid() or public.is_admin())
+      where r.id = revision_id and (r.client_id = auth.uid() or public.is_admin())
     )
   );
 create policy "admin manages plan meal slots" on public.plan_meal_slots

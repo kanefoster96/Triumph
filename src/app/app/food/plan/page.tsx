@@ -4,13 +4,16 @@ import { ArrowLeft, CalendarRange, Lock } from "lucide-react";
 import {
   getCurrentProfile,
   getMeals,
-  getPlanBlock,
   getPlanDay,
   shiftDate,
   today,
 } from "@/lib/members/service";
 import { saveMyFoodDay } from "@/lib/members/actions";
-import { EmptyState, Panel, ScreenTitle, submitButton } from "@/components/members/ui";
+import {
+  Panel,
+  ScreenTitle,
+  submitButton,
+} from "@/components/members/ui";
 import { MealPlanner } from "@/components/members/PlanDayEditor";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +52,9 @@ function shortLabel(date: string) {
  * what they ate, and letting it be rewritten would quietly undo the point of
  * tracking it at all.
  */
-export default async function MyFoodPlanPage({ searchParams }: PageProps<"/app/food/plan">) {
+export default async function MyFoodPlanPage({
+  searchParams,
+}: PageProps<"/app/food/plan">) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
   // Coach-planned clients have no business here, whatever the URL says.
@@ -58,10 +63,13 @@ export default async function MyFoodPlanPage({ searchParams }: PageProps<"/app/f
   const query = await searchParams;
   const now = today();
   const requested = typeof query.date === "string" ? query.date : now;
-  const selected = /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested >= now ? requested : now;
+  const selected =
+    /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested >= now ? requested : now;
 
-  const [block, meals] = await Promise.all([getPlanBlock(profile.id), getMeals()]);
-  const day = block ? await getPlanDay(block, selected, "food") : null;
+  const [meals, day] = await Promise.all([
+    getMeals(),
+    getPlanDay(profile.id, selected, "food"),
+  ]);
 
   const days = Array.from({ length: HORIZON }, (_, i) => shiftDate(now, i));
 
@@ -77,7 +85,7 @@ export default async function MyFoodPlanPage({ searchParams }: PageProps<"/app/f
 
       <ScreenTitle
         title="Plan your food"
-        subtitle="Build your days from Dean's meals. He sets what you're aiming at; you decide how to get there."
+        subtitle="Build your days from my meals. I set what you're aiming at; you decide how to get there."
       />
 
       <div className="space-y-5">
@@ -108,39 +116,31 @@ export default async function MyFoodPlanPage({ searchParams }: PageProps<"/app/f
           </p>
         </Panel>
 
-        {!block || !day ? (
-          <Panel>
-            <EmptyState>
-              Dean hasn&rsquo;t started your plan yet. Once he has, your days show up here to fill in.
-            </EmptyState>
-          </Panel>
-        ) : (
-          <Panel title={dayLabel(selected)}>
-            <form action={saveMyFoodDay} className="space-y-4">
-              <input type="hidden" name="date" value={selected} />
-              {/* Keyed by date: the planner seeds its rows once, so moving to
+        <Panel title={dayLabel(selected)}>
+          <form action={saveMyFoodDay} className="space-y-4">
+            <input type="hidden" name="date" value={selected} />
+            {/* Keyed by date: the planner seeds its rows once, so moving to
                   another day has to remount it or yesterday's meals get saved
                   onto tomorrow. */}
-              <MealPlanner
-                key={selected}
-                day={day}
-                meals={meals}
-                calorieTarget={day.calorieTarget}
-                lockTargets
-              />
-              <button type="submit" className={submitButton}>
-                Save this day
-              </button>
-            </form>
-          </Panel>
-        )}
+            <MealPlanner
+              key={selected}
+              day={day}
+              meals={meals}
+              calorieTarget={day.calorieTarget}
+              lockTargets
+            />
+            <button type="submit" className={submitButton}>
+              Save this day
+            </button>
+          </form>
+        </Panel>
 
         <Panel title="A note on the library">
           <p className="inline-flex items-start gap-2 text-sm leading-relaxed text-muted">
             <CalendarRange className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
-            These are Dean&rsquo;s meals — tap any of them on your food page for the amounts and how
-            to make it. If there is something you want that is not on the list, ask him at your
-            check-in and he&rsquo;ll add it.
+            These are my meals — tap any of them on your food page for
+            the amounts and how to make it. If there is something you want that
+            is not on the list, ask him at your check-in and he&rsquo;ll add it.
           </p>
         </Panel>
       </div>

@@ -264,10 +264,6 @@ export interface CheckInSummary {
    * and a week that was simply hard.
    */
   missedDays: DaySubmission[];
-  /** Last date with a workout or food plan assigned; null when nothing is. */
-  plannedThrough: string | null;
-  /** What is already queued from tomorrow — what "adjust" would replace. */
-  plannedAhead: { workouts: number; foodDays: number };
   lastCheckIn: CheckIn | null;
   /** Most recent first, so Dean can see what he said before writing again. */
   recentCheckIns: CheckIn[];
@@ -380,17 +376,8 @@ export interface ScaledMeal {
 }
 
 // ---------------------------------------------------------------------------
-// The repeating plan
+// The plan
 // ---------------------------------------------------------------------------
-
-export interface PlanBlock {
-  id: string;
-  clientId: string;
-  /** 1 = the same week every week, 2 = alternating weeks. */
-  cycleWeeks: number;
-  /** Anchors day 0 and is the date the block takes over from the old system. */
-  startsOn: string;
-}
 
 /** One set's target. Sets differ — 10 / 8 / 6 up a ladder is the normal case. */
 export interface PlanSet {
@@ -425,15 +412,16 @@ export interface PlanMealSlot {
 }
 
 /**
- * One day of the cycle as it stands on a given date. `revisionId` is null when
- * the day has never been set.
+ * One date's plan. `revisionId` is null when nothing has ever been set for
+ * that date, which reads as a rest day.
  */
 export interface PlanDay {
   revisionId: string | null;
-  dayIndex: number;
+  /** 0 = Monday … 6 = Sunday. Which weekday's standing plan this came from. */
+  weekday: number;
   kind: PlanKind;
   isRest: boolean;
-  /** Whether this came from a one-off change rather than the repeating shape. */
+  /** Set for this date alone, rather than inherited from the weekday. */
   oneOff: boolean;
   title: string | null;
   suggestedTime: string | null;

@@ -7,6 +7,7 @@ import {
   getCurrentProfile,
   getFoodLogs,
   getMealLogs,
+  getFoodDayFeedback,
   getPlannedFood,
   scaleMeal,
   sumCalories,
@@ -16,6 +17,7 @@ import { deleteFoodLog, logFood, toggleMeal } from "@/lib/members/actions";
 import {
   CalorieBar,
   EmptyState,
+  FoldPanel,
   Panel,
   ScreenTitle,
   field,
@@ -23,6 +25,7 @@ import {
   submitButton,
 } from "@/components/members/ui";
 import { MacroRing } from "@/components/members/MacroRing";
+import { FoodDayNote } from "@/components/members/FoodDayNote";
 import { CommentThread } from "@/components/members/Comments";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +38,15 @@ export default async function FoodPage() {
   if (!profile) redirect("/login");
 
   const date = today();
-  const [plan, todaysLogs, allLogs, comments, mealLogs] = await Promise.all([
+  const [plan, todaysLogs, allLogs, comments, mealLogs, feedback] = await Promise.all([
     getPlannedFood(profile.id, date),
     getFoodLogs(profile.id, date),
     getFoodLogs(profile.id),
     getComments(profile.id),
     getMealLogs(profile.id, date),
+    getFoodDayFeedback(profile.id),
   ]);
+  const dayNote = feedback.find((entry) => entry.loggedFor === date)?.note ?? null;
 
   // Ticked meals and hand-typed entries both count towards the day, so what is
   // off-plan never has to be pretended into a meal.
@@ -239,7 +244,9 @@ export default async function FoodPage() {
 
         {/* Snacks last: the plan is the thing to follow, and this is what
             happened on top of it. */}
-        <Panel title="Anything else you ate">
+        <FoodDayNote date={date} existing={dayNote} />
+
+        <FoldPanel title="Anything else you ate" hint="Snacks and anything off the plan">
           <p className="text-sm leading-relaxed text-muted">
             Seconds, a meal out, a bad afternoon — put it here rather than leaving it out. Macros are
             optional; the calories alone still count.
@@ -375,9 +382,9 @@ export default async function FoodPage() {
           ) : (
             <EmptyState>Nothing extra today.</EmptyState>
           )}
-        </Panel>
+        </FoldPanel>
 
-        <Panel title="Earlier days">
+        <FoldPanel title="Earlier days">
           {earlierDays.length === 0 ? (
             <EmptyState>Nothing logged before today.</EmptyState>
           ) : (
@@ -410,7 +417,7 @@ export default async function FoodPage() {
               })}
             </ul>
           )}
-        </Panel>
+        </FoldPanel>
       </div>
     </>
   );

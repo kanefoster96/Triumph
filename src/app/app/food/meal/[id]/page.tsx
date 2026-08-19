@@ -90,7 +90,7 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
             <div className="flex items-start gap-3">
               <ChefHat className="mt-0.5 h-5 w-5 shrink-0 text-faint" />
               <p className="text-sm text-muted">
-                Dean hasn&rsquo;t added a method for this one yet — the amounts above are all you need.
+                No method on this one — the amounts above are all you need.
               </p>
             </div>
           ) : (
@@ -109,7 +109,7 @@ export default async function MealPage({ params, searchParams }: PageProps<"/app
 
         {meal.archivedAt ? (
           <Panel>
-            <Chip tone="amber">Dean has retired this meal</Chip>
+            <Chip tone="amber">I&rsquo;ve retired this meal</Chip>
           </Panel>
         ) : null}
       </div>

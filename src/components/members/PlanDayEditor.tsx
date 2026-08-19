@@ -636,7 +636,7 @@ export function MealPlanner({
       {lockTargets ? (
         <div className="rounded-2xl border border-line bg-ink p-4">
           <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
-            What Dean has you aiming at
+            What you&rsquo;re aiming at
           </p>
           <p className="mt-1.5 text-sm text-muted">
             {targetValue > 0 ? `${targetValue.toLocaleString("en-GB")} kcal` : "No calorie target"}

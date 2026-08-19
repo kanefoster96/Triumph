@@ -42,10 +42,7 @@ export function FinishAnyway({ date, missed }: { date: string; missed: string[] 
           <input type="hidden" name="date" value={date} />
           <ReasonNote id="finish-note" />
           <p className="mt-2 text-xs leading-relaxed text-faint">
-            No wrong answer here. Dean is only working out whether it needs changing — a meal you
-            do not like, one that takes too long on a weeknight, or an ingredient that never makes
-            it into the trolley are three different fixes, and &ldquo;I forgot&rdquo; is a
-            perfectly good answer too.
+            No wrong answer. &ldquo;I forgot&rdquo; is as useful to me as anything else.
           </p>
           <button
             type="submit"

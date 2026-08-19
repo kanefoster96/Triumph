@@ -1,25 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
-import { CalendarRange, Dumbbell, Loader2, Pencil, Salad, X } from "lucide-react";
+import { CalendarCheck, CalendarSync, Dumbbell, Loader2, MessageSquare, Pencil, Salad, X } from "lucide-react";
 import { useIsPhone } from "./useIsPhone";
 import { cn } from "@/lib/utils";
 
 /**
- * One day of a plan, saved in one press.
+ * One day, saved in one press.
  *
  * The old editor was two panels with a Save button each, which meant a day was
  * routinely half-written: the training saved, the food still sitting in the
- * form. Training, food and how far the change reaches are three sections of
- * one form now, and the bar at the bottom commits all of it.
+ * form. Notes, training and food are sections of one form now, and the bar at
+ * the bottom commits all of it.
  *
- * On a phone it is a full-height sheet rather than a panel below the week: the
- * board is seven cards tall, so the editor started a screen and a half down
- * and Save was another four below that. As a sheet, the day's name is at the
- * top with a way out beside it and Save is pinned to the bottom edge, under
- * the thumb, wherever the content has been scrolled to.
+ * On a phone it is a full-height sheet rather than a panel below the list: the
+ * day's name is at the top with a way out beside it, and Save is pinned to the
+ * bottom edge, under the thumb, wherever the content has been scrolled to.
  *
  * The two layouts are one form rendered in one of two places — never both, or
  * every field would be submitted twice.
@@ -31,29 +29,36 @@ export function PlanDayForm({
   defaultOpen = false,
   hidden,
   toolbar,
+  notes,
   training,
   food,
-  scope,
+  weekdayName,
   trainingHint,
   foodHint,
+  noteCount = 0,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   title: string;
   /** A word about the day itself — "Rest day", "3 exercises · 4 meals". */
   subtitle?: string;
-  /** Opens the sheet on arrival, for a tap that came from a day card. */
+  /** Opens the sheet on arrival, for a tap that came from a day row. */
   defaultOpen?: boolean;
   hidden: ReactNode;
   toolbar: ReactNode;
+  notes?: ReactNode;
   training: ReactNode;
   food: ReactNode;
-  scope: ReactNode;
-  /** What is in each half, so a shut section still says something. */
+  /** "Monday", for the second half of the save question. */
+  weekdayName: string;
+  /** What is in each part, so a shut section still says something. */
   trainingHint?: string;
   foodHint?: string;
+  noteCount?: number;
 }) {
   const phone = useIsPhone();
+  const formId = useId();
   const [open, setOpen] = useState(defaultOpen);
+  const [asking, setAsking] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [needsTitle, setNeedsTitle] = useState(false);
   const form = useRef<HTMLFormElement>(null);
@@ -64,7 +69,11 @@ export function PlanDayForm({
    * rather than by lifting the field's value up through three components —
    * everything here is a real input, so the form already knows.
    */
-  const check = () => {
+  const check = (event: { target: EventTarget | null }) => {
+    // Typing a reply to a note is not an edit to the day. Without this the
+    // header said "Unsaved changes" and leaving asked for a confirmation
+    // about work that had already been sent.
+    if (event.target instanceof Element && event.target.closest("[data-aside]")) return;
     setDirty(true);
     const data = form.current ? new FormData(form.current) : null;
     const hasExercises = (data?.getAll("exerciseId") ?? []).some((id) => String(id) !== "");
@@ -101,6 +110,7 @@ export function PlanDayForm({
    */
   const body = (
     <form
+      id={formId}
       ref={form}
       action={action}
       onInput={check}
@@ -110,28 +120,85 @@ export function PlanDayForm({
       {hidden}
 
       <div className={cn(phone && "min-h-0 flex-1 overflow-y-auto overscroll-contain")}>
-        {/* Open on arrival: he tapped Edit on a day to change the training,
-            so a screen where the first tap only reveals it is one tap too
-            many. Meals stay shut — their summary line says what is there. */}
+        {notes ? (
+          <Section
+            icon={MessageSquare}
+            title={noteCount === 1 ? "Left you a note" : `Left you ${noteCount} notes`}
+            tone="accent"
+          >
+            <div data-aside>{notes}</div>
+          </Section>
+        ) : null}
+        {/* Open on arrival: he tapped a day to change the training, so a
+            screen where the first tap only reveals it is one tap too many.
+            Meals stay shut — their summary line says what is there. */}
         <Section icon={Dumbbell} title="Workout" hint={trainingHint} defaultOpen>
           {training}
         </Section>
         <Section icon={Salad} title="Meals" hint={foodHint}>
           {food}
         </Section>
-        <Section icon={CalendarRange} title="Apply to" defaultOpen>
-          {scope}
-        </Section>
       </div>
 
-      <SaveBar dirty={dirty} needsTitle={needsTitle} />
+      <SaveBar dirty={dirty} needsTitle={needsTitle} onSave={() => setAsking(true)} />
     </form>
   );
+
+  /*
+   * How far the save reaches, asked once, at the moment it matters.
+   *
+   * It used to be a third section of the form, which meant answering it before
+   * knowing whether the day was finished — and left it as something to
+   * remember rather than something to decide. Portalled, so the buttons reach
+   * the form through `form=` rather than by sitting inside it.
+   */
+  const scopeSheet =
+    asking && typeof document !== "undefined"
+      ? createPortal(
+          <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+            <button
+              type="button"
+              aria-label="Cancel"
+              onClick={() => setAsking(false)}
+              className="absolute inset-0 bg-ink/80"
+            />
+            <div className="relative w-full max-w-md rounded-t-[var(--radius-sheet)] border border-line bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-[var(--radius-sheet)]">
+              <h2 className="text-base font-semibold">Save this day to…</h2>
+
+              <div className="mt-4 space-y-2">
+                <ScopeChoice
+                  formId={formId}
+                  value="date"
+                  icon={CalendarCheck}
+                  title="Just this day"
+                  hint="Nothing else changes."
+                />
+                <ScopeChoice
+                  formId={formId}
+                  value="weekday"
+                  icon={CalendarSync}
+                  title={`All future ${weekdayName}s`}
+                  hint={`Every ${weekdayName} from here — except ones you have already changed on their own.`}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAsking(false)}
+                className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-full text-sm font-semibold text-muted transition-colors hover:text-text"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   if (phone) {
     return (
       <>
-        {/* What the board shows in the editor's place: the day, and the way
+        {/* What the list shows in the editor's place: the day, and the way
             into it. Full width and thumb-high, not a link in a corner. */}
         <button
           type="button"
@@ -181,6 +248,7 @@ export function PlanDayForm({
               document.body,
             )
           : null}
+        {scopeSheet}
       </>
     );
   }
@@ -202,7 +270,39 @@ export function PlanDayForm({
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">{toolbar}</div>
 
       {body}
+      {scopeSheet}
     </div>
+  );
+}
+
+/** One answer to "how far does this go", as a button that submits the form. */
+function ScopeChoice({
+  formId,
+  value,
+  icon: Icon,
+  title,
+  hint,
+}: {
+  formId: string;
+  value: "date" | "weekday";
+  icon: typeof Dumbbell;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="submit"
+      form={formId}
+      name="scope"
+      value={value}
+      className="flex w-full items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-left transition-colors hover:border-accent hover:bg-accent/[0.07]"
+    >
+      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block text-xs leading-relaxed text-faint">{hint}</span>
+      </span>
+    </button>
   );
 }
 
@@ -214,29 +314,32 @@ export function PlanDayForm({
  * same reason — the browser cannot focus a hidden field to complain about it,
  * and would refuse to submit at all. What is missing is flagged in the UI and
  * dropped on the server instead.
- *
- * `min-h-0` and the scroll live here because in the phone sheet this is the
- * column that scrolls under a pinned save bar.
  */
 function Section({
   icon: Icon,
   title,
   hint,
+  tone,
   defaultOpen = false,
   children,
 }: {
   icon: typeof Dumbbell;
   title: string;
   hint?: string;
+  tone?: "accent";
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
   return (
     <details open={defaultOpen} className="group shrink-0 border-b border-line">
-      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-5 py-3.5 transition-colors hover:bg-raised">
-        <Icon className="h-4 w-4 shrink-0 text-accent" />
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-5 py-3 marker:content-none">
+        <Icon className={cn("h-4 w-4 shrink-0", tone === "accent" ? "text-accent" : "text-accent")} />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{title}</span>
+          <span
+            className={cn("block text-sm font-semibold", tone === "accent" && "text-accent")}
+          >
+            {title}
+          </span>
           {/* A shut section that says "Workout" and nothing else makes you
               open it to find out whether there is one. */}
           {hint ? <span className="block truncate text-xs text-faint">{hint}</span> : null}
@@ -249,7 +352,15 @@ function Section({
   );
 }
 
-function SaveBar({ dirty, needsTitle }: { dirty: boolean; needsTitle: boolean }) {
+function SaveBar({
+  dirty,
+  needsTitle,
+  onSave,
+}: {
+  dirty: boolean;
+  needsTitle: boolean;
+  onSave: () => void;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -264,7 +375,8 @@ function SaveBar({ dirty, needsTitle }: { dirty: boolean; needsTitle: boolean })
               : "Nothing to save — this day is up to date."}
       </p>
       <button
-        type="submit"
+        type="button"
+        onClick={onSave}
         disabled={pending || needsTitle}
         className={cn(
           "inline-flex h-11 min-w-[9rem] flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors sm:flex-none",

@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Dumbbell, Home, LineChart, Repeat, Salad } from "lucide-react";
+import { CalendarDays, History, Home, LineChart, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Dean's view of one client, split the same way the client's own app is.
- * Same five sections, in the same order — so what he is editing always maps
- * onto what they are looking at — plus Plan, which is the repeating shape
- * behind all of them and has no client-side counterpart.
+ * Dean's view of one client.
+ *
+ * Plan is the one place a day is changed — training and food together — so
+ * there is no second editor to keep in step with it and no way to edit the
+ * same Tuesday from two screens. History answers a different question
+ * ("how did it actually go") and never writes anything.
  */
 export function ClientTabs({ clientId }: { clientId: string }) {
   const pathname = usePathname();
@@ -17,10 +19,9 @@ export function ClientTabs({ clientId }: { clientId: string }) {
 
   const tabs = [
     { href: base, label: "Overview", icon: Home },
-    { href: `${base}/plan`, label: "Plan", icon: Repeat },
+    { href: `${base}/plan`, label: "Plan", icon: ListChecks },
     { href: `${base}/sessions`, label: "Sessions", icon: CalendarDays },
-    { href: `${base}/workouts`, label: "Workouts", icon: Dumbbell },
-    { href: `${base}/food`, label: "Food", icon: Salad },
+    { href: `${base}/history`, label: "What they did", icon: History },
     { href: `${base}/weight`, label: "Weight", icon: LineChart },
   ];
 

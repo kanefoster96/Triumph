@@ -5,7 +5,7 @@ import type { RawRevision } from "./service";
 import type {
   Application,
   DaySubmission,
-  PlanBlock,
+  Comment,
   FoodDayFeedback,
   FoodLog,
   FoodMode,
@@ -93,14 +93,24 @@ const wireSize = (value: string) => encodeURIComponent(value).length;
 export interface DemoData {
   mealLogs: MealLog[];
   foodDayFeedback: FoodDayFeedback[];
+  /**
+   * Comments — Dean's replies to a note, and the client's back.
+   *
+   * In the cookie rather than a module array because the site runs as
+   * serverless functions: a reply written in one instance and read from
+   * another simply was not there, which looks exactly like a message that
+   * failed to send.
+   */
+  comments: Comment[];
   weightEntries: WeightEntry[];
   shoppingLists: ShoppingList[];
   daySubmissions: DaySubmission[];
   /** Food mode overrides, by client id — Dean's switch is a write like any other. */
   foodModes: Record<string, FoodMode>;
   /**
-   * Plan edits, appended to the seeded ones. Order matters: the newest edit to
-   * a date is the one that counts, so these are never reordered.
+   * Plan days Dean has written, appended to the seeded ones. Order matters:
+   * the newest edit to a date is the one that counts, so these are never
+   * reordered.
    */
   planRevisions: PackedRevision[];
   /**
@@ -121,13 +131,6 @@ export interface DemoData {
   foodLogs: FoodLog[];
   /** Seeded logs the client has deleted — a seed cannot be removed in place. */
   deletedFoodLogs: string[];
-  /**
-   * Plan blocks Dean has started or re-dated. Without this a newly created
-   * plan lives only in the instance that made it, and the very next request —
-   * the one that saves its first day — finds no block and quietly does
-   * nothing, which is exactly how it failed.
-   */
-  planBlocks: PlanBlock[];
   /** Ingredient swaps Dean has made for a client. */
   mealSwaps: IngredientSwap[];
   /** Clients asking to move a session to another day. */
@@ -140,6 +143,7 @@ function empty(): DemoData {
   return {
     mealLogs: [],
     foodDayFeedback: [],
+    comments: [],
     weightEntries: [],
     shoppingLists: [],
     daySubmissions: [],
@@ -151,7 +155,6 @@ function empty(): DemoData {
     startedWorkouts: [],
     foodLogs: [],
     deletedFoodLogs: [],
-    planBlocks: [],
     mealSwaps: [],
     swapRequests: [],
     avatars: {},
@@ -325,13 +328,13 @@ export async function demoWeights(): Promise<WeightEntry[]> {
  *
  * Packed, the same day is a few hundred bytes: positional arrays, no generated
  * ids, and only the library ids that actually have to be kept. The ids are
- * rebuilt on read from the block, day and position, which is what keeps them
+ * rebuilt on read from the sequence and position, which is what keeps them
  * stable — a workout tick is keyed to an item id, so an id that changed
  * between reads would quietly orphan it.
  */
 export type PackedRevision = [
-  blockId: string,
-  dayIndex: number,
+  clientId: string,
+  weekday: number,
   kind: 0 | 1, // 0 workout, 1 food
   effectiveFrom: string,
   onlyOn: string | null,
@@ -347,8 +350,8 @@ export type PackedRevision = [
 
 export function packRevision(r: RawRevision): PackedRevision {
   return [
-    r.blockId,
-    r.dayIndex,
+    r.clientId,
+    r.weekday,
     r.kind === "food" ? 1 : 0,
     r.effectiveFrom,
     r.onlyOn,
@@ -367,8 +370,8 @@ export function unpackRevision(p: PackedRevision, seq: number): RawRevision {
   const id = `demo-rev-${seq}`;
   return {
     id,
-    blockId: p[0],
-    dayIndex: p[1],
+    clientId: p[0],
+    weekday: p[1],
     kind: p[2] === 1 ? "food" : "workout",
     effectiveFrom: p[3],
     onlyOn: p[4],

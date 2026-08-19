@@ -35,7 +35,7 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
   if (!workout) {
     return (
       <>
-        <ScreenTitle title="Nothing to do" subtitle="No workout planned for this day." />
+        <ScreenTitle title="Nothing to do" subtitle="Nothing on for today." />
         <Panel>
           <Link href="/app/workouts" className="text-sm font-semibold text-accent">
             Back to workouts
@@ -113,7 +113,7 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
 
             <div>
               <label className={fieldLabel} htmlFor="finish-note">
-                Anything to tell Dean? (optional)
+                Anything I should know? (optional)
               </label>
               <textarea
                 id="finish-note"

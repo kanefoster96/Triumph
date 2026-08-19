@@ -6,9 +6,9 @@ import {
   DEMO_CLIENT_ID,
   demoCheckIns,
   demoComments,
+  demoFoodDayFeedback,
   demoExercises,
   demoMeals,
-  demoPlanBlocks,
   demoPlanRevisions,
   demoFoodLogs,
   demoFoodPlans,
@@ -34,13 +34,12 @@ import type {
   Exercise,
   ExerciseTrend,
   LastEffort,
+  FoodDayFeedback,
   FoodLog,
   FoodPlan,
   Meal,
   MealLog,
-  PlanBlock,
   PlanDay,
-  PlanExercise,
   PlanKind,
   PlanMealSlot,
   PlanSet,
@@ -257,20 +256,11 @@ function toMeal(row: any): Meal {
   };
 }
 
-function toPlanBlock(row: any): PlanBlock {
-  return {
-    id: row.id,
-    clientId: row.client_id,
-    cycleWeeks: row.cycle_weeks,
-    startsOn: row.starts_on,
-  };
-}
-
 function toRevision(row: any): RawRevision {
   return {
     id: row.id,
-    blockId: row.block_id,
-    dayIndex: row.day_index,
+    clientId: row.client_id,
+    weekday: row.weekday,
     kind: row.kind,
     effectiveFrom: row.effective_from,
     onlyOn: row.only_on ?? null,
@@ -513,19 +503,16 @@ export async function getWorkouts(clientId: string): Promise<Workout[]> {
     // A plan day the client has begun counts as a workout of theirs, the same
     // as the row Supabase would have created. Rebuilt from the plan rather
     // than copied, and claimed only when the rebuilt id matches — that is what
-    // proves the started day belongs to this client's block.
+    // proves the started day belongs to this client.
     const { startedWorkouts } = await demoData();
-    const block = startedWorkouts.length > 0 ? await getPlanBlock(clientId) : null;
     const started: Workout[] = [];
-    if (block) {
-      for (const id of startedWorkouts) {
-        const date = id.startsWith("plan:") ? id.split(":")[2] : null;
-        if (!date || seeded.some((w) => w.scheduledFor === date)) continue;
-        const day = await getPlanDay(block, date, "workout");
-        if (!day || day.isRest || day.exercises.length === 0) continue;
-        const built = workoutFromPlan(clientId, date, day);
-        if (built.id === id) started.push(await withWorkoutEdits(built));
-      }
+    for (const id of startedWorkouts) {
+      const date = id.startsWith("plan:") ? id.split(":")[2] : null;
+      if (!date || seeded.some((w) => w.scheduledFor === date)) continue;
+      const day = await getPlanDay(clientId, date, "workout");
+      if (day.isRest || day.exercises.length === 0) continue;
+      const built = workoutFromPlan(clientId, date, day);
+      if (built.id === id) started.push(await withWorkoutEdits(built));
     }
 
     return [...seeded, ...started].sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor));
@@ -543,18 +530,18 @@ export async function getWorkouts(clientId: string): Promise<Workout[]> {
  * The workout for a date.
  *
  * A logged row wins — once the client has touched a day, that day is what they
- * did. Otherwise it is generated from the repeating plan. Dates before the
- * block starts have no plan to generate from, which is how every day assigned
- * under the old system stays exactly as it was.
+ * did. Otherwise it comes from the plan. A date with nothing planned is a rest
+ * day, which is null here.
  */
 export async function getWorkoutFor(clientId: string, date: string): Promise<Workout | null> {
-  const [workouts, block] = await Promise.all([getWorkouts(clientId), getPlanBlock(clientId)]);
+  const [workouts, planned] = await Promise.all([
+    getWorkouts(clientId),
+    getPlanDay(clientId, date, "workout"),
+  ]);
   const logged = workouts.find((w) => w.scheduledFor === date);
   if (logged) return logged;
-  if (!block) return null;
 
-  const planned = await getPlanDay(block, date, "workout");
-  if (!planned || planned.isRest || planned.exercises.length === 0) return null;
+  if (planned.isRest || planned.exercises.length === 0) return null;
   return withWorkoutEdits(workoutFromPlan(clientId, date, planned));
 }
 
@@ -604,19 +591,14 @@ export function workoutFromPlan(clientId: string, date: string, day: PlanDay): W
  * plan is generated rather than written out in advance.
  */
 export async function getTrainingDates(clientId: string, from: string, to: string): Promise<string[]> {
-  const [workouts, block] = await Promise.all([getWorkouts(clientId), getPlanBlock(clientId)]);
+  const [workouts, revisions] = await Promise.all([getWorkouts(clientId), loadRevisions(clientId)]);
   const dates = new Set(
     workouts.filter((w) => w.scheduledFor >= from && w.scheduledFor <= to).map((w) => w.scheduledFor),
   );
 
-  if (block) {
-    const revisions = await loadRevisions(block.id);
-    for (let cursor = from; cursor <= to; cursor = shiftDate(cursor, 1)) {
-      const dayIndex = dayIndexFor(block, cursor);
-      if (dayIndex === null) continue;
-      const { revision } = pickRevision(revisions, dayIndex, "workout", cursor);
-      if (revision && !revision.isRest && revision.exercises.length > 0) dates.add(cursor);
-    }
+  for (let cursor = from; cursor <= to; cursor = shiftDate(cursor, 1)) {
+    const { revision } = pickRevision(revisions, weekdayOf(cursor), "workout", cursor);
+    if (revision && !revision.isRest && revision.exercises.length > 0) dates.add(cursor);
   }
 
   return [...dates].sort();
@@ -728,7 +710,8 @@ export async function getWeightEntries(clientId: string): Promise<WeightEntry[]>
 export async function getComments(clientId: string): Promise<Comment[]> {
   const supabase = await createClient();
   if (!supabase) {
-    return demoComments
+    const { comments } = await demoData();
+    return [...demoComments, ...comments]
       .filter((c) => c.clientId === clientId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
@@ -800,19 +783,49 @@ function meanWeight(entries: WeightEntry[]): number | null {
  */
 export async function getRecentNotes(clientId: string, days = 14): Promise<ClientNote[]> {
   const end = today();
-  const start = shiftDate(end, -(days - 1));
-  const [workouts, foodLogs, weights] = await Promise.all([
+  return getNotesBetween(clientId, shiftDate(end, -(days - 1)), end);
+}
+
+/** The same, over a range the caller names — what the plan screen asks for. */
+export async function getNotesBetween(
+  clientId: string,
+  from: string,
+  to: string,
+): Promise<ClientNote[]> {
+  const [workouts, foodLogs, weights, food] = await Promise.all([
     getWorkouts(clientId),
     getFoodLogs(clientId),
     getWeightEntries(clientId),
+    getFoodDayFeedback(clientId),
   ]);
-  return gatherNotes(workouts, foodLogs, weights, start, end);
+  return gatherNotes(workouts, foodLogs, weights, food, from, to);
+}
+
+/** What the client said about a day's food, by date. */
+export async function getFoodDayFeedback(clientId: string): Promise<FoodDayFeedback[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { foodDayFeedback } = await demoData();
+    return [...demoFoodDayFeedback, ...foodDayFeedback].filter((f) => f.clientId === clientId);
+  }
+
+  const { data } = await supabase
+    .from("food_day_feedback")
+    .select("*")
+    .eq("client_id", clientId);
+  return (data ?? []).map((row) => ({
+    clientId: row.client_id,
+    loggedFor: row.logged_for,
+    feeling: row.feeling ?? null,
+    note: row.note ?? null,
+  }));
 }
 
 function gatherNotes(
   workouts: Workout[],
   foodLogs: FoodLog[],
   weights: WeightEntry[],
+  foodDays: FoodDayFeedback[],
   start: string,
   end: string,
 ): ClientNote[] {
@@ -846,6 +859,17 @@ function gatherNotes(
         body: w.note as string,
         context: `${w.weightKg.toFixed(1)}kg`,
       })),
+    // What they said about the day's food when they closed it out. This is
+    // the note Dean most often acts on and it was the one nothing surfaced.
+    ...foodDays
+      .filter((f) => inWindow(f.loggedFor) && f.note)
+      .map((f) => ({
+        id: `fd-${f.loggedFor}`,
+        kind: "food" as const,
+        on: f.loggedFor,
+        body: f.note as string,
+        context: "On their meals",
+      })),
   ];
 
   return notes.sort((a, b) => b.on.localeCompare(a.on));
@@ -866,15 +890,16 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
 
   const rows = await Promise.all(
     profiles.map(async (profile): Promise<CheckInSummary> => {
-      const [workouts, foodLogs, weights, assignedFood, foodPlan, checkIns, comments] = await Promise.all([
-        getWorkouts(profile.id),
-        getFoodLogs(profile.id),
-        getWeightEntries(profile.id),
-        getAssignedFoodDates(profile.id),
-        getFoodPlan(profile.id),
-        getCheckIns(profile.id),
-        getComments(profile.id),
-      ]);
+      const [workouts, foodLogs, weights, foodPlan, checkIns, comments, foodDays] =
+        await Promise.all([
+          getWorkouts(profile.id),
+          getFoodLogs(profile.id),
+          getWeightEntries(profile.id),
+          getFoodPlan(profile.id),
+          getCheckIns(profile.id),
+          getComments(profile.id),
+          getFoodDayFeedback(profile.id),
+        ]);
       const missedDays = await getMissedDays(profile.id, periodStart, periodEnd);
 
       const inWindow = (date: string) => date >= periodStart && date <= periodEnd;
@@ -917,30 +942,14 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
           ? Number((averageWeightKg - previousWeightKg).toFixed(1))
           : null;
 
-      const lastWorkoutDay =
-        workouts
-          .map((w) => w.scheduledFor)
-          .sort()
-          .at(-1) ?? null;
-      const lastFoodDay =
-        assignedFood
-          .map((p) => p.assignedFor)
-          .sort()
-          .at(-1) ?? null;
-      const plannedThrough =
-        [lastWorkoutDay, lastFoodDay]
-          .filter((d): d is string => Boolean(d))
-          .sort()
-          .at(-1) ?? null;
+      // Whether there is a plan at all, rather than how far it stretches: a
+      // weekday's plan stands until Dean changes it, so nothing runs out.
+      const planned = await getPlanDays(profile.id, periodEnd, 7);
+      const hasPlan = planned.some(
+        (day) => day.workout.exercises.length > 0 || day.food.meals.length > 0,
+      );
 
-      // What "adjust" would replace: everything queued from tomorrow onwards.
-      const tomorrow = shiftDate(periodEnd, 1);
-      const plannedAhead = {
-        workouts: workouts.filter((w) => w.scheduledFor >= tomorrow).length,
-        foodDays: assignedFood.filter((p) => p.assignedFor >= tomorrow).length,
-      };
-
-      const notes = gatherNotes(workouts, foodLogs, weights, periodStart, periodEnd);
+      const notes = gatherNotes(workouts, foodLogs, weights, foodDays, periodStart, periodEnd);
       const lastCheckIn = checkIns[0] ?? null;
       const recentCheckIns = checkIns.slice(0, 6);
       const checkInComments = comments.filter((c) => c.targetType === "check_in");
@@ -975,11 +984,9 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
       if (notes.length > 0) {
         flags.push(notes.length === 1 ? "Left a note" : `Left ${notes.length} notes`);
       }
-      if (!plannedThrough) {
-        flags.push("Nothing assigned");
-      } else if (plannedThrough < shiftDate(periodEnd, 7)) {
-        flags.push("Plan runs out within a week");
-      }
+      // A plan does not run out — a weekday stands until Dean changes it — so
+      // the only thing worth flagging is somebody with no plan at all.
+      if (!hasPlan) flags.push("Nothing planned yet");
       if (lastCheckIn && lastCheckIn.nextReviewOn <= periodEnd) {
         flags.push("Review due");
       }
@@ -999,8 +1006,6 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
         notes,
         trainingDays,
         missedDays,
-        plannedThrough,
-        plannedAhead,
         lastCheckIn,
         recentCheckIns,
         checkInComments,
@@ -1009,12 +1014,9 @@ export async function getCheckInBoard(windowDays = 7): Promise<CheckInSummary[]>
     }),
   );
 
-  // Anyone needing a look comes first, then whoever runs out of plan soonest.
+  // Anyone needing a look comes first, then the most flags, then by name.
   return rows.sort((a, b) => {
-    if (Boolean(a.flags.length) !== Boolean(b.flags.length)) return a.flags.length ? -1 : 1;
-    const aThrough = a.plannedThrough ?? "";
-    const bThrough = b.plannedThrough ?? "";
-    if (aThrough !== bThrough) return aThrough.localeCompare(bThrough);
+    if (a.flags.length !== b.flags.length) return b.flags.length - a.flags.length;
     return a.profile.fullName.localeCompare(b.profile.fullName);
   });
 }
@@ -1324,49 +1326,22 @@ export function daysBetween(from: string, to: string): number {
 }
 
 /**
- * Which day of the cycle a date lands on. Negative dates — before the block
- * starts — return null, because the block does not govern them.
+ * Which weekday a date is, Monday first: 0 = Monday … 6 = Sunday.
+ *
+ * Monday-first because that is how every screen here draws a week, and because
+ * "all future Mondays" has to mean the same thing to the picker, the plan and
+ * the person reading it.
  */
-export function dayIndexFor(block: PlanBlock, date: string): number | null {
-  const offset = daysBetween(block.startsOn, date);
-  if (offset < 0) return null;
-  return offset % (block.cycleWeeks * 7);
+export function weekdayOf(date: string): number {
+  return (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 
-export async function getPlanBlock(clientId: string): Promise<PlanBlock | null> {
-  const supabase = await createClient();
-  if (!supabase) {
-    // A block Dean has started wins over the seeded one for that client.
-    const { planBlocks } = await demoData();
-    const block =
-      planBlocks.find((b) => b.clientId === clientId) ??
-      demoPlanBlocks.find((b) => b.clientId === clientId) ??
-      null;
-
-    /*
-     * Blocks are Monday-anchored, and a demo cookie written before that rule
-     * existed still holds whatever weekday it was started on. Snapped on read
-     * here because the alternative is a browser with an old cookie quietly
-     * showing the old behaviour. Deliberately not done for the database: there
-     * the constraint makes it impossible, and re-anchoring a real block would
-     * rotate every day of somebody's plan on a read.
-     */
-    return block && block.startsOn !== mondayOf(block.startsOn)
-      ? { ...block, startsOn: mondayOf(block.startsOn) }
-      : block;
-  }
-
-  const { data } = await supabase.from("plan_blocks").select("*").eq("client_id", clientId).maybeSingle();
-  return data ? toPlanBlock(data) : null;
-}
-
-/** Hydrate a revision's exercises and meals from the libraries. */
 /**
  * The swaps in force for a client on a date.
  *
- * A swap pinned to a single date beats a standing one, the same way a one-off
- * plan revision beats the repeating week — so "just this Tuesday, cod" does
- * not have to undo "salmon is out from now on".
+ * A swap pinned to a single date beats a standing one, the same way a day set
+ * for one date beats that weekday's standing plan — so "just this Tuesday,
+ * cod" does not have to undo "salmon is out from now on".
  */
 export async function getMealSwaps(clientId: string, date: string): Promise<IngredientSwap[]> {
   const supabase = await createClient();
@@ -1450,7 +1425,7 @@ export function applySwaps(meal: Meal, swaps: IngredientSwap[]): Meal {
 
 function buildPlanDay(
   revision: RawRevision | null,
-  dayIndex: number,
+  weekday: number,
   kind: PlanKind,
   exercises: Exercise[],
   meals: Meal[],
@@ -1461,7 +1436,7 @@ function buildPlanDay(
 
   return {
     revisionId: revision?.id ?? null,
-    dayIndex,
+    weekday,
     kind,
     isRest: revision?.isRest ?? false,
     oneOff,
@@ -1518,14 +1493,56 @@ function buildPlanDay(
 }
 
 /**
+ * Whether this date is actually different from its weekday's standing plan.
+ *
+ * A pinned revision is not the same thing as a changed day: saving "all future
+ * Mondays" pins the Monday being edited as well, so that it changes too. Only
+ * a day whose content differs from what the weekday would otherwise give is
+ * worth flagging as one of Dean's exceptions.
+ */
+function differsFromStanding(
+  revisions: RawRevision[],
+  weekday: number,
+  kind: PlanKind,
+  date: string,
+  picked: { revision: RawRevision | null; oneOff: boolean },
+): boolean {
+  if (!picked.oneOff || !picked.revision) return false;
+
+  const standing = revisions
+    .filter((r) => r.kind === kind && !r.onlyOn && r.weekday === weekday && r.effectiveFrom <= date)
+    .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))
+    .at(-1) ?? null;
+
+  return shapeOf(picked.revision) !== shapeOf(standing);
+}
+
+/** A revision reduced to what a person would notice changing. */
+function shapeOf(revision: RawRevision | null): string {
+  if (!revision) return "";
+  return JSON.stringify([
+    revision.title,
+    revision.suggestedTime,
+    revision.isRest,
+    revision.calorieTarget,
+    revision.exercises.map((e) => [e.exerciseId, e.sets.map((s) => [s.targetWeightKg, s.targetReps])]),
+    revision.meals.map((m) => [m.slot, m.mealId, m.multiplier]),
+  ]);
+}
+
+/**
  * Pick the revision that governs a date.
  *
- * A one-off for exactly this date wins; otherwise the newest revision for this
- * weekday that has already come into effect. Because revisions are only ever
- * inserted, and never dated before today, a past date always resolves to what
- * was true at the time.
+ * A day written for exactly this date wins; otherwise the newest standing plan
+ * for this weekday that has already come into effect. That ordering is the
+ * whole of the recurrence rule: saving "all future Mondays" cannot reach back
+ * over a Monday somebody has already made special, because the special one is
+ * pinned to its date and pinned always wins.
+ *
+ * Because revisions are only ever inserted, and never dated before today, a
+ * past date always resolves to what was true at the time.
  */
-function pickRevision(revisions: RawRevision[], dayIndex: number, kind: PlanKind, date: string) {
+function pickRevision(revisions: RawRevision[], weekday: number, kind: PlanKind, date: string) {
   const forKind = revisions.filter((r) => r.kind === kind);
 
   // The LAST one written for that date, not the first. Editing the same day
@@ -1535,11 +1552,11 @@ function pickRevision(revisions: RawRevision[], dayIndex: number, kind: PlanKind
   const oneOffs = forKind.filter((r) => r.onlyOn === date);
   if (oneOffs.length > 0) return { revision: oneOffs[oneOffs.length - 1], oneOff: true };
 
-  const repeating = forKind
-    .filter((r) => !r.onlyOn && r.dayIndex === dayIndex && r.effectiveFrom <= date)
+  const standing = forKind
+    .filter((r) => !r.onlyOn && r.weekday === weekday && r.effectiveFrom <= date)
     .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
 
-  return { revision: repeating.at(-1) ?? null, oneOff: false };
+  return { revision: standing.at(-1) ?? null, oneOff: false };
 }
 
 /**
@@ -1548,132 +1565,117 @@ function pickRevision(revisions: RawRevision[], dayIndex: number, kind: PlanKind
  * The order carries meaning — the newest edit to a date wins — so it is
  * asked for explicitly rather than left to whatever the database returns.
  */
-async function loadRevisions(blockId: string): Promise<RawRevision[]> {
+async function loadRevisions(clientId: string): Promise<RawRevision[]> {
   const supabase = await createClient();
   if (!supabase) {
     const { planRevisions } = await demoData();
     return [...demoPlanRevisions, ...planRevisions.map(unpackRevision)].filter(
-      (r) => r.blockId === blockId,
+      (r) => r.clientId === clientId,
     );
   }
 
   const { data } = await supabase
     .from("plan_day_revisions")
     .select("*, plan_exercises(*, plan_sets(*)), plan_meal_slots(*)")
-    .eq("block_id", blockId)
+    .eq("client_id", clientId)
     .order("created_at", { ascending: true });
   return (data ?? []).map(toRevision);
 }
 
-/** What the client is meant to do on a date, or null if the block predates it. */
-export async function getPlanDay(block: PlanBlock, date: string, kind: PlanKind): Promise<PlanDay | null> {
-  const dayIndex = dayIndexFor(block, date);
-  if (dayIndex === null) return null;
-
+/**
+ * What the client is meant to do on a date.
+ *
+ * Never null: every date resolves, and a date nothing has been written for is
+ * a rest day. There is no "before the plan starts" any more — a plan is a
+ * pile of days, and an empty one is a day off.
+ */
+export async function getPlanDay(clientId: string, date: string, kind: PlanKind): Promise<PlanDay> {
+  const weekday = weekdayOf(date);
   const [revisions, exercises, meals, swaps] = await Promise.all([
-    loadRevisions(block.id),
+    loadRevisions(clientId),
     getExercises(true),
     getMeals(true),
-    getMealSwaps(block.clientId, date),
+    getMealSwaps(clientId, date),
   ]);
 
-  const { revision, oneOff } = pickRevision(revisions, dayIndex, kind, date);
+  const { revision, oneOff } = pickRevision(revisions, weekday, kind, date);
   // Swapped here, at the one seam where a meal meets a person and a date, so
   // the plan editor, their app, the method page and the shopping list all
   // agree without any of them having to know swaps exist.
   const forClient = swaps.length > 0 ? meals.map((meal) => applySwaps(meal, swaps)) : meals;
-  return buildPlanDay(revision, dayIndex, kind, exercises, forClient, oneOff);
+  return buildPlanDay(revision, weekday, kind, exercises, forClient, oneOff);
 }
 
-/**
- * The whole cycle as it stands on a date — what the editor shows. One entry per
- * day of the block, in order.
- */
-export async function getPlanCycle(block: PlanBlock, onDate: string, kind: PlanKind): Promise<PlanDay[]> {
-  const [revisions, exercises, meals] = await Promise.all([
-    loadRevisions(block.id),
-    getExercises(true),
-    getMeals(true),
-  ]);
-
-  return Array.from({ length: block.cycleWeeks * 7 }, (_, dayIndex) => {
-    // The cycle view is about the repeating shape, so one-off changes to a
-    // particular date are deliberately not folded in here.
-    const repeating = revisions
-      .filter((r) => r.kind === kind && !r.onlyOn && r.dayIndex === dayIndex && r.effectiveFrom <= onDate)
-      .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
-
-    return buildPlanDay(repeating.at(-1) ?? null, dayIndex, kind, exercises, meals, false);
-  });
-}
-
-/**
- * A client's week, resolved date by date — what the week board draws.
- *
- * Date-first rather than cycle-index-first. The cycle is how the plan is
- * stored, but it is not how anyone thinks about a week: Dean is looking at
- * Monday the 18th, with the one-off he made on Wednesday folded in and the 1:1
- * that actually sits on Thursday shown next to it.
- *
- * The library and the revisions load once for the whole week rather than once
- * per day, which is the difference between three round trips and twenty-one.
- */
-export interface PlanWeekDay {
+/** One date of the plan, with everything a day card needs to draw itself. */
+export interface PlanListDay {
   date: string;
-  /** Null before the block takes over — nothing to show or edit yet. */
-  dayIndex: number | null;
-  workout: PlanDay | null;
-  food: PlanDay | null;
+  weekday: number;
+  workout: PlanDay;
+  food: PlanDay;
   sessions: CoachSession[];
-  /** Been and gone: shown, never editable. */
+  /** Notes the client left on this date, newest first. */
+  notes: ClientNote[];
+  /** Been and gone. Shown, and still editable — Dean corrects the record. */
   past: boolean;
+  isToday: boolean;
 }
 
-/** The Monday of whatever week a date falls in. Weeks start Monday here. */
-export function mondayOf(date: string): string {
-  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
-  return shiftDate(date, -((day + 6) % 7));
-}
-
-export async function getPlanWeek(
-  block: PlanBlock,
-  weekStart: string,
-  days = 7,
-): Promise<PlanWeekDay[]> {
+/**
+ * A run of dates, resolved one by one — what the plan screen draws.
+ *
+ * The libraries and revisions load once for the whole run rather than once per
+ * day, which is the difference between three round trips and forty-two.
+ */
+export async function getPlanDays(
+  clientId: string,
+  from: string,
+  days: number,
+): Promise<PlanListDay[]> {
   const now = today();
-  const [revisions, exercises, meals, sessions] = await Promise.all([
-    loadRevisions(block.id),
+  const [revisions, exercises, meals, sessions, notes] = await Promise.all([
+    loadRevisions(clientId),
     getExercises(true),
     getMeals(true),
-    getSessions(block.clientId),
+    getSessions(clientId),
+    getNotesBetween(clientId, from, shiftDate(from, days - 1)),
   ]);
 
-  const out: PlanWeekDay[] = [];
+  const out: PlanListDay[] = [];
   for (let offset = 0; offset < days; offset += 1) {
-    const date = shiftDate(weekStart, offset);
-    const dayIndex = dayIndexFor(block, date);
-    const onDate = sessions.filter((session) => session.startsAt.slice(0, 10) === date);
+    const date = shiftDate(from, offset);
+    const weekday = weekdayOf(date);
 
-    if (dayIndex === null) {
-      out.push({ date, dayIndex: null, workout: null, food: null, sessions: onDate, past: date < now });
-      continue;
-    }
-
-    // Swaps are per date, so a week spanning a change shows cod after it and
-    // salmon before it rather than one answer for the whole week.
-    const swaps = await getMealSwaps(block.clientId, date);
+    // Swaps are per date, so a run spanning a change shows cod after it and
+    // salmon before it rather than one answer for the whole stretch.
+    const swaps = await getMealSwaps(clientId, date);
     const forClient = swaps.length > 0 ? meals.map((meal) => applySwaps(meal, swaps)) : meals;
 
-    const workout = pickRevision(revisions, dayIndex, "workout", date);
-    const food = pickRevision(revisions, dayIndex, "food", date);
+    const workout = pickRevision(revisions, weekday, "workout", date);
+    const food = pickRevision(revisions, weekday, "food", date);
 
     out.push({
       date,
-      dayIndex,
-      workout: buildPlanDay(workout.revision, dayIndex, "workout", exercises, forClient, workout.oneOff),
-      food: buildPlanDay(food.revision, dayIndex, "food", exercises, forClient, food.oneOff),
-      sessions: onDate,
+      weekday,
+      workout: buildPlanDay(
+        workout.revision,
+        weekday,
+        "workout",
+        exercises,
+        forClient,
+        differsFromStanding(revisions, weekday, "workout", date, workout),
+      ),
+      food: buildPlanDay(
+        food.revision,
+        weekday,
+        "food",
+        exercises,
+        forClient,
+        differsFromStanding(revisions, weekday, "food", date, food),
+      ),
+      sessions: sessions.filter((session) => session.startsAt.slice(0, 10) === date),
+      notes: notes.filter((note) => note.on === date),
       past: date < now,
+      isToday: date === now,
     });
   }
 
@@ -1681,38 +1683,35 @@ export async function getPlanWeek(
 }
 
 /**
- * What changed on an exercise since the same weekday last week.
+ * The last date before `date` that falls on the same weekday and has something
+ * planned — what "copy from last Monday" pulls from.
  *
- * Progression is the point of the plan and it was invisible: two identical
- * looking weeks, one of them 2.5kg heavier. Keyed by exercise so a day that
- * has been reordered still lines up.
+ * Looks back eight weeks and no further: if he has not trained that weekday in
+ * two months there is nothing worth copying, and offering an empty day as a
+ * shortcut is worse than not offering one.
  */
-export function weekDiff(current: PlanDay | null, previous: PlanDay | null): Map<string, string> {
-  const out = new Map<string, string>();
-  if (!current) return out;
+export async function findLastLike(
+  clientId: string,
+  date: string,
+  kind: PlanKind,
+): Promise<string | null> {
+  const revisions = await loadRevisions(clientId);
+  const weekday = weekdayOf(date);
 
-  const before = new Map(
-    (previous?.exercises ?? []).map((exercise) => [exercise.exerciseId, exercise] as const),
-  );
-
-  for (const exercise of current.exercises) {
-    const was = before.get(exercise.exerciseId);
-    if (!was) {
-      if (previous) out.set(exercise.exerciseId, "new");
-      continue;
-    }
-    const top = (day: PlanExercise) =>
-      day.sets.reduce((max, set) => Math.max(max, set.targetWeightKg ?? 0), 0);
-    const nowTop = top(exercise);
-    const wasTop = top(was);
-    if (nowTop !== wasTop && (nowTop > 0 || wasTop > 0)) {
-      out.set(exercise.exerciseId, `${wasTop || "—"} \u2192 ${nowTop || "—"}kg`);
-    } else if (exercise.sets.length !== was.sets.length) {
-      out.set(exercise.exerciseId, `${was.sets.length} → ${exercise.sets.length} sets`);
-    }
+  for (let back = 1; back <= 8; back += 1) {
+    const cursor = shiftDate(date, -7 * back);
+    const { revision } = pickRevision(revisions, weekday, kind, cursor);
+    if (!revision) continue;
+    const filled = kind === "workout" ? revision.exercises.length > 0 : revision.meals.length > 0;
+    if (filled) return cursor;
   }
 
-  return out;
+  return null;
+}
+
+/** The Monday of whatever week a date falls in. Weeks start Monday here. */
+export function mondayOf(date: string): string {
+  return shiftDate(date, -weekdayOf(date));
 }
 
 /**
@@ -1820,9 +1819,8 @@ export async function getComplianceBoard(from: string, days = 7): Promise<Compli
   const rows: ComplianceRow[] = [];
 
   for (const profile of clients) {
-    const block = await getPlanBlock(profile.id);
     const [week, workouts, mealLogs, weights, sessions] = await Promise.all([
-      block ? getPlanWeek(block, from, days) : Promise.resolve([]),
+      getPlanDays(profile.id, from, days),
       getWorkouts(profile.id),
       getMealLogs(profile.id),
       getWeightEntries(profile.id),
@@ -1842,7 +1840,7 @@ export async function getComplianceBoard(from: string, days = 7): Promise<Compli
       const future = date > now;
 
       const trainingPlanned = Boolean(
-        planned?.workout && !planned.workout.isRest && planned.workout.exercises.length > 0,
+        planned && !planned.workout.isRest && planned.workout.exercises.length > 0,
       );
       const logged = loggedWorkouts.get(date);
       const ticked = logged?.items.filter((item) => item.done).length ?? 0;
@@ -1854,7 +1852,7 @@ export async function getComplianceBoard(from: string, days = 7): Promise<Compli
             ? "partial"
             : "todo";
 
-      const plannedMeals = planned?.food?.meals ?? [];
+      const plannedMeals = planned?.food.meals ?? [];
       const eaten = new Set(
         mealLogs.filter((log) => log.loggedFor === date).map((log) => `${log.slot}:${log.mealId}`),
       );
@@ -1868,11 +1866,10 @@ export async function getComplianceBoard(from: string, days = 7): Promise<Compli
               ? "partial"
               : "todo";
 
-      // Nothing is asked of a date the plan does not cover — before the block
-      // takes over, or with no block at all. Marking the weigh-in red on a day
-      // the client was never given anything to do is just noise in the grid.
-      const covered = planned !== null && planned.dayIndex !== null;
-      const weight: ComplianceState = !covered ? "none" : weighed.has(date) ? "done" : "todo";
+      // A day with nothing on it asks nothing, weigh-in included: marking it
+      // red when the client was never given anything to do is noise.
+      const asks = trainingPlanned || plannedMeals.length > 0;
+      const weight: ComplianceState = !asks ? "none" : weighed.has(date) ? "done" : "todo";
 
       // Only days that have happened count towards the week's score — a
       // Thursday that has not arrived is not a Thursday they have missed.
@@ -1913,8 +1910,9 @@ export async function getComplianceBoard(from: string, days = 7): Promise<Compli
  */
 export interface RawRevision {
   id: string;
-  blockId: string;
-  dayIndex: number;
+  clientId: string;
+  /** 0 = Monday … 6 = Sunday. */
+  weekday: number;
   kind: PlanKind;
   effectiveFrom: string;
   onlyOn: string | null;
@@ -2016,10 +2014,9 @@ export async function getPlannedFood(
   clientId: string,
   date: string,
 ): Promise<{ calorieTarget: number | null; proteinTarget: number | null; meals: PlanMealSlot[] }> {
-  const block = await getPlanBlock(clientId);
-  const planned = block ? await getPlanDay(block, date, "food") : null;
+  const planned = await getPlanDay(clientId, date, "food");
 
-  if (planned && (planned.meals.length > 0 || planned.calorieTarget !== null)) {
+  if (planned.meals.length > 0 || planned.calorieTarget !== null) {
     return {
       calorieTarget: planned.calorieTarget,
       proteinTarget: planned.proteinTarget,
@@ -2054,16 +2051,11 @@ export async function getMealAdherence(
   from: string,
   to: string,
 ): Promise<{ assigned: number; eaten: number }> {
-  const block = await getPlanBlock(clientId);
-  if (!block) return { assigned: 0, eaten: 0 };
-
-  const [revisions, logs] = await Promise.all([loadRevisions(block.id), getMealLogs(clientId)]);
+  const [revisions, logs] = await Promise.all([loadRevisions(clientId), getMealLogs(clientId)]);
   let assigned = 0;
 
   for (let cursor = from; cursor <= to; cursor = shiftDate(cursor, 1)) {
-    const dayIndex = dayIndexFor(block, cursor);
-    if (dayIndex === null) continue;
-    const { revision } = pickRevision(revisions, dayIndex, "food", cursor);
+    const { revision } = pickRevision(revisions, weekdayOf(cursor), "food", cursor);
     assigned += revision?.meals.length ?? 0;
   }
 
@@ -2080,19 +2072,13 @@ export async function getMealAdherence(
  * adding them would be worse than listing them twice.
  */
 export async function getShoppingList(clientId: string, from: string, days: number): Promise<ShoppingLine[]> {
-  const block = await getPlanBlock(clientId);
-  if (!block) return [];
-
-  const [revisions, meals] = await Promise.all([loadRevisions(block.id), getMeals(true)]);
+  const [revisions, meals] = await Promise.all([loadRevisions(clientId), getMeals(true)]);
   const byMeal = new Map(meals.map((meal) => [meal.id, meal]));
   const lines = new Map<string, ShoppingLine>();
 
   for (let offset = 0; offset < days; offset += 1) {
     const date = shiftDate(from, offset);
-    const dayIndex = dayIndexFor(block, date);
-    if (dayIndex === null) continue;
-
-    const { revision } = pickRevision(revisions, dayIndex, "food", date);
+    const { revision } = pickRevision(revisions, weekdayOf(date), "food", date);
     // Swaps are per date, so they are read inside the loop — a list that spans
     // a change should buy cod for the days after it and salmon for the days
     // before, not one or the other for the whole trip.

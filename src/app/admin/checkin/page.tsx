@@ -22,15 +22,13 @@ export default async function AdminCheckInPage({ searchParams }: PageProps<"/adm
 
   const needALook = board.filter((row) => row.flags.length > 0);
   const settled = board.filter((row) => row.flags.length === 0);
-  const runningOut = board.filter((row) =>
-    row.flags.some((f) => f.startsWith("Plan runs out") || f === "Nothing assigned"),
-  );
+  const unplanned = board.filter((row) => row.flags.includes("Nothing planned yet"));
 
   return (
     <>
       <ScreenTitle
         title="Check-ins"
-        subtitle="Everyone at a glance. Read how the week went, then carry the plan on or change it — both send them a note."
+        subtitle="Everyone at a glance. Read how the week went, then carry on or change something — both send them a note."
         action={
           <nav aria-label="Review window" className="flex items-center gap-1">
             {WINDOWS.map((window) => (
@@ -58,9 +56,9 @@ export default async function AdminCheckInPage({ searchParams }: PageProps<"/adm
         />
         <BoardStat label="On track" value={settled.length} />
         <BoardStat
-          label="Plans running out"
-          value={runningOut.length}
-          tone={runningOut.length ? "amber" : undefined}
+          label="No plan yet"
+          value={unplanned.length}
+          tone={unplanned.length ? "amber" : undefined}
         />
       </div>
 
