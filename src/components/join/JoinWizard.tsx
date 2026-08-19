@@ -27,7 +27,7 @@ const GOALS: GoalType[] = ["muscle", "lose", "fitness", "other"];
  * State lives here rather than in the URL because it is one sitting of four
  * fields; the whole thing posts once, at the end.
  */
-export function JoinWizard() {
+export function JoinWizard({ demo }: { demo: boolean }) {
   const [step, setStep] = useState(0);
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -298,18 +298,19 @@ export function JoinWizard() {
                   id="join-password"
                   className={field}
                   type="password"
+                  name="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="At least 6 characters"
                   autoComplete="new-password"
                 />
               </div>
-              {/* Said on the page, not only in the code: nothing about this is
-                  a real account system yet. */}
-              <p className="text-xs text-faint">
-                Demo mode — no database is connected, so your password is not stored and signing
-                back in only needs your email. Real accounts arrive with Supabase.
-              </p>
+              {demo ? (
+                <p className="text-xs text-faint">
+                  Demo mode — no database is connected, so your password is not stored and signing
+                  back in only needs your email.
+                </p>
+              ) : null}
             </div>
           </section>
         ) : null}

@@ -100,7 +100,7 @@ export default async function DashboardPage() {
           </p>
           <p className="mt-2.5 text-sm leading-relaxed text-muted">
             Your application is in. I&rsquo;ll read it and come back to you with what I&rsquo;d do
-            your plan and get you enrolled — until then there is nothing in here to do.
+            — until then there is nothing in here to do.
           </p>
         </div>
       ) : null}

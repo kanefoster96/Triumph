@@ -19,16 +19,14 @@ dataset in `src/lib/members/demo.ts` and shows an amber banner saying so.
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
    ```
 
-4. Invite Dean from the Supabase dashboard (Authentication → Users), then
-   promote him:
+4. Dean signs up at `/join` with an email on the coach allowlist in the
+   migration. The trigger reads that list and makes him an admin, active
+   immediately, and no application is written — he is not his own applicant.
+   Adding another coach is one insert into `public.coach_emails`.
 
-   ```sql
-   update public.profiles set role = 'admin' where email = 'dean@…';
-   ```
-
-5. Clients arrive through `/join`, which creates their auth user and an
-   application. Dean enrols them from `/admin/requests`, which flips the
-   profile from `applicant` to `active`.
+5. Everybody else who signs up at `/join` lands as an **applicant**: a real
+   account they can sign into, with nothing behind it until Dean enrols them
+   from `/admin/requests`. That is what keeps a new coach's dashboard empty.
 
 The banner disappears and every read and write switches to Postgres. No code
 changes — `src/lib/supabase/config.ts` detects the variables.
@@ -36,9 +34,13 @@ changes — `src/lib/supabase/config.ts` detects the variables.
 The migration has been applied to a clean Postgres 16 and checked: every table
 the code reads has RLS on and a policy; every column the code names exists;
 each enum matches its TypeScript union; a client can see only their own rows
-and Dean's profile, and nobody else's. Two things it deliberately does not do —
-`submitApplication` and `signIn` still `redirect("/login")` when Supabase is
-configured, because real auth is the next piece of work, and
+and Dean's profile, and nobody else's.
+
+`signIn` and `submitApplication` talk to real Supabase auth. Where somebody
+lands is read off their profile, never assumed — a coach goes to `/admin`, a
+client to `/app` — and a wrong password and an unknown address get the same
+message, because saying which is which tells a stranger whose email is here.
+
 `lib/services/payments.ts` is still a stub.
 
 ## Client tabs

@@ -43,19 +43,46 @@ create table public.profiles (
   created_at  timestamptz not null default now()
 );
 
--- Every new auth user gets a profile. Clients are invited by Dean from the
--- admin area; there is no public signup.
+-- Who is a coach.
+--
+-- An allowlist rather than a flag anybody can set: role decides what every
+-- policy below lets you read, so it must not be something a signup can ask
+-- for. Adding a second coach is one insert here and their next sign-in.
+create table public.coach_emails (
+  email      text primary key,
+  created_at timestamptz not null default now()
+);
+
+insert into public.coach_emails (email) values ('fosterdean127@icloud.com');
+
+-- Every new auth user gets a profile.
+--
+-- Two kinds of person arrive here. Somebody on the coach allowlist is a coach,
+-- active immediately. Everybody else signs up through /join and lands as an
+-- **applicant**: a real account they can sign into, with no plan behind it and
+-- no place in Dean's client list until he enrols them from the requests inbox.
+-- That is what keeps a new coach's dashboard empty rather than filling up with
+-- everyone who has ever filled the form in.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  is_coach boolean;
 begin
-  insert into public.profiles (id, email, full_name)
+  select exists (
+    select 1 from public.coach_emails
+    where lower(email) = lower(new.email)
+  ) into is_coach;
+
+  insert into public.profiles (id, email, full_name, role, status)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', '')
+    coalesce(new.raw_user_meta_data ->> 'full_name', ''),
+    case when is_coach then 'admin' else 'client' end::public.user_role,
+    case when is_coach then 'active' else 'applicant' end::public.client_status
   )
   on conflict (id) do nothing;
   return new;
@@ -395,21 +422,12 @@ create table public.shopping_list_items (
 create index shopping_list_items_list_idx on public.shopping_list_items (list_id, position);
 
 -- ---------------------------------------------------------------------------
--- Repeating plans
+-- Plans
 --
--- A client's plan is a one or two week block that repeats indefinitely, so it
--- never runs out and there is nothing to top up. The block holds only the
--- cycle; each day of it is described by a revision, and the newest revision
--- that has come into effect wins.
---
--- Editing "this weekday from here on" inserts a revision with effective_from.
--- Editing "just this date" inserts one with only_on. Neither ever rewrites an
--- older revision and neither is ever dated before today, so a past date always
--- resolves to what was true at the time.
---
--- `starts_on` is both the anchor for day 0 and the date the block takes over.
--- Days before it resolve to whatever the old per-date system assigned, which
--- is how existing clients keep every day they have already logged.
+-- Editing "all future Mondays" inserts a revision with effective_from and no
+-- only_on. Editing "just this day" inserts one with only_on set. Neither is
+-- ever dated before today, so a past date always resolves to what was true at
+-- the time, and a day nothing has been written for is a rest day.
 -- ---------------------------------------------------------------------------
 
 create type public.plan_kind as enum ('workout', 'food');
@@ -736,6 +754,10 @@ alter table public.shopping_list_items enable row level security;
 alter table public.applications       enable row level security;
 alter table public.questions          enable row level security;
 alter table public.day_swap_requests  enable row level security;
+-- No policy on purpose: only `handle_new_user` touches this, and it is
+-- SECURITY DEFINER so it bypasses RLS. With RLS on and nothing granted, the
+-- list of who can be a coach is invisible to every client of the API.
+alter table public.coach_emails       enable row level security;
 
 -- Profiles
 create policy "read own profile" on public.profiles
@@ -1018,8 +1040,13 @@ create policy "own shopping list items" on public.shopping_list_items
   );
 
 -- ---------------------------------------------------------------------------
--- Promoting Dean to admin
+-- Adding a coach
 --
--- After Dean signs up (or is invited), run:
---   update public.profiles set role = 'admin' where email = 'dean@…';
+-- Roles come from the allowlist at the top of this file, applied when the auth
+-- user is created. To add another coach:
+--   insert into public.coach_emails (email) values ('someone@…');
+-- They become a coach on their next sign-up. Somebody who already has an
+-- account needs both:
+--   update public.profiles set role = 'admin', status = 'active'
+--    where email = 'someone@…';
 -- ---------------------------------------------------------------------------

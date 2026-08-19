@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { getCurrentProfile } from "@/lib/members/service";
+import { ArrowLeft, TriangleAlert } from "lucide-react";
+import { getCurrentProfile, isDemoMode } from "@/lib/members/service";
 import { Logo } from "@/components/layout/Logo";
 import { JoinWizard } from "@/components/join/JoinWizard";
 
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
  * programmes — Dean reads what you sent and builds you something. So this
  * collects what he needs to do that and nothing else.
  */
-export default async function JoinPage() {
+export default async function JoinPage({ searchParams }: PageProps<"/join">) {
   // Already signed in: there is nothing to apply for.
-  const profile = await getCurrentProfile();
+  const [profile, query] = await Promise.all([getCurrentProfile(), searchParams]);
   if (profile) redirect(profile.role === "admin" ? "/admin" : "/app");
 
   return (
@@ -38,8 +38,25 @@ export default async function JoinPage() {
         </p>
       </div>
 
+      {query.e ? (
+        <p className="mt-7 inline-flex items-start gap-2 rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+          {query.e === "taken" ? (
+            <span>
+              There is already an account on that email.{" "}
+              <Link href="/login" className="font-semibold underline">
+                Sign in instead
+              </Link>
+              .
+            </span>
+          ) : (
+            "That did not go through. Check your email and password and try again."
+          )}
+        </p>
+      ) : null}
+
       <div className="mt-9">
-        <JoinWizard />
+        <JoinWizard demo={await isDemoMode()} />
       </div>
 
       <p className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-center text-sm">

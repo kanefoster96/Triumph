@@ -402,6 +402,22 @@ async function demoAccountFor(email: string): Promise<Profile | null> {
   );
 }
 
+/** An optional weight from the wizard: a positive number, or nothing. */
+function readNumber(formData: FormData, key: string): number | null {
+  const value = Number(formData.get(key));
+  return Number.isFinite(value) && value > 0 ? Number(value.toFixed(1)) : null;
+}
+
+function readGoal(formData: FormData): GoalType {
+  const goals: GoalType[] = ["muscle", "lose", "fitness", "other"];
+  return goals.find((goal) => goal === formData.get("goalType")) ?? "fitness";
+}
+
+function readGoalOther(formData: FormData): string | null {
+  if (readGoal(formData) !== "other") return null;
+  return String(formData.get("goalOther") ?? "").trim().slice(0, 120) || null;
+}
+
 /** Starts a demo session as a particular account rather than a demo role. */
 async function signInAs(profileId: string) {
   const store = await cookies();
@@ -427,9 +443,63 @@ export async function submitApplication(formData: FormData) {
 
   const supabase = await createClient();
   if (supabase) {
-    // Real signup lands here: create the auth user, then the application.
-    // Left unwired on purpose — this is the seam, not a half-built version.
-    redirect("/login");
+    /*
+     * A real account and an application, in that order.
+     *
+     * The account has to exist first: `applications.account_id` points at the
+     * profile, and the profile is created by a trigger on the auth user. The
+     * trigger also decides what they are — the coach allowlist, or an
+     * applicant with nothing behind them until Dean enrols them.
+     */
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: String(formData.get("password") ?? ""),
+      options: { data: { full_name: fullName } },
+    });
+
+    if (error) {
+      const taken = error.message.toLowerCase().includes("registered");
+      // Anything else is a connection or configuration problem, and the log is
+      // the only place it would otherwise show up.
+      if (!taken) console.error("[signup] supabase.auth.signUp failed:", error.message);
+      // "Already registered" has a better answer than a second account.
+      redirect(`/join?e=${taken ? "taken" : "1"}`);
+    }
+
+    const raw = String(formData.get("avatarUrl") ?? "").trim();
+    const { data: session } = await supabase.auth.getUser();
+    if (!session.user) {
+      console.error("[signup] no session after signUp — is email confirmation on?");
+      redirect("/join?e=1");
+    }
+
+    /*
+     * A coach who signs up here is a coach, not an applicant.
+     *
+     * The database decides that from the allowlist, so this only has to
+     * respect it: writing an application would put Dean in his own requests
+     * inbox, and sending him to /app would show him a client's screen.
+     */
+    const profile = await getCurrentProfile();
+    if (profile?.role === "admin") {
+      refresh();
+      redirect("/admin");
+    }
+
+    const { error: appError } = await supabase.from("applications").insert({
+      account_id: session.user.id,
+      full_name: fullName,
+      email,
+      avatar_url: raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null,
+      current_weight_kg: readNumber(formData, "currentWeightKg"),
+      goal_weight_kg: readNumber(formData, "goalWeightKg"),
+      goal_type: readGoal(formData),
+      goal_other: readGoalOther(formData),
+    });
+    if (appError) console.error("[signup] application insert failed:", appError.message);
+
+    refresh();
+    redirect("/join/thanks");
   }
 
   const existing = await demoAccountFor(email);
@@ -443,16 +513,8 @@ export async function submitApplication(formData: FormData) {
 
   const raw = String(formData.get("avatarUrl") ?? "").trim();
   const avatarUrl = raw.length <= 512 && /^https?:\/\//i.test(raw) ? raw : null;
-
-  const number = (key: string) => {
-    const value = Number(formData.get(key));
-    return Number.isFinite(value) && value > 0 ? Number(value.toFixed(1)) : null;
-  };
-
-  const goals: GoalType[] = ["muscle", "lose", "fitness", "other"];
-  const goalType = goals.find((goal) => goal === formData.get("goalType")) ?? "fitness";
-  const goalOther =
-    goalType === "other" ? String(formData.get("goalOther") ?? "").trim().slice(0, 120) || null : null;
+  const goalType = readGoal(formData);
+  const goalOther = readGoalOther(formData);
 
   const accountId = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -479,8 +541,8 @@ export async function submitApplication(formData: FormData) {
     fullName,
     email,
     avatarUrl,
-    currentWeightKg: number("currentWeightKg"),
-    goalWeightKg: number("goalWeightKg"),
+    currentWeightKg: readNumber(formData, "currentWeightKg"),
+    goalWeightKg: readNumber(formData, "goalWeightKg"),
     goalType,
     goalOther,
     status: "pending",
@@ -561,10 +623,23 @@ export async function markQuestionAnswered(formData: FormData) {
 
 /** Sign in to an account made through the signup. */
 export async function signIn(formData: FormData) {
+  const email = normalise(String(formData.get("email") ?? ""));
+  const password = String(formData.get("password") ?? "");
   const supabase = await createClient();
-  if (supabase) redirect("/login"); // Real auth once connected.
 
-  const account = await demoAccountFor(String(formData.get("email") ?? ""));
+  if (supabase) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Deliberately one message for both a wrong password and an unknown
+    // address: saying which is which tells a stranger whose email is here.
+    if (error) redirect("/login?e=1");
+
+    // Where they land is what they are, and only the profile knows that.
+    const profile = await getCurrentProfile();
+    refresh();
+    redirect(profile?.role === "admin" ? "/admin" : "/app");
+  }
+
+  const account = await demoAccountFor(email);
   if (!account) redirect("/login?e=1");
 
   await signInAs(account.id);
