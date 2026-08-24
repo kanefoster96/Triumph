@@ -1,4 +1,4 @@
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { headlineStats } from "@/lib/data/site";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
@@ -15,17 +15,25 @@ export function Hero() {
   return (
     <Container className="pt-14 pb-20 text-center sm:pt-24 sm:pb-28">
       <Reveal>
-        <span className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-2 text-sm font-medium text-accent">
-          <Sparkles className="h-4 w-4" />
+        {/* A lit dot rather than an icon. The badge is a status line, not a
+            feature, and a sparkle promises magic the coaching does not do. */}
+        <span className="inline-flex items-center gap-2.5 rounded-full bg-raised px-4 py-2 text-sm font-medium text-muted">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-glow" />
           Online training made easy
         </span>
       </Reveal>
 
       <Reveal delay={60}>
         <h1 className="mx-auto mt-8 max-w-3xl text-4xl leading-[1.05] text-balance sm:text-6xl">
+          {/*
+           * Two tones of white, not white and cyan. Cyan on the headline
+           * spends the accent on something nobody can press — it belongs to
+           * the button, the section labels and the links, which is what makes
+           * it mean "this one" when it does appear.
+           */}
           Meals &amp; workouts
           <br />
-          <span className="text-accent">you can track.</span>
+          <span className="text-muted">you can track.</span>
         </h1>
       </Reveal>
 

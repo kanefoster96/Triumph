@@ -55,7 +55,13 @@ export function SectionHeader({
     >
       <div className={cn("max-w-2xl", centred && "mx-auto")}>
         {eyebrow ? (
-          <p className="mb-4 text-xs font-semibold text-accent">{eyebrow}</p>
+          // Tracked capitals, which the rest of the site does not use. A
+          // section label is not read as a word so much as seen as a marker
+          // for where one thing ends and the next begins, and at this size
+          // sentence case does not carry that far.
+          <p className="mb-4 text-[0.6875rem] font-semibold tracking-[0.18em] text-accent uppercase">
+            {eyebrow}
+          </p>
         ) : null}
         <h2 className="text-3xl text-balance sm:text-5xl">{title}</h2>
         {description ? (

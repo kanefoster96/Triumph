@@ -37,6 +37,12 @@ export const palette = {
   accentStrong: "#06B6D4",
   accentInk: "#0A0A0A",
   accentSoft: "rgba(34, 211, 238, 0.12)",
+  /**
+   * The bloom under the accent CTA — the only glow anywhere, and the reason
+   * the button reads as lit rather than as a coloured rectangle. Native takes
+   * this as a shadow colour; the web mirrors it as `--shadow-glow`.
+   */
+  accentGlow: "rgba(34, 211, 238, 0.7)",
 
   // Supporting signal colours.
   amber: "#F5B23D",
