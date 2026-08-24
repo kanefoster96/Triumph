@@ -109,7 +109,13 @@ export function MemberTour({ features }: { features: Feature[] }) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-14">
+    <div
+      // The cards and the screens beneath them are the same width on purpose.
+      // Kept as one value so the two cannot drift apart, and so the rail's
+      // centring padding is derived from it rather than repeated.
+      style={{ "--tour-w": "19rem" } as React.CSSProperties}
+      className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_var(--tour-w)] lg:items-start lg:gap-14"
+    >
       <div
         ref={cards}
         role="tablist"
@@ -122,7 +128,7 @@ export function MemberTour({ features }: { features: Feature[] }) {
           // A rail below lg. The padding is half the leftover width, so the
           // first and last cards can still reach the middle.
           "no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 sm:-mx-8",
-          "px-[calc((100vw-17rem)/2)]",
+          "px-[calc((100vw-var(--tour-w))/2)]",
           // A column above it.
           "lg:mx-0 lg:block lg:snap-none lg:space-y-3 lg:overflow-x-visible lg:px-0 lg:pb-0",
         )}
@@ -142,7 +148,7 @@ export function MemberTour({ features }: { features: Feature[] }) {
               tabIndex={open ? 0 : -1}
               onClick={() => goTo(i)}
               className={cn(
-                "flex h-20 w-[17rem] shrink-0 snap-center items-center gap-3 rounded-[var(--radius-sheet)] p-4 text-left transition-colors",
+                "flex h-20 w-[var(--tour-w)] shrink-0 snap-center items-center gap-3 rounded-[var(--radius-sheet)] p-4 text-left transition-colors",
                 "lg:h-auto lg:w-full lg:shrink lg:snap-align-none lg:items-start lg:gap-5 lg:p-5",
                 open ? "bg-raised" : "bg-surface lg:bg-transparent lg:hover:bg-surface",
               )}
@@ -171,13 +177,13 @@ export function MemberTour({ features }: { features: Feature[] }) {
       >
         {/* Same width as a card and centred like one, so the screens read as
             belonging to the card above them rather than floating underneath. */}
-        <div className="mx-auto w-full max-w-[17rem]">
+        <div className="mx-auto w-full max-w-[var(--tour-w)]">
           <div
             ref={screens}
             onScroll={() => onScroll("screens")}
             onPointerDown={() => claim("screens")}
             onWheel={() => claim("screens")}
-            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
+            className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto"
           >
             {features.map((feature, i) => (
               <div key={feature.id} aria-hidden={i !== active} className="w-full shrink-0 snap-center">
