@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/data/site";
-import { AUDIENCE_TAGS, CHANGE_LABELS, CHANGE_MINE, changeValueLabel } from "./types";
+import { AUDIENCE_TAGS, CHANGE_LABELS, CHANGE_MINE, changeValueLabel, goalPhrase } from "./types";
 import {
   demoCheckIns,
   demoExercises,
@@ -423,13 +423,27 @@ function readNumber(formData: FormData, key: string): number | null {
   return Number.isFinite(value) && value > 0 ? Number(value.toFixed(1)) : null;
 }
 
-function readGoal(formData: FormData): GoalType {
-  const goals: GoalType[] = ["muscle", "lose", "fitness", "other"];
-  return goals.find((goal) => goal === formData.get("goalType")) ?? "fitness";
+const GOAL_TYPES: GoalType[] = ["muscle", "lose", "fitness", "other"];
+
+/**
+ * The goals they picked, as a list.
+ *
+ * Sent as one comma-separated field rather than a checkbox each, so the whole
+ * wizard stays four hidden inputs. Anything unrecognised is dropped, and an
+ * empty answer falls back to the mildest goal rather than to nothing — the
+ * column cannot be empty and "get fitter" is the least you can say.
+ */
+function readGoals(formData: FormData): GoalType[] {
+  const picked = String(formData.get("goalTypes") ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value): value is GoalType => GOAL_TYPES.includes(value as GoalType));
+  const unique = [...new Set(picked)];
+  return unique.length ? unique : ["fitness"];
 }
 
 function readGoalOther(formData: FormData): string | null {
-  if (readGoal(formData) !== "other") return null;
+  if (!readGoals(formData).includes("other")) return null;
   return String(formData.get("goalOther") ?? "").trim().slice(0, 120) || null;
 }
 
@@ -519,7 +533,10 @@ export async function submitApplication(formData: FormData) {
       email: email || profile?.email || session.user.email,
       current_weight_kg: readNumber(formData, "currentWeightKg"),
       goal_weight_kg: readNumber(formData, "goalWeightKg"),
-      goal_type: readGoal(formData),
+      // The array is the answer; the enum column mirrors its first entry so
+      // anything still reading a single goal reads the headline one.
+      goal_types: readGoals(formData),
+      goal_type: readGoals(formData)[0],
       goal_other: readGoalOther(formData),
       has_gym: readHasGym(formData),
       gym_name: readGymName(formData),
@@ -597,7 +614,7 @@ function demoApplication(
     avatarUrl: null,
     currentWeightKg: readNumber(formData, "currentWeightKg"),
     goalWeightKg: readNumber(formData, "goalWeightKg"),
-    goalType: readGoal(formData),
+    goalTypes: readGoals(formData),
     goalOther: readGoalOther(formData),
     hasGym: readHasGym(formData),
     gymName: readGymName(formData),
@@ -833,7 +850,7 @@ export async function decideApplication(formData: FormData) {
       .update({ status: approve ? "approved" : "declined", decided_at: new Date().toISOString() })
       .eq("id", id)
       .eq("status", "pending")
-      .select("account_id, goal_type, goal_other")
+      .select("account_id, goal_type, goal_types, goal_other")
       .maybeSingle();
 
     if (application) {
@@ -847,7 +864,12 @@ export async function decideApplication(formData: FormData) {
             // Online or 1-to-1 is Dean's call and he makes it here. Either way
             // they get the whole app; 1-to-1 adds sessions in his diary.
             coaching_mode: coaching,
-            goal: application.goal_other ?? GOAL_FOR[application.goal_type as GoalType],
+            goal: goalPhrase(
+              (application.goal_types?.length
+                ? application.goal_types
+                : [application.goal_type]) as GoalType[],
+              { labels: GOAL_FOR, other: application.goal_other },
+            ),
           })
           .eq("id", application.account_id);
       }
@@ -865,7 +887,10 @@ export async function decideApplication(formData: FormData) {
       if (profile && approve) {
         profile.status = "active";
         profile.coachingMode = coaching;
-        profile.goal = application.goalOther ?? GOAL_FOR[application.goalType];
+        profile.goal = goalPhrase(application.goalTypes, {
+          labels: GOAL_FOR,
+          other: application.goalOther,
+        });
       }
     });
   }

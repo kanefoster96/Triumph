@@ -1286,7 +1286,8 @@ function toApplication(row: any): Application {
     avatarUrl: row.avatar_url ?? null,
     currentWeightKg: row.current_weight_kg === null ? null : Number(row.current_weight_kg),
     goalWeightKg: row.goal_weight_kg === null ? null : Number(row.goal_weight_kg),
-    goalType: row.goal_type,
+    // Rows written before goals could be plural have only the enum column.
+    goalTypes: row.goal_types?.length ? row.goal_types : [row.goal_type],
     goalOther: row.goal_other ?? null,
     hasGym: row.has_gym ?? null,
     gymName: row.gym_name ?? null,

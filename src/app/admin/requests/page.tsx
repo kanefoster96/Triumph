@@ -8,14 +8,14 @@ import { decideChange, markQuestionAnswered } from "@/lib/members/actions";
 import {
   CHANGE_LABELS,
   changeValueLabel,
-  GOAL_LABELS,
+  goalPhrase,
   type Application,
 } from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
 
 function goalOf(application: Application) {
-  return application.goalOther ?? GOAL_LABELS[application.goalType];
+  return goalPhrase(application.goalTypes, { other: application.goalOther });
 }
 
 function sentOn(iso: string) {

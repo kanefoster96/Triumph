@@ -513,6 +513,31 @@ export const GOAL_LABELS: Record<GoalType, string> = {
   other: "Something else",
 };
 
+/**
+ * A list of goals as one phrase — "Build muscle and lose weight".
+ *
+ * Everything after the first is lowercased, because these are labels written
+ * to stand alone on a button and read as a sentence once they are strung
+ * together. Where they said "something else", what they typed takes that
+ * slot: "Build muscle and back to five-a-side" is the answer, and
+ * "Build muscle and something else" is not.
+ */
+export function goalPhrase(
+  goals: GoalType[],
+  options: { labels?: Record<GoalType, string>; other?: string | null } = {},
+): string {
+  const { labels = GOAL_LABELS, other } = options;
+  const parts = goals.map((goal) =>
+    goal === "other" && other?.trim() ? other.trim() : labels[goal],
+  );
+  if (parts.length === 0) return "Not said";
+  const [first, ...rest] = parts;
+  if (rest.length === 0) return first;
+  const tail = rest.map((part) => part.charAt(0).toLowerCase() + part.slice(1));
+  const last = tail.pop() as string;
+  return tail.length ? `${first}, ${tail.join(", ")} and ${last}` : `${first} and ${last}`;
+}
+
 export type ApplicationStatus = "pending" | "approved" | "declined";
 
 export interface Application {
@@ -525,7 +550,12 @@ export interface Application {
   /** Both optional — "if you know it" is the whole point of asking this way. */
   currentWeightKg: number | null;
   goalWeightKg: number | null;
-  goalType: GoalType;
+  /**
+   * Every goal they picked, in the order they picked them. Wanting to lose
+   * weight *and* build muscle is the normal answer rather than an unusual
+   * one, so this is a list — `goalPhrase` turns it into something readable.
+   */
+  goalTypes: GoalType[];
   /** What they typed when they picked "Something else". */
   goalOther: string | null;
   /**
