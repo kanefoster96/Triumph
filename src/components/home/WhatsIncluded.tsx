@@ -1,36 +1,54 @@
-import { getCoachingPrice, getIncluded } from "@/lib/services/content";
-import { Section, SectionHeader } from "@/components/ui/Section";
+import { getCoachingPrice, getEverything, getIncluded } from "@/lib/services/content";
+import { Container, SectionHeader } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 import { IconTile } from "@/components/ui/IconTile";
+import { EverythingRail } from "./EverythingRail";
 import { formatPrice } from "@/lib/utils";
 
-export async function WhatsIncluded() {
-  const [included, price] = await Promise.all([getIncluded(), getCoachingPrice()]);
+/**
+ * What the monthly price buys — the headline few, then the rest scrolling past.
+ *
+ * These used to be two sections back to back, one listing six things at length
+ * and the other listing everything in three words each. Saying it twice was
+ * most of why the page felt long.
+ *
+ * The three are not in cards. A container behind every one of them put six
+ * boxes down the page and the spacing did the separating anyway; the icon is
+ * enough of an anchor on its own.
+ */
+export async function WhatsIncluded({ limit }: { limit?: number }) {
+  const [included, price, everything] = await Promise.all([
+    getIncluded(),
+    getCoachingPrice(),
+    getEverything(),
+  ]);
+  // The landing page takes the headline three; the coaching page, which is
+  // where somebody has gone looking for detail, gets all of them.
+  const cards = limit ? included.slice(0, limit) : included;
 
   return (
-    <Section id="included" tone="raised">
-      <SectionHeader
-        eyebrow="Online coaching"
-        title={`${formatPrice(price.amount)} a month. Everything in.`}
-        description="No tiers, no upsells, no contract. Cancel any time."
-      />
+    <section id="included" className="py-24 sm:py-36">
+      <Container>
+        <SectionHeader
+          eyebrow="Online coaching"
+          title="Everything you get."
+          description={`${formatPrice(price.amount)} a month. No tiers, no upsells, no contract.`}
+        />
 
-      {/* One column: read as a list, the icon anchoring each row rather than
-          sitting on a line of its own. Held to a readable measure so the body
-          copy does not run the full width of the container. */}
-      <div className="mx-auto grid max-w-3xl grid-cols-1 gap-4">
-        {included.map((feature, i) => (
-          <Reveal key={feature.id} delay={(i % 3) * 70}>
-            <div className="flex gap-5 rounded-[var(--radius-sheet)] bg-raised p-6">
-              <IconTile feature={feature.icon} />
-              <div className="min-w-0">
-                <h3 className="text-lg">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{feature.body}</p>
-              </div>
-            </div>
-          </Reveal>
-        ))}
+        <div className="mx-auto grid max-w-4xl gap-12 sm:grid-cols-3 sm:gap-10">
+          {cards.map((feature, i) => (
+            <Reveal key={feature.id} delay={(i % 3) * 70} className="text-center sm:text-left">
+              <IconTile feature={feature.icon} size="lg" className="mx-auto sm:mx-0" />
+              <h3 className="mt-5 text-lg">{feature.title}</h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-muted">{feature.body}</p>
+            </Reveal>
+          ))}
+        </div>
+      </Container>
+
+      <div className="mt-20 sm:mt-28">
+        <EverythingRail items={everything} />
       </div>
-    </Section>
+    </section>
   );
 }

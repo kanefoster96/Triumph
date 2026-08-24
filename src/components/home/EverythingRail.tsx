@@ -1,6 +1,3 @@
-import { getEverything } from "@/lib/services/content";
-import { Container, SectionHeader } from "@/components/ui/Section";
-
 /** Rows, and how long each takes to travel its own length. */
 const ROWS = 4;
 const SECONDS = [64, 78, 58, 72];
@@ -42,30 +39,23 @@ function Row({ items, seconds, reversed }: { items: string[]; seconds: number; r
 }
 
 /**
- * Everything the monthly price buys, scrolling past.
+ * The rest of what the price buys, scrolling past.
  *
- * Rows alternate direction so the block reads as movement rather than as a
- * list being dragged one way, and each runs at its own speed so they never
- * line up into a grid marching in step.
+ * Rows alternate direction so the block reads as movement rather than a list
+ * being dragged one way, and each runs at its own speed so they never line up
+ * into a grid marching in step.
  *
  * Full-bleed on purpose: a row that stopped at the container edge would look
  * like it had ended rather than carried on.
  */
-export async function EverythingYouGet() {
-  const items = await getEverything();
+export function EverythingRail({ items }: { items: string[] }) {
   const rows = deal(items, ROWS);
 
   return (
-    <section id="everything" className="overflow-hidden py-24 sm:py-36">
-      <Container>
-        <SectionHeader title="Everything you get." description="One price. All of it." />
-      </Container>
-
-      <div className="space-y-3 sm:space-y-4">
-        {rows.map((row, i) => (
-          <Row key={i} items={row} seconds={SECONDS[i]} reversed={i % 2 === 0} />
-        ))}
-      </div>
-    </section>
+    <div className="space-y-3 sm:space-y-4">
+      {rows.map((row, i) => (
+        <Row key={i} items={row} seconds={SECONDS[i]} reversed={i % 2 === 0} />
+      ))}
+    </div>
   );
 }

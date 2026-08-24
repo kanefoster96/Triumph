@@ -6,43 +6,51 @@ export const coachingPrice = {
   cadence: "month" as const,
 };
 
-/** What the monthly coaching includes. */
+/**
+ * What the monthly coaching includes.
+ *
+ * The home page shows the first three, so those three are the ones that have to
+ * carry the offer on their own — food, training, and somebody watching. Titles
+ * are a few words and bodies are one line: the rail underneath already lists
+ * every last thing, and saying it twice at length was most of why the page read
+ * as heavy.
+ */
 export const included: Feature[] = [
   {
     id: "inc-meal",
     icon: "meal",
-    title: "Eat food you like, still hit your goal",
-    body: "Your targets, your food, your life. No chicken-and-rice punishment plans — just numbers you can actually hit.",
+    title: "Food you actually like",
+    body: "Your targets, your meals. No chicken and rice.",
   },
   {
     id: "inc-workout",
     icon: "workout",
-    title: "Walk into the gym knowing exactly what to do",
-    body: "Every session laid out set by set, for your gym and your schedule. No guessing, no wasted sessions.",
+    title: "Workouts, set by set",
+    body: "Built for your gym and your week. Open the app and go.",
   },
   {
     id: "inc-checkin",
     icon: "checkin",
-    title: "Weekly check-ins that keep you on target",
-    body: "Dean reviews your week — weight, sessions, how it felt — and tells you exactly what to change. This is the accountability that gets results.",
+    title: "Dean checks in weekly",
+    body: "He reads your week and tells you what to change.",
   },
   {
     id: "inc-adjust",
     icon: "adjust",
-    title: "Life happens. Your plan keeps up.",
-    body: "Stalled, injured, holiday booked? Dean adjusts the plan so you keep progressing instead of starting over.",
+    title: "The plan keeps up",
+    body: "Stalled, injured, away? It changes with you.",
   },
   {
     id: "inc-chat",
     icon: "chat",
-    title: "Text Dean whenever you’re stuck",
-    body: "Dodgy knee, tricky menu, unsure about a session — message him and get an answer. Simple.",
+    title: "Message him any time",
+    body: "Stuck on a lift or a menu? Ask and get an answer.",
   },
   {
     id: "inc-community",
     icon: "community",
-    title: "Train with people who won’t let you quit",
-    body: "Every client, one community. Wins get celebrated, excuses get noticed.",
+    title: "A community behind you",
+    body: "Every client in one place. Wins get noticed.",
   },
 ];
 

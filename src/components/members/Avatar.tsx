@@ -16,6 +16,7 @@ const SIZES = {
   md: "h-11 w-11 text-sm",
   lg: "h-16 w-16 text-lg",
   xl: "h-20 w-20 text-2xl",
+  "2xl": "h-28 w-28 text-3xl",
 } as const;
 
 export type AvatarSize = keyof typeof SIZES;
