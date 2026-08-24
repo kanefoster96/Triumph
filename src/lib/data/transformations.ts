@@ -4,6 +4,11 @@ import type { Transformation } from "@/lib/types";
  * PLACEHOLDER CONTENT — these are not real clients or real results.
  * Replace every entry with genuine, verifiable numbers before promoting the
  * site. Published results claims need to be true.
+ *
+ * Photos: drop a pair in `/public` and add `before` and `after` paths to the
+ * entry. Until then each card shows a labelled empty frame, which is the
+ * honest state — a before-and-after built from stock or from somebody else is
+ * the one thing the section's own copy promises this page does not do.
  */
 export const transformations: Transformation[] = [
   {
