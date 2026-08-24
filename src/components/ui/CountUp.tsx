@@ -80,9 +80,11 @@ export function CountUp({
     const arm = () => {
       if (!dropped) observer.observe(node);
     };
-    document.fonts?.ready
-      ? document.fonts.ready.then(() => requestAnimationFrame(arm))
-      : arm();
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => requestAnimationFrame(arm));
+    } else {
+      arm();
+    }
 
     return () => {
       dropped = true;
