@@ -10,8 +10,8 @@ export async function TestimonialWall() {
     <Section tone="raised">
       <SectionHeader
         eyebrow="Reviews"
-        title="Real feedback from real clients"
-        description="Collected after clients finish a block — not on their first-week high."
+        title="From the people who stayed."
+        description="Collected after a block, not on a first-week high."
       />
 
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">

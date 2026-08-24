@@ -1,5 +1,5 @@
 import { coach } from "@/lib/data/coach";
-import { coachingPrice, included, memberArea, process } from "@/lib/data/coaching";
+import { coachingPrice, everything, included, memberArea, process } from "@/lib/data/coaching";
 import { faqs } from "@/lib/data/faqs";
 import { plans } from "@/lib/data/plans";
 import { posts } from "@/lib/data/posts";
@@ -51,6 +51,10 @@ export async function getCoachingPrice(): Promise<typeof coachingPrice> {
 }
 
 /** What the monthly coaching includes. */
+export async function getEverything(): Promise<string[]> {
+  return everything;
+}
+
 export async function getIncluded(): Promise<Feature[]> {
   return included;
 }

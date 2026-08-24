@@ -17,8 +17,8 @@ export async function MembersArea() {
     <Section id="members">
       <SectionHeader
         eyebrow="Members' area"
-        title="See exactly where you stand, every single day"
-        description="Your own app tracks your food, training and progress — so you always know you&rsquo;re on target, and Dean sees it too."
+        title="Know where you stand."
+        description="Your own app. Food, training, progress — and Dean sees it too."
       />
 
       <Reveal>

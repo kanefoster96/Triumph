@@ -12,7 +12,7 @@ export async function WhatsIncluded() {
       <SectionHeader
         eyebrow="Online coaching"
         title={`${formatPrice(price.amount)} a month. Hit your targets, get ${formatPrice(price.amount / 2)} back.`}
-        description="Everything included. No tiers, no upsells, no contract. Hit every target in your first month and Dean sends you 50% back — because consistency should pay."
+        description="No tiers, no upsells, no contract. Hit every target in month one and get 50% back."
       />
 
       {/* One column: read as a list, the icon anchoring each row rather than

@@ -18,7 +18,7 @@ export function Section({ children, className, id, tone = "base" }: SectionProps
   return (
     <section
       id={id}
-      className={cn("py-20 sm:py-28", tone === "raised" && "bg-surface/40", className)}
+      className={cn("py-24 sm:py-36", tone === "raised" && "bg-surface/40", className)}
     >
       <Container>{children}</Container>
     </section>
@@ -48,7 +48,7 @@ export function SectionHeader({
   return (
     <Reveal
       className={cn(
-        "mb-12 flex flex-col gap-5 sm:mb-16",
+        "mb-14 flex flex-col gap-5 sm:mb-20",
         centred ? "items-center text-center" : "sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
@@ -57,7 +57,7 @@ export function SectionHeader({
         {eyebrow ? (
           <p className="mb-4 text-xs font-semibold text-accent">{eyebrow}</p>
         ) : null}
-        <h2 className="text-3xl text-balance sm:text-4xl">{title}</h2>
+        <h2 className="text-3xl text-balance sm:text-5xl">{title}</h2>
         {description ? (
           <p className="mt-4 text-base leading-relaxed text-muted sm:text-lg">{description}</p>
         ) : null}

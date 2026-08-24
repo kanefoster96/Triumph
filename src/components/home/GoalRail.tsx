@@ -13,12 +13,12 @@ export async function GoalRail() {
   const goals = await getGoals();
 
   return (
-    <section id="goals" className="py-20 sm:py-28">
+    <section id="goals" className="py-24 sm:py-36">
       <Container>
         <SectionHeader
           eyebrow="What we build around"
-          title="Whatever your goal, this gets you there"
-          description="Fat loss, strength, getting back into it after years off — same coaching, same price, plan built for you."
+          title="Whatever your goal."
+          description="Fat loss, strength, or getting back into it. Same coaching, same price."
         />
       </Container>
 

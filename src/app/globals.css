@@ -191,3 +191,41 @@
     scroll-behavior: auto;
   }
 }
+
+/*
+ * Marquee rows.
+ *
+ * The track holds its items twice and slides exactly half its width, so the
+ * second copy is under the cursor the moment the first has left and the loop
+ * has no seam. Rows alternate by running the same animation backwards rather
+ * than by needing a second keyframe set.
+ *
+ * Held still under `prefers-reduced-motion`: the row then shows its first copy
+ * and simply sits there, which is why the copy has to read as a list rather
+ * than as a sentence that scrolls past.
+ */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee-track {
+    animation: marquee var(--marquee-seconds, 60s) linear infinite;
+    will-change: transform;
+  }
+
+  .marquee-track[data-direction="right"] {
+    animation-direction: reverse;
+  }
+
+  /* Let somebody stop a row to read it. */
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+}
