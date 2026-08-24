@@ -48,8 +48,6 @@ export const secondaryNav = [
 ];
 
 export const headlineStats: Stat[] = [
-  { label: "Clients coached", value: "80", suffix: "+" },
-  { label: "Coaching since", value: "2021" },
-  { label: "Avg. client rating", value: "4.9", suffix: "/5" },
-  { label: "Plan turnaround", value: "48", suffix: "h" },
+  { label: "Clients helped", value: "80", suffix: "+" },
+  { label: "Star rating", value: "5", suffix: "/5" },
 ];
