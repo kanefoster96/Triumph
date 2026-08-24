@@ -17,30 +17,30 @@ export function Hero() {
       <Reveal>
         <span className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-2 text-sm font-medium text-accent">
           <Sparkles className="h-4 w-4" />
-          Hit your month-one targets → get 50% back
+          Online training made easy
         </span>
       </Reveal>
 
       <Reveal delay={60}>
         <h1 className="mx-auto mt-8 max-w-3xl text-4xl leading-[1.05] text-balance sm:text-6xl">
-          Do the work. Get the results.
+          Meals &amp; workouts
           <br />
-          <span className="text-accent">Get half your money back.</span>
+          <span className="text-accent">you can track.</span>
         </h1>
       </Reveal>
 
       <Reveal delay={120}>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-          Tell Dean your goal on a free consult. He&rsquo;ll build a plan you&rsquo;ll actually stick to.
-          Track everything in your own app, check in with him every week — and if you hit every target
-          in your first month, you get 50% back.
+          A plan built by a personal trainer around your goals, with meals and workouts that are
+          simple to log. If you want someone keeping you accountable and results that last, book a
+          free consult.
         </p>
       </Reveal>
 
       <Reveal delay={180}>
         <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <Button href="/join" size="lg">
-            Request a free consultation
+            Let&rsquo;s get started
           </Button>
           <Button href="/contact" size="lg" variant="secondary">
             Ask a question

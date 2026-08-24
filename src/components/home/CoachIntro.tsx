@@ -58,8 +58,7 @@ export async function CoachIntro() {
           </div>
 
           <p className="mt-4 text-xs leading-relaxed text-faint">
-            Coaching is online, anywhere in the UK · Free consult first · Hit every target in month
-            one and you get 50% back
+            Coaching is online, anywhere in the UK · Free consult first · No contract
           </p>
         </div>
       </Reveal>
