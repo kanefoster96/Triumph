@@ -30,7 +30,7 @@ Your only risk is staying the same
           </div>
 
           <p className="mt-7 text-sm text-accent-ink/70">
-Free consult · No contract · 50% back if you smash month one
+Free consult · No contract · Cancel any time
           </p>
         </Reveal>
       </Container>

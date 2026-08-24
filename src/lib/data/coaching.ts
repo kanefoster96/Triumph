@@ -151,7 +151,7 @@ export const process = [
   },
   {
     title: "Check in. Stay on target. Win.",
-    body: "You track, Dean reviews weekly and adjusts. Hit all your targets in month one — get 50% of your money back.",
+    body: "You track, Dean reviews weekly and adjusts. That loop is what keeps you moving.",
   },
 ];
 
