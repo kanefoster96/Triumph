@@ -47,8 +47,14 @@ export const included: Feature[] = [
 ];
 
 /**
- * The members' area. These are the product surfaces behind the login —
- * flagged `comingSoon` until each one is actually built and shipped.
+ * The members' area — the product surfaces behind the login, and the screens
+ * the marketing site previews.
+ *
+ * Nothing here is labelled as unfinished any more, which means everything here
+ * is advertised as working and has to exist behind the login. Three of these
+ * do. `mem-community` does not: there is no feed route, no service and no
+ * table for it. Build it or drop the entry — leaving it listed is a claim the
+ * product cannot keep.
  */
 export const memberArea: Feature[] = [
   {
@@ -56,7 +62,6 @@ export const memberArea: Feature[] = [
     icon: "plan",
     title: "Your plan page",
     body: "Your calorie targets and your workout for the day, in one place. Open it in the gym, work down the list, tick sessions off as you go.",
-    comingSoon: true,
     preview: {
       kind: "plan",
       calorieTarget: 1950,
@@ -75,7 +80,6 @@ export const memberArea: Feature[] = [
     icon: "log",
     title: "Daily logging",
     body: "Enter your final calorie total and any notes from the session — what felt heavy, what you had to swap, what hurt. That is what your next adjustment is built from.",
-    comingSoon: true,
     preview: {
       kind: "log",
       calories: 1890,
@@ -93,7 +97,6 @@ export const memberArea: Feature[] = [
     icon: "community",
     title: "Community feed",
     body: "A members-only feed for everyone being coached. Ask questions, post wins, and see that everyone else has hard weeks too.",
-    comingSoon: true,
     preview: {
       kind: "feed",
       posts: [
@@ -121,7 +124,6 @@ export const memberArea: Feature[] = [
     icon: "chat",
     title: "Chat with Dean",
     body: "Message me directly from inside the app, with your plan and your logs right there in the conversation.",
-    comingSoon: true,
     preview: {
       kind: "chat",
       messages: [
