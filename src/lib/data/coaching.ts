@@ -51,10 +51,9 @@ export const included: Feature[] = [
  * the marketing site previews.
  *
  * Nothing here is labelled as unfinished any more, which means everything here
- * is advertised as working and has to exist behind the login. Three of these
- * do. `mem-community` does not: there is no feed route, no service and no
- * table for it. Build it or drop the entry — leaving it listed is a claim the
- * product cannot keep.
+ * is advertised as working and has to exist behind the login. All four now do:
+ * `mem-community` is the board at `/app/board`, built rather than dropped.
+ * Anything added to this list has to be a claim the product can keep.
  */
 export const memberArea: Feature[] = [
   {
