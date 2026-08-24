@@ -566,7 +566,24 @@ export async function submitApplication(formData: FormData) {
       has_gym: readHasGym(formData),
       gym_name: readGymName(formData),
     });
-    if (appError) console.error("[apply] application insert failed:", appError.message);
+    /*
+     * If the row did not land, say so.
+     *
+     * This used to log and carry on to the thank-you page, which meant an
+     * application could fail and still be thanked for — the person believed
+     * they had applied and Dean's inbox stayed empty. There is nothing to
+     * wait on if nothing was written, so the profile is left alone and they
+     * are sent back able to try again. The account they just made is fine and
+     * signing in with it still works.
+     *
+     * The failure worth naming here is a column this insert knows about and
+     * the database does not: a migration that has not been run reaches
+     * exactly this line.
+     */
+    if (appError) {
+      console.error("[apply] application insert failed:", appError.message);
+      redirect("/join?e=save");
+    }
 
     // Waiting on Dean now, which is what his inbox and their dashboard read.
     await supabase
