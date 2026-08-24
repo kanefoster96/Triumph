@@ -55,6 +55,18 @@ export default async function JoinPage({ searchParams }: PageProps<"/join">) {
               </Link>
               .
             </span>
+          ) : query.e === "save" ? (
+            <span>
+              Your account was made but the application did not save.{" "}
+              <Link href="/login" className="font-semibold underline">
+                Sign in
+              </Link>{" "}
+              and try again, or{" "}
+              <Link href="/contact" className="font-semibold underline">
+                message Dean
+              </Link>
+              .
+            </span>
           ) : (
             "That did not go through. Check your email and password and try again."
           )}
