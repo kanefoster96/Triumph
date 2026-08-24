@@ -59,7 +59,7 @@ export default async function CoachingPage() {
         />
         <div className="grid gap-5 md:grid-cols-2">
           <Reveal className="h-full">
-            <div className="h-full rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.05] p-7">
+            <div className="h-full rounded-[var(--radius-sheet)] bg-accent/10 p-7">
               <h3 className="text-lg">Coaching with Dean</h3>
               <ul className="mt-5 space-y-3.5">
                 {comparison.us.map((item) => (
@@ -72,7 +72,7 @@ export default async function CoachingPage() {
             </div>
           </Reveal>
           <Reveal delay={70} className="h-full">
-            <div className="h-full rounded-[var(--radius-sheet)] border border-line bg-ink p-7">
+            <div className="h-full rounded-[var(--radius-sheet)] bg-raised p-7">
               <h3 className="text-lg text-muted">An off-the-shelf plan</h3>
               <ul className="mt-5 space-y-3.5">
                 {comparison.them.map((item) => (

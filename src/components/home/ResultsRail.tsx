@@ -9,7 +9,7 @@ export async function ResultsRail() {
   const transformations = await getTransformations(4);
 
   return (
-    <section className="border-y border-line bg-surface/40 py-20 sm:py-28">
+    <section className="bg-surface/40 py-20 sm:py-28">
       <Container>
         <SectionHeader
           eyebrow="Results"

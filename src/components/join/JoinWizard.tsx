@@ -8,7 +8,7 @@ import { GOAL_LABELS, type GoalType } from "@/lib/members/types";
 import { cn } from "@/lib/utils";
 
 const field =
-  "h-12 w-full rounded-2xl border border-line bg-ink px-4 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
+  "h-12 w-full rounded-2xl bg-raised px-4 text-base text-text transition-colors placeholder:text-faint";
 const label = "mb-2 block text-sm font-semibold text-text";
 
 const STEPS = ["You", "Your goal", "Confirm"] as const;
@@ -173,10 +173,10 @@ export function JoinWizard({
                     onClick={() => setGoalType(goal)}
                     aria-pressed={goalType === goal}
                     className={cn(
-                      "min-h-14 rounded-2xl border px-4 text-sm font-semibold transition-colors",
+                      "min-h-14 rounded-2xl px-4 text-sm font-semibold transition-colors",
                       goalType === goal
-                        ? "border-accent bg-accent/10 text-accent"
-                        : "border-line bg-ink text-muted hover:border-accent/40",
+                        ? "bg-accent/15 text-accent"
+                        : "bg-raised text-muted hover:bg-overlay",
                     )}
                   >
                     {GOAL_LABELS[goal]}
@@ -232,7 +232,7 @@ export function JoinWizard({
               </p>
             </div>
 
-            <div className="flex items-start gap-3 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-4">
+            <div className="flex items-start gap-3 rounded-[var(--radius-sheet)] bg-accent/10 p-4">
               <Monitor className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
               <p className="text-sm leading-relaxed text-muted">
                 <span className="font-semibold text-text">
@@ -243,7 +243,7 @@ export function JoinWizard({
               </p>
             </div>
 
-            <dl className="divide-y divide-line rounded-[var(--radius-sheet)] border border-line bg-surface px-4">
+            <dl className="divide-y divide-line rounded-[var(--radius-sheet)] bg-surface px-4">
               {(
                 [
                   ["Name", fullName.trim() || "—"],
@@ -277,7 +277,7 @@ export function JoinWizard({
             {/* Applying is also how most people get an account. Somebody who
                 already has one is not asked to make a second. */}
             {signedIn ? null : (
-              <div className="space-y-4 rounded-[var(--radius-sheet)] border border-line bg-surface p-4">
+              <div className="space-y-4 rounded-[var(--radius-sheet)] bg-surface p-4">
                 <p className="text-sm font-semibold">
                   And an account, so you can see your plan
                 </p>
@@ -342,7 +342,7 @@ export function JoinWizard({
             <button
               type="button"
               onClick={() => setStep((current) => current - 1)}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent sm:flex-none"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-raised px-5 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent sm:flex-none"
             >
               <ArrowLeft className="h-4 w-4" />
               Back

@@ -22,7 +22,7 @@ export async function MembersArea() {
       <div className="grid gap-5 sm:grid-cols-2">
         {features.map((feature, i) => (
           <Reveal key={feature.id} delay={(i % 2) * 70} className="h-full">
-            <div className="flex h-full gap-5 rounded-[var(--radius-sheet)] border border-line bg-surface p-6">
+            <div className="flex h-full gap-5 rounded-[var(--radius-sheet)] bg-surface p-6">
               <IconTile feature={feature.icon} />
               <div>
                 <div className="flex flex-wrap items-center gap-2.5">

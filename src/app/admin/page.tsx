@@ -46,7 +46,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
         title="Clients"
         subtitle={`${active} active${asCards ? "" : ` · this week, ${weekLabel}`}`}
         action={
-          <div className="flex items-center gap-1 rounded-full border border-line p-1">
+          <div className="flex items-center gap-1 rounded-full bg-raised p-1">
             {(
               [
                 ["", "Week", Rows3],
@@ -91,7 +91,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
             <li key={client.profile.id} className="min-w-0">
               <Link
                 href={`/admin/clients/${client.profile.id}`}
-                className="group flex h-full flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-5 transition-colors hover:border-accent/40"
+                className="group flex h-full flex-col rounded-[var(--radius-sheet)] bg-surface p-5 transition-colors hover:bg-overlay"
               >
                 <div className="flex items-start gap-3">
                   <Avatar
@@ -117,9 +117,9 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
                   )}
                 </div>
 
-                <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-4 text-center">
+                <dl className="mt-5 grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <dt className="text-[11px] tracking-wide text-faint uppercase">Workout</dt>
+                    <dt className="text-[11px] text-faint">Workout</dt>
                     <dd className="mt-1 text-sm font-semibold">
                       {client.todaysWorkoutDone ? (
                         <span className="text-accent">Done</span>
@@ -133,7 +133,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] tracking-wide text-faint uppercase">Calories</dt>
+                    <dt className="text-[11px] text-faint">Calories</dt>
                     <dd className="mt-1 text-sm font-semibold">
                       {client.todaysCalories > 0 ? client.todaysCalories.toLocaleString("en-GB") : "—"}
                       {client.calorieTarget ? (
@@ -142,7 +142,7 @@ export default async function AdminClientsPage({ searchParams }: PageProps<"/adm
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] tracking-wide text-faint uppercase">Weight</dt>
+                    <dt className="text-[11px] text-faint">Weight</dt>
                     <dd className="mt-1 text-sm font-semibold">
                       {client.latestWeight ? `${client.latestWeight.weightKg.toFixed(1)}kg` : "—"}
                     </dd>

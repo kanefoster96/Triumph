@@ -93,7 +93,7 @@ export function MacroRing({ calories, proteinG, carbsG, fatG, caption = "cal", s
       <dl className="flex flex-1 flex-wrap gap-x-8 gap-y-3">
         {arcs.map((arc) => (
           <div key={arc.key} className="min-w-16">
-            <dt className="text-xs font-semibold tracking-[0.14em] uppercase" style={{ color: arc.token }}>
+            <dt className="text-xs font-semibold tracking-[0.14em]" style={{ color: arc.token }}>
               {total > 0 ? `${Math.round(arc.share * 100)}%` : "—"}
             </dt>
             <dd className="mt-0.5">

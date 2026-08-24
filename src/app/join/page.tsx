@@ -46,7 +46,7 @@ export default async function JoinPage({ searchParams }: PageProps<"/join">) {
       </div>
 
       {query.e ? (
-        <p className="mt-7 inline-flex items-start gap-2 rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+        <p className="mt-7 inline-flex items-start gap-2 rounded-2xl bg-danger/10 p-3 text-sm text-danger">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           {query.e === "taken" ? (
             <span>

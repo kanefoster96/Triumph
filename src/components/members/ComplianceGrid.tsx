@@ -99,7 +99,7 @@ export function ComplianceGrid({ rows, weekStart }: { rows: ComplianceRow[]; wee
              */
             <li
               key={row.profile.id}
-              className="rounded-2xl border border-line bg-ink p-2.5 sm:flex sm:items-center sm:gap-3 sm:py-1.5 sm:pr-2 sm:pl-2.5"
+              className="rounded-2xl bg-raised p-2.5 sm:flex sm:items-center sm:gap-3 sm:py-1.5 sm:pr-2 sm:pl-2.5"
             >
               <div className="flex min-w-0 items-center gap-2.5 sm:flex-1">
                 <Link

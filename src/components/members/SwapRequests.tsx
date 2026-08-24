@@ -28,7 +28,7 @@ export function SwapRequests({
   if (requests.length === 0) return null;
 
   return (
-    <section className="mb-5 rounded-[var(--radius-sheet)] border border-amber/40 bg-amber/[0.05]">
+    <section className="mb-5 rounded-[var(--radius-sheet)] bg-amber/10">
       <header className="flex items-center gap-2.5 border-b border-amber/20 px-5 py-3.5">
         <CalendarSync className="h-4 w-4 shrink-0 text-amber" />
         <h2 className="text-sm font-semibold text-amber">
@@ -62,7 +62,7 @@ export function SwapRequests({
               {(
                 [
                   ["approve", "Move it", Check, "bg-accent text-accent-ink hover:bg-accent-strong"],
-                  ["decline", "Keep it", X, "border border-line text-muted hover:text-text"],
+                  ["decline", "Keep it", X, "bg-raised text-muted hover:text-text"],
                 ] as const
               ).map(([decision, label, Icon, tone]) => (
                 <form key={decision} action={decideDaySwap}>

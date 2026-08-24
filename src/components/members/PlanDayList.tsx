@@ -47,8 +47,7 @@ export function PlanDayList({
             <Link
               href={row.href}
               className={cn(
-                "flex min-h-16 items-center gap-3 rounded-[var(--radius-sheet)] border bg-surface px-4 py-3 transition-colors hover:border-accent/40",
-                row.isToday ? "border-accent/50" : "border-line",
+                "flex min-h-16 items-center gap-3 rounded-[var(--radius-sheet)] bg-surface px-4 py-3 transition-colors hover:bg-raised",
                 row.past && "opacity-60",
               )}
             >

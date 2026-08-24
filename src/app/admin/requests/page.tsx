@@ -58,7 +58,7 @@ export default async function AdminRequestsPage() {
                 <li key={application.id}>
                   <Link
                     href={`/admin/requests/${application.id}`}
-                    className="flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-ink p-3 transition-colors hover:border-accent/40"
+                    className="flex min-h-16 items-center gap-3 rounded-2xl bg-raised p-3 transition-colors hover:bg-overlay"
                   >
                     <Avatar
                       name={application.fullName}
@@ -95,7 +95,7 @@ export default async function AdminRequestsPage() {
           ) : (
             <ul className="space-y-2">
               {openQuestions.map((question) => (
-                <li key={question.id} className="rounded-2xl border border-line bg-ink p-4">
+                <li key={question.id} className="rounded-2xl bg-raised p-4">
                   <div className="flex items-start gap-3">
                     <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                     <div className="min-w-0 flex-1">
@@ -114,7 +114,7 @@ export default async function AdminRequestsPage() {
                     <input type="hidden" name="id" value={question.id} />
                     <button
                       type="submit"
-                      className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                      className="inline-flex h-11 items-center gap-2 rounded-full bg-overlay px-4 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
                     >
                       <Check className="h-4 w-4" />
                       Mark as answered
@@ -133,7 +133,7 @@ export default async function AdminRequestsPage() {
                 <li key={application.id}>
                   <Link
                     href={`/admin/requests/${application.id}`}
-                    className="flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-ink p-3 transition-colors hover:border-accent/40"
+                    className="flex min-h-14 items-center gap-3 rounded-2xl bg-raised p-3 transition-colors hover:bg-overlay"
                   >
                     <Avatar name={application.fullName} src={application.avatarUrl} size="sm" />
                     <span className="min-w-0 flex-1 truncate text-sm font-semibold">

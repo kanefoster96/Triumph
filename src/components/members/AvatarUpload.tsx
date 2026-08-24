@@ -85,7 +85,7 @@ export function AvatarUpload({
 
   return (
     <div>
-      <span className="mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+      <span className="mb-2 block text-xs font-semibold text-faint">
         {label}
       </span>
 
@@ -100,7 +100,7 @@ export function AvatarUpload({
             type="button"
             disabled={busy}
             onClick={() => input.current?.click()}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-60"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-raised px-4 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             {busy ? "Uploading…" : url ? "Change photo" : "Upload a photo"}

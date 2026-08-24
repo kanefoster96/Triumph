@@ -63,7 +63,7 @@ export function IngredientRows({ ingredients }: { ingredients: Ingredient[] }) {
              */
             <li
               key={row.key}
-              className="rounded-2xl border border-line bg-ink p-3 sm:flex sm:items-end sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0"
+              className="rounded-2xl bg-raised p-3 sm:flex sm:items-end sm:gap-2 sm:bg-transparent sm:p-0"
             >
               <div className="min-w-0 sm:flex-1">
                 <label className="sr-only" htmlFor={`${listId}-name-${index}`}>
@@ -136,7 +136,7 @@ export function IngredientRows({ ingredients }: { ingredients: Ingredient[] }) {
       <button
         type="button"
         onClick={() => setRows((current) => [...current, blank()])}
-        className="mt-3 inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-text"
+        className="mt-3 inline-flex items-center gap-2 rounded-full bg-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:text-text"
       >
         <Plus className="h-4 w-4" />
         Add ingredient

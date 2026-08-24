@@ -45,14 +45,14 @@ export default async function WeightPage() {
               defaultValue={loggedToday?.weightKg ?? ""}
               placeholder="kg"
               aria-label="Weight in kilograms"
-              className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none sm:w-28"
+              className="w-full rounded-2xl bg-raised px-4 py-3 text-sm transition-colors placeholder:text-faint sm:w-28"
             />
             <input
               name="note"
               defaultValue={loggedToday?.note ?? ""}
               placeholder="Note (optional)"
               aria-label="Note"
-              className="w-full min-w-0 rounded-2xl border border-line bg-ink px-4 py-3 text-sm transition-colors placeholder:text-faint focus:border-accent focus:outline-none sm:flex-1"
+              className="w-full min-w-0 rounded-2xl bg-raised px-4 py-3 text-sm transition-colors placeholder:text-faint sm:flex-1"
             />
             <button
               type="submit"
@@ -73,7 +73,7 @@ export default async function WeightPage() {
           ) : (
             <ul className="space-y-2">
               {entries.map((entry) => (
-                <li key={entry.id} className="rounded-2xl border border-line bg-ink p-4">
+                <li key={entry.id} className="rounded-2xl bg-raised p-4">
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-sm text-muted">{relativeDate(entry.loggedFor)}</span>
                     <span className="font-display text-lg font-bold">

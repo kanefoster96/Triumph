@@ -196,7 +196,7 @@ export function ShoppingChecklist({
           return (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-2xl border border-line bg-ink p-3"
+              className="flex items-center gap-3 rounded-2xl bg-raised p-3"
             >
               <button
                 type="button"
@@ -207,7 +207,7 @@ export function ShoppingChecklist({
                   "grid h-10 w-10 shrink-0 place-items-center rounded-xl border-2 transition-colors",
                   checked
                     ? "border-accent bg-accent text-accent-ink"
-                    : "border-faint bg-ink hover:border-accent",
+                    : "border-faint hover:bg-overlay",
                 )}
               >
                 {/* Empty until it is in the trolley. A tick that is already

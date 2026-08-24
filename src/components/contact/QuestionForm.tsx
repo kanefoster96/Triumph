@@ -5,7 +5,7 @@ import { CheckCircle2, Loader2, Send, TriangleAlert } from "lucide-react";
 import { askQuestion } from "@/lib/members/actions";
 
 const field =
-  "h-12 w-full rounded-2xl border border-line bg-ink px-4 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
+  "h-12 w-full rounded-2xl bg-raised px-4 text-base text-text transition-colors placeholder:text-faint";
 const label = "mb-2 block text-sm font-semibold text-text";
 
 /**
@@ -22,7 +22,7 @@ const label = "mb-2 block text-sm font-semibold text-text";
 export function QuestionForm({ sent, failed }: { sent: boolean; failed: boolean }) {
   if (sent) {
     return (
-      <div className="rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-6 text-center sm:p-8">
+      <div className="rounded-[var(--radius-sheet)] bg-accent/10 p-6 text-center sm:p-8">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent/10">
           <CheckCircle2 className="h-7 w-7 text-accent" />
         </span>
@@ -37,7 +37,7 @@ export function QuestionForm({ sent, failed }: { sent: boolean; failed: boolean 
   return (
     <form
       action={askQuestion}
-      className="space-y-5 rounded-[var(--radius-sheet)] border border-line bg-surface p-6 sm:p-7"
+      className="space-y-5 rounded-[var(--radius-sheet)] bg-surface p-6 sm:p-7"
     >
       <div>
         <h2 className="text-2xl">Ask a question</h2>
@@ -48,7 +48,7 @@ export function QuestionForm({ sent, failed }: { sent: boolean; failed: boolean 
       </div>
 
       {failed ? (
-        <p className="inline-flex items-start gap-2 rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+        <p className="inline-flex items-start gap-2 rounded-2xl bg-danger/10 p-3 text-sm text-danger">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           Fill in your name, a real email and your question.
         </p>
@@ -87,7 +87,7 @@ export function QuestionForm({ sent, failed }: { sent: boolean; failed: boolean 
           rows={5}
           maxLength={600}
           placeholder="Do you coach runners? I train around shift work — does that still work?"
-          className="w-full resize-y rounded-2xl border border-line bg-ink px-4 py-3 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+          className="w-full resize-y rounded-2xl bg-raised px-4 py-3 text-base text-text transition-colors placeholder:text-faint"
         />
       </div>
 

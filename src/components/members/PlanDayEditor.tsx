@@ -236,7 +236,7 @@ export function ExercisePlanner({
         const last = lastEfforts[row.exerciseId];
 
         return (
-          <div key={row.key} className="rounded-2xl border border-line bg-ink">
+          <div key={row.key} className="rounded-2xl bg-raised">
             {/* One hidden count per exercise lets the flat set fields below be
                 split back into the right groups on the server. */}
             <input type="hidden" name="setCount" value={row.sets.length} />
@@ -274,7 +274,7 @@ export function ExercisePlanner({
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
                   aria-label={`Move ${library?.name ?? "exercise"} up`}
-                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors enabled:hover:bg-raised enabled:hover:text-text disabled:opacity-30"
+                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors enabled:hover:bg-overlay enabled:hover:text-text disabled:opacity-30"
                 >
                   <ChevronUp className="h-4 w-4" />
                 </button>
@@ -283,7 +283,7 @@ export function ExercisePlanner({
                   onClick={() => move(index, 1)}
                   disabled={index === rows.length - 1}
                   aria-label={`Move ${library?.name ?? "exercise"} down`}
-                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors enabled:hover:bg-raised enabled:hover:text-text disabled:opacity-30"
+                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors enabled:hover:bg-overlay enabled:hover:text-text disabled:opacity-30"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
@@ -291,7 +291,7 @@ export function ExercisePlanner({
                   type="button"
                   onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
                   aria-label={`Remove ${library?.name ?? `exercise ${index + 1}`}`}
-                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-danger"
+                  className="grid h-11 w-11 place-items-center rounded-full text-faint transition-colors hover:bg-overlay hover:text-danger"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -299,7 +299,7 @@ export function ExercisePlanner({
             </div>
 
             {row.open ? (
-              <div className="border-t border-line p-3">
+              <div className="p-3 pt-0">
                 <PickerSheet
                   value={row.exerciseId}
                   options={options}
@@ -318,8 +318,8 @@ export function ExercisePlanner({
                 {/* Sets are usually the same thing three or four times, so the
                     fast path leads: say the shape once and stamp it. The rows
                     below stay editable for the odd set that differs. */}
-                <div className="mt-3 rounded-xl border border-accent/25 bg-accent/[0.05] p-3">
-                  <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[0.12em] text-accent uppercase">
+                <div className="mt-3 rounded-xl bg-accent/10 p-3">
+                  <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
                     <Zap className="h-3.5 w-3.5" />
                     Fill every set
                   </p>
@@ -380,7 +380,7 @@ export function ExercisePlanner({
                      */
                     <li
                       key={set.key}
-                      className="rounded-xl border border-line/60 p-2 sm:flex sm:items-center sm:gap-2 sm:border-0 sm:p-0"
+                      className="rounded-xl bg-overlay p-2 sm:flex sm:items-center sm:gap-2 sm:bg-transparent sm:p-0"
                     >
                       <div className="flex items-center justify-between sm:contents">
                         <span className="text-xs font-semibold text-faint tabular-nums sm:w-5 sm:shrink-0">
@@ -398,7 +398,7 @@ export function ExercisePlanner({
                             )
                           }
                           aria-label={`Remove set ${setIndex + 1}`}
-                          className="order-last grid h-11 w-11 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-danger"
+                          className="order-last grid h-11 w-11 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-overlay hover:text-danger"
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -453,7 +453,7 @@ export function ExercisePlanner({
                         ),
                       )
                     }
-                    className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                    className="inline-flex h-11 items-center gap-2 rounded-full bg-overlay px-4 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
                   >
                     <Plus className="h-4 w-4" />
                     Add a set
@@ -498,7 +498,7 @@ export function ExercisePlanner({
             },
           ])
         }
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent sm:w-auto sm:px-5"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-raised text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent sm:w-auto sm:px-5"
       >
         <Plus className="h-4 w-4" />
         Add an exercise
@@ -634,8 +634,8 @@ export function MealPlanner({
   return (
     <div className="space-y-4">
       {lockTargets ? (
-        <div className="rounded-2xl border border-line bg-ink p-4">
-          <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+        <div className="rounded-2xl bg-raised p-4">
+          <p className="text-xs font-semibold text-faint">
             What you&rsquo;re aiming at
           </p>
           <p className="mt-1.5 text-sm text-muted">
@@ -679,7 +679,7 @@ export function MealPlanner({
 
       {/* The number being aimed at, moving as meals go on. Pinned while the
           list is scrolled, because the list is what changes it. */}
-      <div className="sticky top-0 z-10 -mx-1 rounded-2xl border border-line bg-ink p-4 px-4 shadow-lg shadow-black/20">
+      <div className="sticky top-0 z-10 -mx-1 rounded-2xl bg-raised p-4 px-4 shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <p className="font-display text-2xl font-bold tabular-nums">
             {Math.round(totals.calories).toLocaleString("en-GB")}
@@ -697,7 +697,7 @@ export function MealPlanner({
             {targetValue > 0 ? ` · ${Math.round((totals.calories / targetValue) * 100)}%` : ""}
           </p>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-raised">
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-overlay">
           <div
             className={cn("h-full rounded-full transition-[width]", over ? "bg-amber" : "bg-accent")}
             style={{ width: `${pct}%` }}
@@ -708,7 +708,7 @@ export function MealPlanner({
           <button
             type="button"
             onClick={scaleToTarget}
-            className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-accent/50 bg-accent/10 text-sm font-semibold text-accent transition-colors hover:bg-accent/20"
+            className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-accent/10 text-sm font-semibold text-accent transition-colors hover:bg-accent/20"
           >
             <Scale className="h-4 w-4" />
             Scale the day to {targetValue.toLocaleString("en-GB")}
@@ -726,7 +726,7 @@ export function MealPlanner({
              * to about 34px on a phone — a picker showing none of the names it
              * is picking between.
              */
-            <li key={row.key} className="rounded-2xl border border-line bg-ink p-2.5">
+            <li key={row.key} className="rounded-2xl bg-raised p-2.5">
               <input type="hidden" name="mealSlot" value={row.slot} />
 
               <div className="flex items-center gap-2">
@@ -738,7 +738,7 @@ export function MealPlanner({
                   title="Pick a meal"
                   searchPlaceholder="Search meals"
                   hideChosenHint
-                  className="min-w-0 flex-1 border-0 bg-transparent px-1 hover:border-0"
+                  className="min-w-0 flex-1 bg-transparent px-1"
                 />
                 <span className="shrink-0 text-xs text-faint tabular-nums">
                   {meal?.calories ? `${Math.round(meal.calories * row.multiplier)} kcal` : "—"}
@@ -747,7 +747,7 @@ export function MealPlanner({
                   type="button"
                   onClick={() => setRows((current) => current.filter((entry) => entry.key !== row.key))}
                   aria-label={`Remove ${meal?.name ?? `meal ${index + 1}`}`}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-raised hover:text-danger"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-faint transition-colors hover:bg-overlay hover:text-danger"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -759,7 +759,7 @@ export function MealPlanner({
                 </label>
                 <select
                   id={`${domId}-slot-${index}`}
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-ink px-3 text-sm text-text capitalize transition-colors focus:border-accent focus:outline-none"
+                  className="h-11 min-w-0 flex-1 rounded-xl bg-overlay px-3 text-sm text-text capitalize transition-colors"
                   value={row.slot}
                   onChange={(event) => update(row.key, { slot: event.target.value as MealTag })}
                 >
@@ -775,7 +775,7 @@ export function MealPlanner({
                 </label>
                 <select
                   id={`${domId}-mult-${index}`}
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-ink px-3 text-sm text-text transition-colors focus:border-accent focus:outline-none"
+                  className="h-11 min-w-0 flex-1 rounded-xl bg-overlay px-3 text-sm text-text transition-colors"
                   name="mealMultiplier"
                   value={row.multiplier}
                   onChange={(event) => update(row.key, { multiplier: Number(event.target.value) })}
@@ -798,7 +798,7 @@ export function MealPlanner({
             key={slot}
             type="button"
             onClick={() => addMeal(slot)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted capitalize transition-colors hover:border-accent hover:text-accent sm:px-5"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-raised text-sm font-semibold text-muted capitalize transition-colors hover:bg-overlay hover:text-accent sm:px-5"
           >
             <Plus className="h-4 w-4" />
             {slot}

@@ -35,7 +35,7 @@ export function ReasonNote({ name = "note", id = "reason-note" }: { name?: strin
     <div>
       <label
         htmlFor={id}
-        className="mb-1.5 block text-xs font-semibold tracking-[0.14em] text-faint uppercase"
+        className="mb-1.5 block text-xs font-semibold text-faint"
       >
         What happened?
       </label>
@@ -52,8 +52,8 @@ export function ReasonNote({ name = "note", id = "reason-note" }: { name?: strin
             aria-pressed={value === starter}
             className={
               value === starter
-                ? "rounded-full border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent"
-                : "rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                ? "rounded-full bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent"
+                : "rounded-full bg-raised px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
             }
           >
             {starter}
@@ -70,7 +70,7 @@ export function ReasonNote({ name = "note", id = "reason-note" }: { name?: strin
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="Anything else I should know?"
-        className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+        className="w-full rounded-2xl bg-raised px-4 py-3 text-sm text-text transition-colors placeholder:text-faint"
       />
     </div>
   );

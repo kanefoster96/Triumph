@@ -138,12 +138,12 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
             aria-label="Site menu"
             inert={!open}
             className={cn(
-              "pb-safe fixed inset-y-0 right-0 z-50 flex w-[84%] max-w-sm flex-col border-l border-line bg-surface",
+              "pb-safe fixed inset-y-0 right-0 z-50 flex w-[84%] max-w-sm flex-col bg-surface",
               "transition-transform duration-300 ease-[var(--ease-out-app)] md:hidden",
               open ? "translate-x-0" : "translate-x-full",
             )}
           >
-            <div className="flex h-16 items-center justify-between border-b border-line px-5">
+            <div className="flex h-16 items-center justify-between px-5">
               <span className="text-sm font-semibold text-muted">Menu</span>
               <button
                 ref={closeRef}
@@ -180,7 +180,7 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                 })}
               </ul>
 
-              <p className="mt-8 mb-3 px-4 text-xs font-semibold tracking-[0.16em] text-faint uppercase">
+              <p className="mt-8 mb-3 px-4 text-xs font-semibold text-faint">
                 More
               </p>
               <ul className="space-y-1">
@@ -200,12 +200,12 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
 
             </nav>
 
-            <div className="border-t border-line px-5 py-5">
+            <div className="px-5 py-5">
               {/* In the fixed footer rather than the scrolling list: this is a
                   build-time tool, and it should never be below the fold. */}
               {demoSlot ? (
-                <div className="mb-5 border-b border-line pb-5">
-                  <p className="mb-2 px-4 text-xs font-semibold tracking-[0.16em] text-faint uppercase">
+                <div className="mb-5">
+                  <p className="mb-2 px-4 text-xs font-semibold text-faint">
                     Demo logins
                   </p>
                   {demoSlot}

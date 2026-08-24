@@ -33,7 +33,7 @@ export default async function PricingPage() {
               <div
                 className={cn(
                   "relative flex h-full flex-col rounded-[var(--radius-sheet)] p-7",
-                  plan.popular ? "bg-accent text-accent-ink" : "border border-line bg-surface text-text",
+                  plan.popular ? "bg-accent text-accent-ink" : "bg-surface text-text",
                 )}
               >
                 {plan.popular ? (

@@ -59,15 +59,17 @@ export function WorkoutChecklist({ workout, readOnly = false }: { workout: Worko
               disabled={readOnly}
               aria-pressed={item.done}
               className={cn(
-                "flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-colors duration-200",
-                item.done ? "border-accent/40 bg-accent/[0.06]" : "border-line bg-ink",
-                readOnly ? "cursor-default" : "hover:border-accent/40",
+                "flex w-full items-center gap-4 rounded-2xl p-4 text-left transition-colors duration-200",
+                item.done ? "bg-accent/10" : "bg-raised",
+                readOnly ? "cursor-default" : "hover:bg-overlay",
               )}
             >
               <span
                 className={cn(
+                  // An empty box is the one place a line still earns its keep:
+                  // there is nothing else to see when the set is not done.
                   "grid h-6 w-6 shrink-0 place-items-center rounded-md border transition-colors",
-                  item.done ? "border-accent bg-accent text-accent-ink" : "border-line",
+                  item.done ? "border-accent bg-accent text-accent-ink" : "border-muted/40",
                 )}
               >
                 {item.done ? <Check className="h-4 w-4" /> : null}
@@ -84,7 +86,7 @@ export function WorkoutChecklist({ workout, readOnly = false }: { workout: Worko
       </ul>
 
       <div className="mt-5">
-        <label htmlFor={`note-${workout.id}`} className="mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+        <label htmlFor={`note-${workout.id}`} className="mb-2 block text-xs font-semibold text-faint">
           {readOnly ? "Their note" : "Your note"}
         </label>
         <textarea
@@ -96,7 +98,7 @@ export function WorkoutChecklist({ workout, readOnly = false }: { workout: Worko
           placeholder={
             readOnly ? "They have not left a note yet." : "How did it feel? What weights did you use?"
           }
-          className="w-full resize-y rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+          className="w-full resize-y rounded-2xl bg-raised px-4 py-3 text-sm text-text transition-colors placeholder:text-faint"
         />
         {!readOnly ? (
           <div className="mt-3 flex flex-wrap items-center gap-3">

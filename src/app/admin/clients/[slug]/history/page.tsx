@@ -135,7 +135,7 @@ export default async function AdminClientHistoryPage({
                 return (
                   <li
                     key={slot.id}
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3"
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-raised px-4 py-3"
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <Salad className="h-4 w-4 shrink-0 text-faint" />
@@ -177,7 +177,7 @@ export default async function AdminClientHistoryPage({
                   <li key={entry.id}>
                     <Link
                       href={`/admin/clients/${profile.id}/history?date=${entry.scheduledFor}&month=${entry.scheduledFor.slice(0, 7)}`}
-                      className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3 transition-colors hover:border-accent/40"
+                      className="flex items-center justify-between gap-4 rounded-2xl bg-raised px-4 py-3 transition-colors hover:bg-overlay"
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold">{entry.title}</span>

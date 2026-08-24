@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 const field =
-  "h-12 w-full rounded-2xl border border-line bg-ink px-4 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
+  "h-12 w-full rounded-2xl bg-raised px-4 text-base text-text transition-colors placeholder:text-faint";
 const label = "mb-2 block text-sm font-semibold text-text";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-10 sm:py-16">
       <Logo className="mx-auto" />
 
-      <div className="mt-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-6 sm:p-7">
+      <div className="mt-8 rounded-[var(--radius-sheet)] bg-surface p-6 sm:p-7">
         <h1 className="text-2xl">Sign in</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           For clients Dean is coaching. New here?{" "}
@@ -48,7 +48,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             and where somebody lands is read off their profile either way. */}
         <form action={signIn} className="mt-6 space-y-4">
           {query.e === "1" ? (
-            <p className="inline-flex items-start gap-2 rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+            <p className="inline-flex items-start gap-2 rounded-2xl bg-danger/10 p-3 text-sm text-danger">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
               {demo
                 ? "No account with that email. Check it, or apply to train."
@@ -102,8 +102,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </form>
 
         {demo ? (
-          <div className="mt-6 border-t border-line pt-5">
-            <p className="mb-3 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+          <div className="mt-6">
+            <p className="mb-3 text-xs font-semibold text-faint">
               Or look round with a demo account
             </p>
             <DemoSignIn />

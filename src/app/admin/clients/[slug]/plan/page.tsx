@@ -173,7 +173,7 @@ export default async function AdminClientPlanPage({
 
       <Link
         href={page(shiftDate(from, -PAGE))}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-raised text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
       >
         <ChevronUp className="h-4 w-4" />
         Earlier days
@@ -249,7 +249,7 @@ export default async function AdminClientPlanPage({
               <>
                 <Link
                   href={page(from)}
-                  className="inline-flex h-11 shrink-0 items-center rounded-full border border-line px-4 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent"
+                  className="inline-flex h-11 shrink-0 items-center rounded-full bg-raised px-4 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:bg-overlay hover:text-accent"
                 >
                   Close
                 </Link>
@@ -260,7 +260,7 @@ export default async function AdminClientPlanPage({
                     <input type="hidden" name="delta" value="2.5" />
                     <button
                       type="submit"
-                      className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-line px-4 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent"
+                      className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-raised px-4 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:bg-overlay hover:text-accent"
                     >
                       <TrendingUp className="h-3.5 w-3.5" />
                       +2.5kg on every set
@@ -388,7 +388,7 @@ export default async function AdminClientPlanPage({
 
       <Link
         href={page(shiftDate(from, PAGE))}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-raised text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
       >
         <ChevronDown className="h-4 w-4" />
         Later days
@@ -426,22 +426,22 @@ function PastDay({
   historyHref: string;
 }) {
   return (
-    <div className="rounded-[var(--radius-sheet)] border border-line bg-surface">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+    <div className="rounded-[var(--radius-sheet)] bg-surface">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 pb-2">
         <div className="min-w-0">
           <h2 className="truncate text-base font-semibold">{title}</h2>
           <p className="truncate text-xs text-faint">{summary}</p>
         </div>
         <Link
           href={closeHref}
-          className="inline-flex h-11 shrink-0 items-center rounded-full border border-line px-4 text-xs font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+          className="inline-flex h-11 shrink-0 items-center rounded-full bg-raised px-4 text-xs font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
         >
           Close
         </Link>
       </header>
 
       <div className="space-y-5 p-5">
-        <p className="inline-flex items-start gap-2 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted">
+        <p className="inline-flex items-start gap-2 rounded-2xl bg-raised p-4 text-sm leading-relaxed text-muted">
           <Lock className="mt-0.5 h-4 w-4 shrink-0 text-faint" />
           This day has been and gone, so it stays as it was. Change next{" "}
           {weekdayName} instead.
@@ -451,7 +451,7 @@ function PastDay({
 
         {exercises.length > 0 ? (
           <div>
-            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">Training</p>
+            <p className="text-xs font-semibold text-faint">Training</p>
             <ul className="mt-2 space-y-1">
               {exercises.map((name) => (
                 <li key={name} className="text-sm text-muted">
@@ -464,7 +464,7 @@ function PastDay({
 
         {meals.length > 0 ? (
           <div>
-            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">Meals</p>
+            <p className="text-xs font-semibold text-faint">Meals</p>
             <ul className="mt-2 space-y-1">
               {meals.map((name) => (
                 <li key={name} className="text-sm text-muted">
@@ -485,7 +485,7 @@ function PastDay({
           </Link>
           <Link
             href={historyHref}
-            className="inline-flex h-12 flex-1 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex h-12 flex-1 items-center justify-center rounded-full bg-raised px-5 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
           >
             See what they did
           </Link>

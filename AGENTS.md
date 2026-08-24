@@ -26,12 +26,27 @@ Tailwind v4, TypeScript. Fully static; no backend.
   (`@theme`). Change both together.
 - Prefer semantic colour utilities (`bg-surface`, `text-muted`, `border-line`)
   over raw hex.
-- The look is minimal and dark: flat surfaces, hairline borders, generous
-  whitespace, one cyan accent. No gradients, texture overlays, glows, or
-  condensed/uppercase display type. The only saturated block on a page is the
-  accent CTA band.
-- Cards use `border border-line bg-surface` and `rounded-[var(--radius-sheet)]`;
-  a card's visual identity comes from an `IconTile`, not from imagery.
+- The look is minimal and dark: the page is true black, surfaces are flat,
+  whitespace is generous and there is one cyan accent. No gradients, texture
+  overlays, glows, or condensed/uppercase display type — small labels are
+  sentence case, not tracked capitals. The only saturated block on a page is
+  the accent CTA band.
+- **Tone separates, not lines.** Each layer is a step up from the one under it:
+  `ink` (the page) → `surface` (a card) → `raised` (a row or control inside a
+  card) → `overlay` (a control inside a row). Something nested must always sit
+  one step *above* its parent, never level with it or below — level is
+  invisible, below reads as a hole. Four levels is the whole ramp, so if you
+  need a fifth, the layout is too deep.
+- Cards use `bg-surface` and `rounded-[var(--radius-sheet)]` with **no border**;
+  a card's visual identity comes from an `IconTile`, not from imagery or an
+  outline. Images and avatars carry no border either.
+- `border-line` is for genuine rules only — the underside of a sticky header, a
+  sheet's pinned header and footer, separators between list rows. Never to
+  outline a card, a control, a field or a callout. A tinted callout is its tint
+  alone (`bg-amber/10`), a filled control its fill (`bg-raised`).
+- Fields are filled, not outlined, and set no `focus:outline-none`: the base
+  `:focus-visible` rule in `globals.css` is their focus ring. The one exception
+  to all of this is an empty checkbox, which has nothing but a line to show.
 
 ## Navigation
 

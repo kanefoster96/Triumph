@@ -7,13 +7,20 @@
  */
 
 export const palette = {
-  // Surfaces, darkest to lightest. Cool near-black rather than pure black —
-  // it sits better under a cyan accent.
-  ink: "#0A0E13",
+  // Surfaces, darkest to lightest.
+  //
+  // The page itself is true black, and every layer above it is a step up in
+  // tone. That step is what separates a card from the page, so cards carry no
+  // border: `surface` on `ink` is a wider gap than the hairline ever drew.
+  // Each level must stay clearly lighter than the one below, or a nested row
+  // loses its only edge.
+  ink: "#000000",
   surface: "#111820",
-  raised: "#16202B",
-  overlay: "#1C2733",
-  line: "#22303D",
+  raised: "#1A242E",
+  overlay: "#232E3A",
+  // Only for genuine rules — a divider between rows, the underside of a
+  // header. Never to outline a card.
+  line: "#1F2A35",
 
   // Text.
   text: "#F2F6F9",

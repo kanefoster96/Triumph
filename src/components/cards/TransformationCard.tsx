@@ -6,8 +6,8 @@ import { Chip } from "@/components/ui/Chip";
 
 function Metric({ metric }: { metric: MetricDelta }) {
   return (
-    <div className="rounded-xl border border-line bg-ink px-3 py-2.5">
-      <p className="text-[11px] tracking-wide text-faint uppercase">{metric.label}</p>
+    <div className="rounded-xl bg-raised px-3 py-2.5">
+      <p className="text-[11px] text-faint">{metric.label}</p>
       <p
         className={cn(
           "mt-1 text-sm font-semibold",
@@ -30,7 +30,7 @@ export function TransformationCard({
   return (
     <article
       className={cn(
-        "flex flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-6",
+        "flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
         className,
       )}
     >
@@ -55,7 +55,7 @@ export function TransformationCard({
 
       <Link
         href={`/coaching/${transformation.programmeSlug}`}
-        className="mt-5 inline-flex items-center gap-1.5 border-t border-line pt-4 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
+        className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
       >
         See the programme
         <ArrowRight className="h-4 w-4" />

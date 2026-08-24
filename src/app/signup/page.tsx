@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 const field =
-  "h-12 w-full rounded-2xl border border-line bg-ink px-4 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
+  "h-12 w-full rounded-2xl bg-raised px-4 text-base text-text transition-colors placeholder:text-faint";
 const label = "mb-2 block text-sm font-semibold text-text";
 
 const MESSAGES: Record<string, string> = {
@@ -45,7 +45,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-10 sm:py-16">
       <Logo className="mx-auto" />
 
-      <div className="mt-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-6 sm:p-7">
+      <div className="mt-8 rounded-[var(--radius-sheet)] bg-surface p-6 sm:p-7">
         <h1 className="text-2xl">Create an account</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           Email and a password. You are straight in — your name and photo can wait.
@@ -53,7 +53,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
 
         <form action={createAccount} className="mt-6 space-y-4">
           {error ? (
-            <p className="inline-flex items-start gap-2 rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+            <p className="inline-flex items-start gap-2 rounded-2xl bg-danger/10 p-3 text-sm text-danger">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
               {error}
             </p>
@@ -106,7 +106,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
 
         {/* The other door, said plainly. Somebody who wants coaching should not
             have to work out that this is not it. */}
-        <p className="mt-6 border-t border-line pt-5 text-sm leading-relaxed text-muted">
+        <p className="mt-6 text-sm leading-relaxed text-muted">
           Want online training with Dean?{" "}
           <Link href="/join" className="font-semibold text-accent hover:underline">
             Apply here

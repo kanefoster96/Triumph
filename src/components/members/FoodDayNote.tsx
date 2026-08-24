@@ -34,7 +34,7 @@ export function FoodDayNote({ date, existing }: { date: string; existing: string
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-line bg-ink px-4 py-3 text-left transition-colors hover:border-accent/40"
+        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-raised px-4 py-3 text-left transition-colors hover:bg-overlay"
       >
         <MessageSquare className="h-4 w-4 shrink-0 text-accent" />
         <span className="min-w-0 flex-1">
@@ -48,7 +48,7 @@ export function FoodDayNote({ date, existing }: { date: string; existing: string
   }
 
   return (
-    <div className="space-y-2 rounded-2xl border border-line bg-ink p-4">
+    <div className="space-y-2 rounded-2xl bg-raised p-4">
       <p className="text-sm font-semibold">Any notes for me about your meals today?</p>
       <textarea
         rows={3}
@@ -57,7 +57,7 @@ export function FoodDayNote({ date, existing }: { date: string; existing: string
         value={note}
         onChange={(event) => setNote(event.target.value)}
         placeholder="Ran out of time for lunch, had a sandwich instead."
-        className="w-full resize-y rounded-2xl border border-line bg-surface px-4 py-3 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+        className="w-full resize-y rounded-2xl bg-overlay px-4 py-3 text-base text-text transition-colors placeholder:text-faint"
       />
       <div className="flex gap-2">
         <button

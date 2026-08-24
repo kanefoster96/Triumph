@@ -181,7 +181,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                 {exercise ? (
                   <Link
                     href="/admin/library"
-                    className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
+                    className="rounded-full bg-raised px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
                   >
                     Cancel
                   </Link>
@@ -198,7 +198,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                 {shownExercises.map((entry) => (
                   <li
                     key={entry.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ink px-4 py-3"
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-raised px-4 py-3"
                   >
                     <Link
                       href={`/admin/library?exercise=${entry.id}`}
@@ -320,7 +320,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                 {meal ? (
                   <Link
                     href="/admin/library"
-                    className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
+                    className="rounded-full bg-raised px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
                   >
                     Cancel
                   </Link>
@@ -338,7 +338,7 @@ export default async function AdminLibraryPage({ searchParams }: PageProps<"/adm
                   const suspect = entry.method.filter(looksLikeQuantity).length;
                   const unitless = entry.ingredients.filter(needsUnit).length;
                   return (
-                    <li key={entry.id} className="rounded-2xl border border-line bg-ink px-4 py-3">
+                    <li key={entry.id} className="rounded-2xl bg-raised px-4 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <Link
                           href={`/admin/library?meal=${entry.id}`}

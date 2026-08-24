@@ -42,7 +42,7 @@ export function FillOptions({
   const [copying, startCopy] = useTransition();
 
   const chip =
-    "inline-flex h-11 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent";
+    "inline-flex h-11 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full bg-raised px-3 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:bg-overlay hover:text-accent";
 
   return (
     <div className="flex flex-wrap items-center gap-2">

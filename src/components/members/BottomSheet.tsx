@@ -71,7 +71,7 @@ export function BottomSheet({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[85dvh] w-full flex-col rounded-t-[var(--radius-sheet)] border border-line bg-surface sm:max-w-lg sm:rounded-[var(--radius-sheet)]"
+        className="relative flex max-h-[85dvh] w-full flex-col rounded-t-[var(--radius-sheet)] bg-surface sm:max-w-lg sm:rounded-[var(--radius-sheet)]"
       >
         {/* The grab handle is decoration, but it is the thing that says
             "this came up and can go back down" without any words. */}

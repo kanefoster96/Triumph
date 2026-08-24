@@ -8,18 +8,19 @@ interface ChipProps {
   size?: "sm" | "md";
 }
 
+/** Tint only — a chip is small enough that a fill reads without an outline. */
 const tones = {
-  default: "bg-raised text-muted border-line",
-  accent: "bg-accent/10 text-accent border-accent/25",
-  amber: "bg-amber/10 text-amber border-amber/25",
-  success: "bg-success/10 text-success border-success/25",
+  default: "bg-raised text-muted",
+  accent: "bg-accent/10 text-accent",
+  amber: "bg-amber/10 text-amber",
+  success: "bg-success/10 text-success",
 } as const;
 
 export function Chip({ children, tone = "default", className, size = "sm" }: ChipProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border font-medium whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full font-medium whitespace-nowrap",
         size === "sm" ? "px-3 py-1 text-xs" : "px-4 py-1.5 text-sm",
         tones[tone],
         className,
