@@ -25,7 +25,7 @@ export function TestimonialCard({
       <figcaption className="mt-6">
         <p className="text-sm font-semibold">{testimonial.name}</p>
         <p className="mt-0.5 text-xs text-faint">
-          {testimonial.programme} · {relativeDate(testimonial.date)}
+          {testimonial.goal} · {relativeDate(testimonial.date)}
         </p>
       </figcaption>
     </figure>

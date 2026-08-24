@@ -177,7 +177,7 @@ labelled **Portion** with fractions.
 
 The public way in is `/join` — a three-step wizard that creates an account and
 an `Application`. There is no plan to pick and no price to choose because there
-is no shelf of programmes: Dean reads the application in `/admin/requests` and
+is no shelf of plans: Dean reads the application in `/admin/requests` and
 enrols them, which flips the profile from `applicant` to `active` and opens
 their week. Coaching is online only on every public surface.
 
@@ -230,3 +230,21 @@ yes and the plan never changing.
 ## Checks
 
 `npm run build` and `npm run lint` should both pass clean before committing.
+
+## Goals are people
+
+`lib/data/goals.ts` holds five **people**, not five products: busy parents,
+somebody who has dieted before, somebody back after time off, somebody on
+shifts, and somebody whose numbers have stopped moving. They are drawn from the
+specialties on `coach.ts`, so the about page and the goals never drift apart.
+
+A `Goal` therefore carries no level and no price — everything is the same
+monthly coaching — and its three lists answer the three questions a visitor
+actually has, in order: `whoFor` (is this me), `howIHelp` (what would you do
+about it), `outcomes` (where does it get me). The detail page renders them
+under exactly those headings.
+
+Renaming a goal changes its slug, which breaks any link already published, so
+retire the old slug with a redirect in `next.config.ts` rather than leaving a
+404. `transformations.ts` and `testimonials.ts` both point at goals — the first
+by `goalSlug`, which must resolve, the second by `goal`, which is only a label.

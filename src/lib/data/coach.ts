@@ -14,7 +14,7 @@ export const coach: Coach = {
   highlights: [
     "Coaching clients online across the UK",
     "In-person sessions in Newcastle upon Tyne",
-    "Programmes built around real family schedules",
+    "Plans built around real family schedules",
     "Plans adjusted every week, not every quarter",
   ],
   // Intentionally empty — add real certifications here and they render

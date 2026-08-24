@@ -16,7 +16,7 @@
  *   3. `paymentStateFor` reads those columns instead of returning "unwired".
  *
  * Deliberately free of React and Next imports so it can move to the app, and
- * free of any price: Dean builds a programme per person, so what somebody pays
+ * free of any price: Dean builds a plan per person, so what somebody pays
  * is a number he sets on their application, not a tier they picked.
  */
 

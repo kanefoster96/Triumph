@@ -18,7 +18,7 @@ export const transformations: Transformation[] = [
       { label: "Waist", value: "104 → 88cm", direction: "down" },
       { label: "Bench press", value: "80 → 85kg", direction: "up" },
     ],
-    programmeSlug: "fat-loss",
+    goalSlug: "lost-it-before",
     visual: "conditioning",
   },
   {
@@ -33,7 +33,7 @@ export const transformations: Transformation[] = [
       { label: "Back squat", value: "70 → 102kg", direction: "up" },
       { label: "Bodyweight", value: "62kg held", direction: "flat" },
     ],
-    programmeSlug: "strength-and-muscle",
+    goalSlug: "stuck-at-the-same-numbers",
     visual: "strength",
   },
   {
@@ -48,7 +48,7 @@ export const transformations: Transformation[] = [
       { label: "Sessions hit", value: "89%", direction: "up" },
       { label: "Injuries", value: "None", direction: "flat" },
     ],
-    programmeSlug: "parent-reset",
+    goalSlug: "busy-parents",
     visual: "mobility",
   },
   {
@@ -63,7 +63,7 @@ export const transformations: Transformation[] = [
       { label: "10k", value: "58:40 → 51:15", direction: "down" },
       { label: "Sessions hit", value: "91%", direction: "up" },
     ],
-    programmeSlug: "fat-loss",
+    goalSlug: "shift-work-and-travel",
     visual: "online",
   },
   {
@@ -78,7 +78,7 @@ export const transformations: Transformation[] = [
       { label: "Back squat", value: "120 → 130kg", direction: "up" },
       { label: "Weekly km", value: "28 → 52", direction: "up" },
     ],
-    programmeSlug: "hybrid",
+    goalSlug: "stuck-at-the-same-numbers",
     visual: "hybrid",
   },
   {
@@ -93,7 +93,7 @@ export const transformations: Transformation[] = [
       { label: "Deadlift", value: "100 → 150kg", direction: "up" },
       { label: "Weeks on plan", value: "32", direction: "up" },
     ],
-    programmeSlug: "strength-and-muscle",
+    goalSlug: "shift-work-and-travel",
     visual: "strength",
   },
 ];

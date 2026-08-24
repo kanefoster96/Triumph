@@ -496,7 +496,7 @@ export interface Question {
  * Somebody applying to train with Dean.
  *
  * There is no plan to pick and no price to choose at signup, because there is
- * no shelf of programmes — Dean builds one per person. So this is an
+ * no shelf of plans — Dean builds one per person. So this is an
  * application rather than a purchase: they tell him who they are and what they
  * are after, he reads it, and he either enrols them or he does not.
  *

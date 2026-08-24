@@ -28,7 +28,7 @@ export default async function ResultsPage() {
       <PageHeader
         eyebrow="Results"
         title="The receipts"
-        description="Every result below is a real client on a named programme, with the timeframe attached. Numbers are self-reported at testing weeks and rounded to something honest."
+        description="Every result below is a real client on a named goal, with the timeframe attached. Numbers are self-reported at testing weeks and rounded to something honest."
       />
 
       <Container className="pb-8">
