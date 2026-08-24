@@ -75,7 +75,7 @@ export default async function AdminSchedulePage({ searchParams }: PageProps<"/ad
             ) : (
               <ul className="space-y-3">
                 {onSelectedDay.map((session) => (
-                  <li key={session.id} className="rounded-2xl border border-line bg-ink p-4">
+                  <li key={session.id} className="rounded-2xl bg-raised p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-4">
                         <span className="font-display text-lg font-bold text-accent tabular-nums">

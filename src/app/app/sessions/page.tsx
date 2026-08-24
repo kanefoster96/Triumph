@@ -136,7 +136,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
               <ul className="space-y-3">
                 {onSelectedDay.map((item) =>
                   item.kind === "session" ? (
-                    <li key={item.session.id} className="rounded-2xl border border-line bg-ink p-4">
+                    <li key={item.session.id} className="rounded-2xl bg-raised p-4">
                       <div className="flex items-start gap-4">
                         <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
                         <div>
@@ -155,7 +155,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                       </div>
                     </li>
                   ) : (
-                    <li key={item.workout.id} className="rounded-2xl border border-line bg-ink p-4">
+                    <li key={item.workout.id} className="rounded-2xl bg-raised p-4">
                       <div className="flex items-start gap-4">
                         <Dumbbell className="mt-0.5 h-5 w-5 shrink-0 text-muted" />
                         <div>
@@ -190,7 +190,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                   item.kind === "session" ? (
                     <li
                       key={item.session.id}
-                      className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-ink p-5"
+                      className="flex flex-wrap items-start justify-between gap-3 rounded-2xl bg-raised p-5"
                     >
                       <div>
                         <p className="font-semibold">{formatWhen(item.session.startsAt)}</p>
@@ -204,7 +204,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                   ) : (
                     <li
                       key={item.workout.id}
-                      className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-ink p-5"
+                      className="flex flex-wrap items-start justify-between gap-3 rounded-2xl bg-raised p-5"
                     >
                       <div className="min-w-0">
                         <p className="font-semibold">{item.workout.title}</p>
@@ -229,7 +229,7 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
             <Panel title="Past sessions">
               <ul className="space-y-3">
                 {past.slice(0, 6).map((session) => (
-                  <li key={session.id} className="rounded-2xl border border-line bg-ink p-5">
+                  <li key={session.id} className="rounded-2xl bg-raised p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-muted">{formatWhen(session.startsAt)}</p>
@@ -243,8 +243,8 @@ export default async function SessionsPage({ searchParams }: PageProps<"/app/ses
                     </div>
 
                     {session.coachNotes ? (
-                      <div className="mt-4 rounded-2xl bg-raised p-4">
-                        <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                      <div className="mt-4 rounded-2xl bg-overlay p-4">
+                        <p className="text-xs font-semibold text-faint">
                           My notes
                         </p>
                         <p className="mt-2 text-sm leading-relaxed text-muted">{session.coachNotes}</p>

@@ -42,9 +42,9 @@ export function Avatar({
   className?: string;
 }) {
   const shell = cn(
-    "grid shrink-0 place-items-center overflow-hidden rounded-full border font-semibold select-none",
+    "grid shrink-0 place-items-center overflow-hidden rounded-full font-semibold select-none",
     SIZES[size],
-    ring ? "border-accent/60 ring-2 ring-accent/20" : "border-line",
+    ring && "ring-2 ring-accent/50",
     className,
   );
 

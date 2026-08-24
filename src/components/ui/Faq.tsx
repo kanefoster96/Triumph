@@ -12,7 +12,7 @@ export function Faq({ items, className }: { items: FaqItem[]; className?: string
       {items.map((item) => (
         <details
           key={item.id}
-          className="group rounded-[var(--radius-sheet)] border border-line bg-surface open:border-accent/30"
+          className="group rounded-[var(--radius-sheet)] bg-surface"
         >
           <summary className="flex cursor-pointer list-none items-center gap-4 p-5 text-left [&::-webkit-details-marker]:hidden">
             <h3 className="flex-1 text-base leading-snug font-semibold">{item.question}</h3>

@@ -81,7 +81,7 @@ export default async function ProgrammePage({ params }: PageProps<"/coaching/[sl
               {programme.whoFor.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted"
+                  className="flex items-start gap-3 rounded-2xl bg-raised p-4 text-sm leading-relaxed text-muted"
                 >
                   <UserRound className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
                   {item}
@@ -96,7 +96,7 @@ export default async function ProgrammePage({ params }: PageProps<"/coaching/[sl
               {programme.typicalWeek.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted"
+                  className="flex items-start gap-3 rounded-2xl bg-raised p-4 text-sm leading-relaxed text-muted"
                 >
                   <Check className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
                   {item}
@@ -114,7 +114,7 @@ export default async function ProgrammePage({ params }: PageProps<"/coaching/[sl
               {programme.outcomes.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-sm leading-relaxed text-muted"
+                  className="flex items-start gap-3 rounded-2xl bg-raised p-4 text-sm leading-relaxed text-muted"
                 >
                   <Target className="mt-0.5 h-4.5 w-4.5 shrink-0 text-accent" />
                   {item}

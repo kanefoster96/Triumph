@@ -95,7 +95,7 @@ export function PickerSheet({
           setOpen(true);
         }}
         className={cn(
-          "flex min-h-11 w-full items-center gap-2 rounded-2xl border border-line bg-ink px-4 py-2.5 text-left text-sm transition-colors hover:border-accent/50",
+          "flex min-h-11 w-full items-center gap-2 rounded-2xl bg-raised px-4 py-2.5 text-left text-sm transition-colors hover:bg-overlay",
           className,
         )}
       >
@@ -138,7 +138,7 @@ export function PickerSheet({
               {groups.map((group) => (
                 <div key={group.name ?? "all"}>
                   {group.name ? (
-                    <h3 className="mb-1.5 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                    <h3 className="mb-1.5 text-xs font-semibold text-faint">
                       {group.name}
                     </h3>
                   ) : null}
@@ -154,10 +154,8 @@ export function PickerSheet({
                               setOpen(false);
                             }}
                             className={cn(
-                              "flex min-h-[3.25rem] w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
-                              picked
-                                ? "border-accent bg-accent/10"
-                                : "border-line bg-ink hover:border-accent/40",
+                              "flex min-h-[3.25rem] w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors",
+                              picked ? "bg-accent/15" : "bg-raised hover:bg-overlay",
                             )}
                           >
                             <span className="min-w-0 flex-1">

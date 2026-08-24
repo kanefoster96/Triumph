@@ -75,7 +75,7 @@ export function CopyFromClient({
       <button
         type="button"
         onClick={openSheet}
-        className="inline-flex h-11 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex h-11 flex-1 shrink-0 items-center justify-center gap-1.5 rounded-full bg-raised px-3 text-xs font-semibold whitespace-nowrap text-muted transition-colors hover:bg-overlay hover:text-accent"
       >
         <Sparkles className="h-3.5 w-3.5" />
         From another client
@@ -146,7 +146,7 @@ export function CopyFromClient({
                       type="button"
                       onClick={() => pickClient(source)}
                       disabled={source.dayCount === 0}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-line bg-ink p-3 text-left transition-colors enabled:hover:border-accent/40 disabled:opacity-50"
+                      className="flex w-full items-center gap-3 rounded-2xl bg-raised p-3 text-left transition-colors enabled:hover:bg-overlay disabled:opacity-50"
                     >
                       <Avatar name={source.name} src={source.avatarUrl} size="sm" />
                       <span className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ function DayList({ days, onPick }: { days: CopyDay[]; onPick: (day: CopyDay) => 
           <button
             type="button"
             onClick={() => onPick(day)}
-            className="w-full rounded-2xl border border-line bg-ink p-3 text-left transition-colors hover:border-accent/40"
+            className="w-full rounded-2xl bg-raised p-3 text-left transition-colors hover:bg-overlay"
           >
             <span className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 truncate text-sm font-semibold">
@@ -221,7 +221,7 @@ function Preview({
   return (
     <div className="space-y-4">
       {day.exercises.length > 0 ? (
-        <ul className="space-y-1.5 rounded-2xl border border-line bg-ink p-4">
+        <ul className="space-y-1.5 rounded-2xl bg-raised p-4">
           {day.exercises.map((line) => (
             <li key={line} className="text-sm text-muted">
               {line}
@@ -233,8 +233,8 @@ function Preview({
       )}
 
       {day.meals.length > 0 ? (
-        <div className="rounded-2xl border border-line bg-ink p-4">
-          <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+        <div className="rounded-2xl bg-raised p-4">
+          <p className="text-xs font-semibold text-faint">
             Food{day.calorieTarget ? ` · ${day.calorieTarget.toLocaleString("en-GB")} kcal` : ""}
           </p>
           <ul className="mt-2 space-y-1">

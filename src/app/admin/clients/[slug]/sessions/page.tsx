@@ -64,7 +64,7 @@ export default async function AdminClientSessionsPage({
                 <li key={day.date}>
                   <Link
                     href={`/admin/clients/${profile.id}/plan?date=${day.date}#day-${day.date}`}
-                    className="flex min-h-16 items-center gap-3 rounded-2xl border border-line bg-ink px-4 py-3 transition-colors hover:border-accent/40"
+                    className="flex min-h-16 items-center gap-3 rounded-2xl bg-raised px-4 py-3 transition-colors hover:bg-overlay"
                   >
                     <Dumbbell className="h-4 w-4 shrink-0 text-faint" />
                     <span className="min-w-0 flex-1">
@@ -151,7 +151,7 @@ export default async function AdminClientSessionsPage({
         ) : (
           <ul className="space-y-3">
             {upcoming.map((session) => (
-              <li key={session.id} className="rounded-2xl border border-line bg-ink p-4">
+              <li key={session.id} className="rounded-2xl bg-raised p-4">
                 <form action={saveSession} className="space-y-3">
                   <input type="hidden" name="id" value={session.id} />
                   <input type="hidden" name="clientId" value={profile.id} />
@@ -207,7 +207,7 @@ export default async function AdminClientSessionsPage({
                     "use server";
                     await deleteSession(session.id);
                   }}
-                  className="mt-3 border-t border-line pt-3"
+                  className="mt-3"
                 >
                   <button type="submit" className="-my-2 inline-flex min-h-11 items-center text-xs font-semibold text-danger">
                     Cancel this session
@@ -225,7 +225,7 @@ export default async function AdminClientSessionsPage({
         ) : (
           <ul className="space-y-3">
             {past.map((session) => (
-              <li key={session.id} className="rounded-2xl border border-line bg-ink p-4">
+              <li key={session.id} className="rounded-2xl bg-raised p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-sm font-semibold text-muted">
                     {formatWhen(session.startsAt)}
@@ -246,7 +246,7 @@ export default async function AdminClientSessionsPage({
                     defaultValue={session.coachNotes ?? ""}
                     placeholder="Session notes for the client…"
                     aria-label="Session notes"
-                    className="min-w-0 flex-1 rounded-full border border-line bg-ink px-4 py-2 text-sm placeholder:text-faint focus:border-accent focus:outline-none"
+                    className="min-w-0 flex-1 rounded-full bg-overlay px-4 py-2 text-sm placeholder:text-faint"
                   />
                   <button type="submit" className="inline-flex min-h-11 shrink-0 items-center text-sm font-semibold text-accent">
                     Save this note

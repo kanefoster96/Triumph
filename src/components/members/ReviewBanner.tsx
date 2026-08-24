@@ -28,11 +28,11 @@ export function ReviewBanner({
   notes: ClientNote[];
 }) {
   return (
-    <div className="mb-5 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
+    <div className="mb-5 rounded-[var(--radius-sheet)] bg-accent/10 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Avatar name={clientName} src={avatarUrl} size="sm" />
-          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold text-accent">
             <MessageSquareText className="h-3.5 w-3.5" />
             What {clientName.split(" ")[0]} said
           </p>

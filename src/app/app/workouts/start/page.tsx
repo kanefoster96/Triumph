@@ -102,7 +102,7 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
                       defaultChecked={feeling.value === 4}
                       className="peer sr-only"
                     />
-                    <span className="inline-flex flex-col items-center gap-1 rounded-2xl border border-line px-4 py-3 text-2xl transition-colors peer-checked:border-accent peer-checked:bg-accent/10 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
+                    <span className="inline-flex flex-col items-center gap-1 rounded-2xl bg-raised px-4 py-3 text-2xl transition-colors peer-checked:bg-accent/15 peer-checked:bg-accent/10 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
                       {feeling.emoji}
                       <span className="text-xs font-semibold text-muted">{feeling.label}</span>
                     </span>
@@ -130,7 +130,7 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
               </button>
               <Link
                 href={href(items.length - 1)}
-                className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
+                className="rounded-full bg-raised px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
               >
                 Back
               </Link>
@@ -154,14 +154,14 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
       />
 
       {item.howTo ? (
-        <div className="mb-5 flex items-start gap-3 rounded-[var(--radius-sheet)] border border-line bg-surface p-4">
+        <div className="mb-5 flex items-start gap-3 rounded-[var(--radius-sheet)] bg-surface p-4">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
           <p className="text-sm leading-relaxed text-muted">{item.howTo}</p>
         </div>
       ) : null}
 
       {last ? (
-        <div className="mb-5 rounded-[var(--radius-sheet)] border border-line bg-surface p-4">
+        <div className="mb-5 rounded-[var(--radius-sheet)] bg-surface p-4">
           <p className={fieldLabel}>Last time</p>
           <p className="text-sm text-muted">
             {last.sets.map((set) => `${weightLabel(set.weightKg)} × ${set.reps ?? "—"}`).join("  ·  ")}
@@ -176,8 +176,8 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
             <li
               key={set.id}
               className={cn(
-                "rounded-2xl border p-4",
-                set.doneAt ? "border-accent/40 bg-accent/[0.06]" : "border-line bg-ink",
+                "rounded-2xl p-4",
+                set.doneAt ? "bg-accent/10" : "bg-raised",
               )}
             >
               <form action={logSet} className="flex flex-wrap items-end gap-3">
@@ -258,7 +258,7 @@ export default async function StartWorkoutPage({ searchParams }: PageProps<"/app
           </div>
           <button
             type="submit"
-            className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
+            className="rounded-full bg-raised px-5 py-2.5 text-sm font-semibold text-muted transition-colors hover:text-text"
           >
             Skip
           </button>

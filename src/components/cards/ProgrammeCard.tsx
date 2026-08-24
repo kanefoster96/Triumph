@@ -10,8 +10,8 @@ export function ProgrammeCard({ programme, className }: { programme: Programme; 
     <Link
       href={`/coaching/${programme.slug}`}
       className={cn(
-        "group flex flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-6",
-        "transition-colors duration-200 hover:border-accent/40",
+        "group flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
+        "transition-colors duration-200 hover:bg-raised",
         className,
       )}
     >
@@ -27,7 +27,7 @@ export function ProgrammeCard({ programme, className }: { programme: Programme; 
       <p className="mt-1.5 text-sm font-medium text-accent">{programme.tagline}</p>
       <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted">{programme.summary}</p>
 
-      <span className="mt-6 inline-flex items-center gap-1.5 border-t border-line pt-4 text-sm font-semibold text-accent">
+      <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
         See how it works
         <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>

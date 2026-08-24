@@ -96,7 +96,7 @@ export default async function MyProfilePage({ searchParams }: PageProps<"/app/pr
           <Link
             href="/logout"
             prefetch={false}
-            className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-line text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-raised text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
           >
             <LogOut className="h-4 w-4" />
             Sign out

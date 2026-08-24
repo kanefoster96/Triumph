@@ -22,7 +22,7 @@ export function MediaFrame({ visual, src, alt = "", className, caption, children
   return (
     <div
       className={cn(
-        "relative isolate overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-surface",
+        "relative isolate overflow-hidden rounded-[var(--radius-sheet)] bg-surface",
         className,
       )}
     >

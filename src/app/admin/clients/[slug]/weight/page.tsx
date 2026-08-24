@@ -84,7 +84,7 @@ export default async function AdminClientWeightPage({
         ) : (
           <ul className="space-y-2">
             {entries.map((entry) => (
-              <li key={entry.id} className="rounded-2xl border border-line bg-ink p-4">
+              <li key={entry.id} className="rounded-2xl bg-raised p-4">
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="text-sm text-muted">{relativeDate(entry.loggedFor)}</span>
                   <span className="font-display text-lg font-bold">

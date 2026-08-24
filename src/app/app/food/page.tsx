@@ -105,7 +105,7 @@ export default async function FoodPage() {
         action={
           <Link
             href="/app/food/shopping"
-            className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-2 rounded-full bg-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
           >
             <ShoppingBasket className="h-4 w-4" />
             Shopping list
@@ -152,7 +152,7 @@ export default async function FoodPage() {
             <div className="space-y-5">
               {bySlot.map((group) => (
                 <div key={group.slot}>
-                  <p className="mb-2 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                  <p className="mb-2 text-xs font-semibold text-faint capitalize">
                     {group.slot}
                   </p>
                   <ul className="space-y-2">
@@ -164,8 +164,8 @@ export default async function FoodPage() {
                         <li
                           key={entry.id}
                           className={cn(
-                            "flex items-center gap-3 rounded-2xl border p-3",
-                            done ? "border-accent/40 bg-accent/[0.06]" : "border-line bg-ink",
+                            "flex items-center gap-3 rounded-2xl p-3",
+                            done ? "bg-accent/10" : "bg-raised",
                           )}
                         >
                           <Link
@@ -210,7 +210,7 @@ export default async function FoodPage() {
                                   "grid h-7 w-7 place-items-center rounded-lg border-2 transition-colors",
                                   done
                                     ? "border-accent bg-accent text-accent-ink"
-                                    : "border-faint bg-ink group-hover/tick:border-accent",
+                                    : "border-faint group-hover/tick:border-accent",
                                 )}
                               >
                                 {done ? <Check className="h-4.5 w-4.5" strokeWidth={3} /> : null}
@@ -328,8 +328,8 @@ export default async function FoodPage() {
                   <li
                     key={log.id}
                     className={cn(
-                      "rounded-2xl border p-4",
-                      over ? "border-amber/40 bg-amber/[0.05]" : "border-line bg-ink",
+                      "rounded-2xl p-4",
+                      over ? "bg-amber/10" : "bg-raised",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -396,7 +396,7 @@ export default async function FoodPage() {
                 return (
                   <li
                     key={day}
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3.5"
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-raised px-4 py-3.5"
                   >
                     <span className="text-sm text-muted">
                       {new Date(`${day}T12:00:00Z`).toLocaleDateString("en-GB", {

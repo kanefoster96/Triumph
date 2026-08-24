@@ -33,7 +33,7 @@ export default async function ResultsPage() {
 
       <Container className="pb-8">
         <Reveal>
-          <dl className="grid grid-cols-2 gap-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-8 text-center lg:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-8 rounded-[var(--radius-sheet)] bg-surface p-8 text-center lg:grid-cols-4">
             {summary.map((item) => (
               <div key={item.label}>
                 <dd className="font-display text-3xl font-bold tracking-tight text-accent sm:text-4xl">{item.value}</dd>

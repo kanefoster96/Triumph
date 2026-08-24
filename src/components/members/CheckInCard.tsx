@@ -126,9 +126,9 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
   return (
     <article
       id={`client-${id}`}
-      className="scroll-mt-24 rounded-[var(--radius-sheet)] border border-line bg-surface"
+      className="scroll-mt-24 rounded-[var(--radius-sheet)] bg-surface"
     >
-      <header className="flex flex-wrap items-start gap-3 border-b border-line px-5 py-4">
+      <header className="flex flex-wrap items-start gap-3 px-5 pt-5 pb-2">
         {/* Thirty cards read as a list of names without this — the face is
             what tells him whose week he is about to judge. */}
         <Avatar name={profile.fullName} src={profile.avatarUrl} size="md" />
@@ -200,8 +200,8 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
             red: they turned up and closed the day out honestly, which is the
             behaviour worth keeping — the plan is what needs looking at. */}
         {missedDays.length > 0 ? (
-          <div className="rounded-2xl border border-amber/30 bg-amber/[0.05] p-4">
-            <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-amber uppercase">
+          <div className="rounded-2xl bg-amber/10 p-4">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold text-amber">
               <TriangleAlert className="h-3.5 w-3.5" />
               Finished, but missed something
             </p>
@@ -226,8 +226,8 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
         ) : null}
 
         {notes.length > 0 ? (
-          <div className="rounded-2xl border border-line bg-ink p-4">
-            <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+          <div className="rounded-2xl bg-raised p-4">
+            <p className="inline-flex items-center gap-2 text-xs font-semibold text-faint">
               <MessageSquareText className="h-3.5 w-3.5" />
               What they said
             </p>
@@ -248,8 +248,8 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
         {/* "What did I tell them last week?" is the first question of any
             review, so the last one is open and the rest are one click away. */}
         {lastCheckIn ? (
-          <div className="rounded-2xl border border-line bg-ink p-4">
-            <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+          <div className="rounded-2xl bg-raised p-4">
+            <p className="text-xs font-semibold text-faint">
               You said {relativeDate(lastCheckIn.createdAt.slice(0, 10)).toLowerCase()} ·{" "}
               {lastCheckIn.outcome === "adjusted" ? "adjusted" : "continued"}
               {lastCheckIn.weeksPlanned > 0 ? ` ${lastCheckIn.weeksPlanned} weeks` : ""}
@@ -266,7 +266,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
             />
 
             {earlier.length > 0 ? (
-              <details className="mt-4 border-t border-line pt-3">
+              <details className="mt-4">
                 <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-text">
                   Earlier check-ins ({earlier.length})
                 </summary>
@@ -274,7 +274,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
                   {earlier.map((entry) => {
                     const replies = commentsFor(checkInComments, "check_in", entry.id);
                     return (
-                      <li key={entry.id} className="border-l border-line pl-4">
+                      <li key={entry.id}>
                         <p className="text-xs text-faint">
                           {shortDate(entry.createdAt.slice(0, 10))} ·{" "}
                           {entry.outcome === "adjusted" ? "adjusted" : "continued"}
@@ -299,8 +299,8 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
 
         {/* The change itself happens on their plan, not here. These open it
             with their notes at the top and come back when he saves. */}
-        <div className="rounded-2xl border border-line bg-ink p-4">
-          <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+        <div className="rounded-2xl bg-raised p-4">
+          <p className="text-xs font-semibold text-faint">
             Change something
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -313,7 +313,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
               <Link
                 key={label}
                 href={href}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full bg-overlay px-4 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
               >
                 <Icon className="h-4 w-4" />
                 {label}
@@ -325,13 +325,13 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
         {/* Both decisions are <details> so the board stays scannable and the
             whole screen still works with no JavaScript. */}
         <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
-          <details className="group rounded-2xl border border-line bg-ink">
+          <details className="group rounded-2xl bg-raised">
             <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-semibold text-text marker:content-none">
               <RefreshCw className="h-4 w-4 text-accent" />
               Continue plan
               <ArrowRight className="ml-auto h-4 w-4 text-faint transition-transform group-open:rotate-90" />
             </summary>
-            <form action={recordCheckIn} className="space-y-4 border-t border-line p-4">
+            <form action={recordCheckIn} className="space-y-4 p-4">
               <input type="hidden" name="clientId" value={id} />
               <input type="hidden" name="outcome" value="continued" />
               {canContinue ? (
@@ -357,13 +357,13 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
             </form>
           </details>
 
-          <details className="group rounded-2xl border border-line bg-ink">
+          <details className="group rounded-2xl bg-raised">
             <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-semibold text-text marker:content-none">
               <SlidersHorizontal className="h-4 w-4 text-accent" />
               Adjust plan
               <ArrowRight className="ml-auto h-4 w-4 text-faint transition-transform group-open:rotate-90" />
             </summary>
-            <form action={recordCheckIn} className="space-y-4 border-t border-line p-4">
+            <form action={recordCheckIn} className="space-y-4 p-4">
               <input type="hidden" name="clientId" value={id} />
               <input type="hidden" name="outcome" value="adjusted" />
               <p className="text-sm text-muted">
@@ -391,7 +391,7 @@ export function CheckInCard({ summary }: { summary: CheckInSummary }) {
 /** Small header stat for the board summary. */
 export function BoardStat({ label, value, tone }: { label: string; value: number; tone?: "amber" }) {
   return (
-    <div className="rounded-[var(--radius-sheet)] border border-line bg-surface px-5 py-4">
+    <div className="rounded-[var(--radius-sheet)] bg-surface px-5 py-4">
       <p className={fieldLabel}>{label}</p>
       <p className={cn("font-display text-2xl font-bold tabular-nums", tone === "amber" && "text-amber")}>
         {value}

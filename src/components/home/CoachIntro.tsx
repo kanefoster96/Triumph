@@ -24,7 +24,7 @@ export async function CoachIntro() {
 
         <div>
           <Reveal>
-            <p className="mb-4 text-xs font-semibold tracking-[0.16em] text-accent uppercase">Your coach</p>
+            <p className="mb-4 text-xs font-semibold text-accent">Your coach</p>
             <h2 className="text-3xl text-balance sm:text-4xl">{coach.headline}</h2>
           </Reveal>
 

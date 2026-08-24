@@ -35,7 +35,7 @@ export function MoveWorkout({
 
   if (pending) {
     return (
-      <div className="rounded-2xl border border-amber/40 bg-amber/[0.06] p-4">
+      <div className="rounded-2xl bg-amber/10 p-4">
         <p className="text-sm font-semibold text-amber">Asked Dean to move this</p>
         <p className="mt-1 text-sm text-muted">
           You asked to do it on{" "}
@@ -67,7 +67,7 @@ export function MoveWorkout({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+        className="inline-flex items-center gap-2 rounded-full bg-raised px-4 py-2 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
       >
         <CalendarSync className="h-4 w-4" />
         Move this workout
@@ -92,7 +92,7 @@ export function MoveWorkout({
                   {options.map((option) => (
                     <label
                       key={option.date}
-                      className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-line px-4 py-2.5 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent has-checked:border-accent has-checked:bg-accent/10 has-checked:text-accent"
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-raised px-4 py-2.5 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent has-checked:bg-accent/10 has-checked:text-accent"
                     >
                       <input
                         type="radio"

@@ -54,7 +54,7 @@ export function NumberStepper({
         type="button"
         onClick={() => nudge(-step)}
         aria-label={`${label}: down ${step}`}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-muted transition-colors hover:border-accent hover:text-accent active:bg-raised"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-overlay text-muted transition-colors hover:bg-accent/15 hover:text-accent active:bg-raised"
       >
         <Minus className="h-4 w-4" />
       </button>
@@ -75,7 +75,7 @@ export function NumberStepper({
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           className={cn(
-            "h-11 w-full rounded-xl border border-line bg-ink text-center text-sm font-semibold text-text tabular-nums transition-colors placeholder:font-normal placeholder:text-faint focus:border-accent focus:outline-none",
+            "h-11 w-full rounded-xl bg-overlay text-center text-sm font-semibold text-text tabular-nums transition-colors placeholder:font-normal placeholder:text-faint",
             suffix ? "pr-7 pl-2" : "px-2",
           )}
         />
@@ -90,7 +90,7 @@ export function NumberStepper({
         type="button"
         onClick={() => nudge(step)}
         aria-label={`${label}: up ${step}`}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-muted transition-colors hover:border-accent hover:text-accent active:bg-raised"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-overlay text-muted transition-colors hover:bg-accent/15 hover:text-accent active:bg-raised"
       >
         <Plus className="h-4 w-4" />
       </button>

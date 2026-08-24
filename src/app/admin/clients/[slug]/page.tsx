@@ -202,7 +202,7 @@ export default async function AdminClientOverviewPage({
             ).map(([value, label, blurb]) => (
               <label
                 key={value}
-                className="flex min-h-14 gap-3 rounded-2xl border border-line bg-ink p-4 has-checked:border-accent has-checked:bg-accent/[0.07]"
+                className="flex min-h-14 gap-3 rounded-2xl bg-raised p-4 has-checked:bg-accent/10"
               >
                 <input
                   type="radio"
@@ -249,7 +249,7 @@ export default async function AdminClientOverviewPage({
                 <li key={`${note.kind}-${note.id}`}>
                   <Link
                     href={note.href}
-                    className="flex items-start gap-4 rounded-2xl border border-line bg-ink p-4 transition-colors hover:border-accent/40"
+                    className="flex items-start gap-4 rounded-2xl bg-raised p-4 transition-colors hover:bg-overlay"
                   >
                     <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                     <div className="min-w-0">

@@ -2,11 +2,11 @@
 
 /* Mirrors src/lib/theme/tokens.ts — keep the two in step. */
 @theme {
-  --color-ink: #0a0e13;
+  --color-ink: #000000;
   --color-surface: #111820;
-  --color-raised: #16202b;
-  --color-overlay: #1c2733;
-  --color-line: #22303d;
+  --color-raised: #1a242e;
+  --color-overlay: #232e3a;
+  --color-line: #1f2a35;
 
   --color-text: #f2f6f9;
   --color-muted: #94a3b2;
@@ -84,10 +84,15 @@
     color: var(--color-accent-ink);
   }
 
+  /*
+   * The outline follows the element's own corners, so it must not set a
+   * radius of its own — doing so squares off a pill mid-focus. Fields carry
+   * no border, so this is also their focus affordance: leave `outline-none`
+   * off them.
+   */
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
-    border-radius: 4px;
   }
 
   h1,
