@@ -1,5 +1,3 @@
-import type { Stat } from "@/lib/types";
-
 /**
  * Brand + navigation. Edit this file to rebrand the whole site.
  * `nav` is consumed by the desktop header, the mobile menu and the footer,
@@ -47,7 +45,12 @@ export const secondaryNav = [
   { href: "/contact", label: "Ask a question" },
 ];
 
-export const headlineStats: Stat[] = [
-  { label: "Clients helped", value: "80", suffix: "+" },
-  { label: "Star rating", value: "5", suffix: "/5" },
-];
+/**
+ * How many people Dean has coached.
+ *
+ * The star rating used to sit beside this as a second hard-coded figure. It
+ * is averaged from the reviews themselves now (`getSocialProof`), so the
+ * stars in the hero and the wall of reviews underneath them cannot disagree
+ * — there is only one place a rating comes from.
+ */
+export const clientCount = { value: "80", suffix: "+" } as const;
