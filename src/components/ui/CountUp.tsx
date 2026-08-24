@@ -65,7 +65,19 @@ export function CountUp({
         observer.disconnect();
         frame = requestAnimationFrame(step);
       },
-      { threshold: 0.2 },
+      /*
+       * Touching the bottom edge of the screen is not the same as having been
+       * seen. On a phone these numbers sit about 40px inside the first
+       * screenful, so a plain observer called that "visible", ran the whole
+       * climb while the reader was still on the headline, and left them a
+       * finished number to scroll down to.
+       *
+       * Shortening the root by a quarter of the viewport moves the trigger
+       * line up to roughly where you would actually be looking, and asking for
+       * most of the number rather than a fifth of it stops a single visible
+       * digit counting as arrival.
+       */
+      { rootMargin: "0px 0px -25% 0px", threshold: 0.6 },
     );
 
     /*
