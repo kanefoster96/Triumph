@@ -5,17 +5,15 @@ export const coach: Coach = {
   name: "Dean Foster",
   role: "Online coach & founder",
   location: "Newcastle upon Tyne",
-  headline: "I started training so I could keep up with my kids. Now I help other people do the same.",
+  headline: "I got in shape around a full-time job and two kids. Now I do it for people like you.",
   bio: [
-    "Becoming a parent changed what fitness was for. It stopped being about how I looked and started being about energy, health, and being around properly — for the school run, the park, the years after that. So I started training seriously, around a young family and a full schedule.",
-    "It worked faster than I expected. Not because I found a secret, but because I stopped programme-hopping, tracked what I was actually doing, and adjusted week by week instead of starting again every January.",
-    "Now I coach other people through the same thing, online. Everything I build is personal to you — your food, your gym, your week, your body. No copy-and-paste plan with someone else's name scrubbed off it.",
+    "No secrets, no hacks. I tracked what I did, checked in weekly, and adjusted as life happened. That’s the exact system every client gets — and it’s why they get results whether their goal is fat loss, strength, or just feeling good again.",
   ],
   highlights: [
-    "Coaching clients online across the UK",
-    "In-person sessions in Newcastle upon Tyne",
-    "Plans built around real family schedules",
-    "Plans adjusted every week, not every quarter",
+    "80+ clients coached across the UK",
+    "In-person in Newcastle upon Tyne",
+    "Whatever your goal, the plan fits your life",
+    "Checked and adjusted every single week",
   ],
   // Intentionally empty — add real certifications here and they render
   // automatically. Nothing is invented on your behalf.

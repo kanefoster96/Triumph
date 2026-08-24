@@ -9,11 +9,11 @@ export function CtaBanner() {
       <Container className="py-20 text-center sm:py-24">
         <Reveal>
           <h2 className="mx-auto max-w-2xl text-3xl text-balance sm:text-4xl">
-Two ways to start
+Your only risk is staying the same
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-accent-ink/75 sm:text-lg">
-            Ask for a free consultation and Dean will come back to you with what he would do. Or
-            just ask a question — he answers those himself too.
+            Book a free consult and Dean will map out exactly how he&rsquo;d get you to your goal. Or
+            just ask him a question — he answers every message himself.
           </p>
 
           <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
@@ -30,7 +30,7 @@ Two ways to start
           </div>
 
           <p className="mt-7 text-sm text-accent-ink/70">
-No card needed · No contract · Cancel any time
+Free consult · No contract · 50% back if you smash month one
           </p>
         </Reveal>
       </Container>

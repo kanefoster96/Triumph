@@ -17,8 +17,8 @@ export async function GoalRail() {
       <Container>
         <SectionHeader
           eyebrow="What we build around"
-          title="One coaching package, built for your goal"
-          description="These are not separate products with separate prices. They are the people I most often build plans for — all delivered through the same monthly coaching."
+          title="Whatever your goal, this gets you there"
+          description="Fat loss, strength, getting back into it after years off — same coaching, same price, plan built for you."
         />
       </Container>
 

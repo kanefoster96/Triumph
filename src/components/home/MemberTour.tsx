@@ -6,92 +6,90 @@ import { cn } from "@/lib/utils";
 import { IconTile } from "@/components/ui/IconTile";
 import { AppScreen } from "./AppScreen";
 
-/** Long enough to read as a swap, short enough not to be a wait. */
-const FADE_MS = 180;
-
 /**
  * Pick a members'-area screen and see it.
  *
- * One tablist, two shapes: a snapping rail on a phone, where stacking four
- * rows would push the preview off the bottom of the screen, and a column
- * beside the preview once there is room. Rendering it twice would put two sets
- * of tabs in the accessibility tree, so the layout changes rather than the
- * markup.
+ * Two rails kept in step: the cards and the screens are both native
+ * scroll-snap carousels, so either can be swiped and the other follows pixel
+ * for pixel rather than waiting for the gesture to end. Swiping the screens
+ * takes the current one off to the left and brings the next in from the
+ * right, which is the motion the cards were already making.
  *
- * On the rail the swipe itself chooses the screen — the card that lands in the
- * middle is the one previewed, and the preview sits in the same column beneath
- * it so the two read as one object. Arrow keys and taps do the same thing.
+ * Only the rail being touched may drive, or the two would shove each other
+ * back and forth for as long as a finger was down.
+ *
+ * The cards are the tablist above `lg` as well, laid out as a column beside
+ * the screens — rendering it twice would put two sets of tabs in the
+ * accessibility tree, so the layout changes rather than the markup.
  */
+type Rail = "cards" | "screens";
+
 export function MemberTour({ features }: { features: Feature[] }) {
   const [active, setActive] = useState(0);
-  /** Lags `active` by one fade, so the old screen leaves before the new arrives. */
-  const [shown, setShown] = useState(0);
-  const [fading, setFading] = useState(false);
 
-  const rail = useRef<HTMLDivElement>(null);
+  const cards = useRef<HTMLDivElement>(null);
+  const screens = useRef<HTMLDivElement>(null);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
-  const swap = useRef<number | undefined>(undefined);
+  /** The rail the finger is on. Anything else that scrolls is an echo of it. */
+  const leader = useRef<HTMLDivElement | null>(null);
   const ticking = useRef(false);
 
-  useEffect(() => () => window.clearTimeout(swap.current), []);
+  const last = features.length - 1;
 
-  /** True only while the tablist is actually a scrolling rail. */
-  const isRail = () => {
-    const node = rail.current;
-    return !!node && node.scrollWidth > node.clientWidth + 1;
-  };
+  const scrolls = (node: HTMLDivElement | null): node is HTMLDivElement =>
+    !!node && node.scrollWidth > node.clientWidth + 1;
 
-  function reveal(next: number) {
-    if (next === active) return;
-    setActive(next);
+  useEffect(() => {
+    // The cards stop being a rail at `lg`, so a leader held across a resize
+    // would lock the other one out.
+    const drop = () => {
+      leader.current = null;
+    };
+    window.addEventListener("resize", drop);
+    return () => window.removeEventListener("resize", drop);
+  }, []);
 
-    // Someone who has asked for less motion gets the screen, not the fade.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setShown(next);
-      return;
-    }
-
-    setFading(true);
-    window.clearTimeout(swap.current);
-    swap.current = window.setTimeout(() => {
-      setShown(next);
-      setFading(false);
-    }, FADE_MS);
+  /**
+   * The same fraction along rather than the same pixels: the rails are
+   * different widths, and the cards carry half a screen of padding either side
+   * so the first and last can still reach the middle.
+   */
+  function mirror(from: HTMLDivElement, to: HTMLDivElement) {
+    const fromEnd = from.scrollWidth - from.clientWidth;
+    const toEnd = to.scrollWidth - to.clientWidth;
+    if (fromEnd <= 0 || toEnd <= 0) return;
+    to.scrollLeft = (from.scrollLeft / fromEnd) * toEnd;
   }
 
-  /** Tap or arrow key: choose it, and bring it to the middle of the rail. */
-  function pick(next: number) {
-    reveal(next);
-    if (isRail()) {
-      tabs.current[next]?.scrollIntoView({
-        inline: "center",
-        block: "nearest",
-        behavior: "smooth",
-      });
-    }
+  function indexOf(node: HTMLDivElement) {
+    const end = node.scrollWidth - node.clientWidth;
+    if (end <= 0) return 0;
+    return Math.round((node.scrollLeft / end) * last);
   }
 
-  /** Swipe: whichever card is nearest the middle is the one being looked at. */
-  function onScroll() {
+  function onScroll(which: Rail) {
+    const node = which === "cards" ? cards.current : screens.current;
+    if (!node || (leader.current && leader.current !== node)) return;
     if (ticking.current) return;
     ticking.current = true;
     requestAnimationFrame(() => {
       ticking.current = false;
-      const node = rail.current;
-      if (!node || !isRail()) return;
-      const middle = node.getBoundingClientRect().left + node.clientWidth / 2;
-      let nearest = 0;
-      let best = Infinity;
-      tabs.current.forEach((tab, i) => {
-        if (!tab) return;
-        const box = tab.getBoundingClientRect();
-        const distance = Math.abs(box.left + box.width / 2 - middle);
-        if (distance < best) {
-          best = distance;
-          nearest = i;
-        }
-      });
-      reveal(nearest);
+      const other = which === "cards" ? screens.current : cards.current;
+      if (scrolls(other)) mirror(node, other);
+      const i = indexOf(node);
+      setActive((current) => (current === i ? current : i));
+    });
+  }
+
+  /** Tap or arrow key: drive the screens and let the cards follow them. */
+  function goTo(next: number) {
+    setActive(next);
+    const node = screens.current;
+    if (!scrolls(node)) return;
+    leader.current = node;
+    node.scrollTo({
+      left: (next / last) * (node.scrollWidth - node.clientWidth),
+      behavior: "smooth",
     });
   }
 
@@ -101,20 +99,25 @@ export function MemberTour({ features }: { features: Feature[] }) {
     if (!forward && !back) return;
     event.preventDefault();
     const next = (active + (forward ? 1 : -1) + features.length) % features.length;
-    pick(next);
+    goTo(next);
     tabs.current[next]?.focus();
   }
 
-  const preview = features[shown];
+  /** Whichever rail is touched leads, until another one is. */
+  function claim(which: Rail) {
+    leader.current = which === "cards" ? cards.current : screens.current;
+  }
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-14">
       <div
-        ref={rail}
+        ref={cards}
         role="tablist"
         aria-label="Members' area screens"
         onKeyDown={onKeyDown}
-        onScroll={onScroll}
+        onScroll={() => onScroll("cards")}
+        onPointerDown={() => claim("cards")}
+        onWheel={() => claim("cards")}
         className={cn(
           // A rail below lg. The padding is half the leftover width, so the
           // first and last cards can still reach the middle.
@@ -137,7 +140,7 @@ export function MemberTour({ features }: { features: Feature[] }) {
               aria-selected={open}
               aria-controls="tour-panel"
               tabIndex={open ? 0 : -1}
-              onClick={() => pick(i)}
+              onClick={() => goTo(i)}
               className={cn(
                 "flex h-20 w-[17rem] shrink-0 snap-center items-center gap-3 rounded-[var(--radius-sheet)] p-4 text-left transition-colors",
                 "lg:h-auto lg:w-full lg:shrink lg:snap-align-none lg:items-start lg:gap-5 lg:p-5",
@@ -146,10 +149,8 @@ export function MemberTour({ features }: { features: Feature[] }) {
             >
               <IconTile feature={feature.icon} />
               <span className="min-w-0 flex-1">
-                <span className="block text-base whitespace-nowrap lg:text-lg">
-                  {feature.title}
-                </span>
-                {/* On a phone this sits under the preview instead, where there
+                <span className="block text-base whitespace-nowrap lg:text-lg">{feature.title}</span>
+                {/* On a phone this sits under the screens instead, where there
                     is width for it. */}
                 {open ? (
                   <span className="mt-2 hidden text-sm leading-relaxed text-muted lg:block">
@@ -168,30 +169,38 @@ export function MemberTour({ features }: { features: Feature[] }) {
         aria-labelledby={`tour-tab-${features[active].id}`}
         className="lg:sticky lg:top-24"
       >
-        {/* Same width as a card and centred like one, so the screen reads as
-            belonging to the card above it rather than floating under it. */}
-        <div
-          className={cn(
-            "mx-auto w-full max-w-[17rem] transition-opacity duration-200 ease-[var(--ease-out-app)]",
-            fading ? "opacity-0" : "opacity-100",
-          )}
-        >
-          {/*
-           * A screen sits *below* its bezel rather than above it, which is the
-           * one place the tone ramp runs backwards on purpose: that recess is
-           * what makes it read as a device instead of another card.
-           */}
-          <div className="rounded-[2.2rem] bg-raised p-2">
-            {/* Fixed, not min-height: the screens differ by about 115px and
-                the frame jumped every time you switched tab. */}
-            <div className="h-[28.5rem] overflow-hidden rounded-[1.7rem] bg-ink p-3">
-              <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-raised" />
-              {preview.preview ? <AppScreen preview={preview.preview} /> : null}
-            </div>
+        {/* Same width as a card and centred like one, so the screens read as
+            belonging to the card above them rather than floating underneath. */}
+        <div className="mx-auto w-full max-w-[17rem]">
+          <div
+            ref={screens}
+            onScroll={() => onScroll("screens")}
+            onPointerDown={() => claim("screens")}
+            onWheel={() => claim("screens")}
+            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
+          >
+            {features.map((feature, i) => (
+              <div key={feature.id} aria-hidden={i !== active} className="w-full shrink-0 snap-center">
+                {/*
+                 * A screen sits *below* its bezel rather than above it, which
+                 * is the one place the tone ramp runs backwards on purpose:
+                 * that recess is what makes it read as a device rather than
+                 * another card.
+                 */}
+                <div className="rounded-[2.2rem] bg-raised p-2">
+                  {/* Fixed, not min-height: the screens differ by about 115px
+                      and the frame jumped on every change. */}
+                  <div className="h-[28.5rem] overflow-hidden rounded-[1.7rem] bg-ink p-3">
+                    <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-raised" />
+                    {feature.preview ? <AppScreen preview={feature.preview} /> : null}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <p className="mt-5 text-sm leading-relaxed text-muted lg:hidden">{preview.body}</p>
+        <p className="mt-5 text-sm leading-relaxed text-muted lg:hidden">{features[active].body}</p>
       </div>
     </div>
   );

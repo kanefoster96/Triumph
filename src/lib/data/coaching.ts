@@ -11,38 +11,38 @@ export const included: Feature[] = [
   {
     id: "inc-meal",
     icon: "meal",
-    title: "A meal plan built for you",
-    body: "Calorie and protein targets set from your body and your goal, with a plan built around food you actually eat. Vegetarian, shift work, fussy kids, eating out — all accounted for, not ignored.",
+    title: "Eat food you like, still hit your goal",
+    body: "Your targets, your food, your life. No chicken-and-rice punishment plans — just numbers you can actually hit.",
   },
   {
     id: "inc-workout",
     icon: "workout",
-    title: "A workout plan for your gym",
-    body: "Written for the equipment you have and the number of days you can genuinely train. Every session laid out set by set, so you never walk in wondering what you are doing.",
+    title: "Walk into the gym knowing exactly what to do",
+    body: "Every session laid out set by set, for your gym and your schedule. No guessing, no wasted sessions.",
   },
   {
     id: "inc-checkin",
     icon: "checkin",
-    title: "Regular check-ins",
-    body: "We review what actually happened each week — weight, training, sleep, how the week felt — and I come back to you with what to change and why.",
+    title: "Weekly check-ins that keep you on target",
+    body: "Dean reviews your week — weight, sessions, how it felt — and tells you exactly what to change. This is the accountability that gets results.",
   },
   {
     id: "inc-adjust",
     icon: "adjust",
-    title: "Real adjustments, not a static PDF",
-    body: "Your plan moves as you do. Stalled for two weeks, picked up an injury, got a holiday coming? The plan changes. That is the whole point of having a coach.",
+    title: "Life happens. Your plan keeps up.",
+    body: "Stalled, injured, holiday booked? Dean adjusts the plan so you keep progressing instead of starting over.",
   },
   {
     id: "inc-chat",
     icon: "chat",
-    title: "Direct line to me",
-    body: "Message me when something comes up — a dodgy knee, a menu you cannot read, a session you are not sure about. You are not filing a support ticket; you are texting your coach.",
+    title: "Text Dean whenever you’re stuck",
+    body: "Dodgy knee, tricky menu, unsure about a session — message him and get an answer. Simple.",
   },
   {
     id: "inc-community",
     icon: "community",
-    title: "The members' community",
-    body: "Everyone training with me, in one place. Wins, questions, and the accountability that comes from other people knowing you said you would train today.",
+    title: "Train with people who won’t let you quit",
+    body: "Every client, one community. Wins get celebrated, excuses get noticed.",
   },
 ];
 
@@ -140,18 +140,18 @@ export const memberArea: Feature[] = [
 export const process = [
   {
     title: "Free consult",
-    body: "A short call about where you are, what you want, and whether I am the right coach for it. No pressure and no script.",
+    body: "Tell Dean your goal. He’ll tell you exactly how he’d get you there. No pressure, no card needed.",
   },
   {
-    title: "Your starting picture",
-    body: "Height, weight, training history, injuries, what your week really looks like, and what food you like. This is what the plan gets built from.",
+    title: "Your starting point",
+    body: "A few quick details about you, your week and your food — so the plan fits your life, not someone else’s.",
   },
   {
-    title: "Your plan lands",
-    body: "Calorie and protein targets plus a full training plan for your gym and your available days — usually within 48 hours.",
+    title: "Your plan lands in 48 hours",
+    body: "Food targets and a full training plan, built for you, in your app, ready to go.",
   },
   {
-    title: "Check in, adjust, repeat",
-    body: "You log your days, we review each week, and I adjust. That loop is what makes the difference between a plan and coaching.",
+    title: "Check in. Stay on target. Win.",
+    body: "You track, Dean reviews weekly and adjusts. Hit all your targets in month one — get 50% of your money back.",
   },
 ];
