@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Vercel
 .vercel
+
+# verification screenshots, written by the Playwright checks
+shots/
