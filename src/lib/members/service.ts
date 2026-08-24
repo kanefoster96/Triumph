@@ -417,9 +417,14 @@ export async function isDemoMode(): Promise<boolean> {
 /**
  * How many clients have opened the app in the last day.
  *
- * `null` when there is nobody, or when the count cannot be had — the caller
- * hides the line rather than printing a nought. A quiet day is not something
- * to announce, and a made-up number is worse than no number.
+ * Zero is an answer and comes back as `0` — nobody in yet today is a true
+ * thing to say, and the badge turns it into an invitation to be first.
+ *
+ * `null` means something else entirely: the count could not be had. Those two
+ * were folded together and should not be, because one is a fact about the day
+ * and the other is a fact about the database. The caller shows the first and
+ * hides the second — guessing at a number we failed to fetch would be making
+ * it up.
  *
  * The count arrives through a SECURITY DEFINER function because the page that
  * shows it is public: a stranger may know how many people were in today and
@@ -442,8 +447,7 @@ export async function getActiveMemberCount(): Promise<number | null> {
     const seeded = demoProfiles.filter(
       (entry) => entry.role === "client" && (entry.status === "active" || entry.status === "paused"),
     ).length;
-    const total = seeded + extra;
-    return total > 0 ? total : null;
+    return seeded + extra;
   }
 
   const { data, error } = await supabase.rpc("active_members_24h");
@@ -452,7 +456,7 @@ export async function getActiveMemberCount(): Promise<number | null> {
     return null;
   }
   const count = Number(data);
-  return Number.isFinite(count) && count > 0 ? count : null;
+  return Number.isFinite(count) ? count : null;
 }
 
 // ---------------------------------------------------------------------------
