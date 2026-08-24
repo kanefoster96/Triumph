@@ -163,6 +163,11 @@ export interface Testimonial {
   /** ISO date. */
   date: string;
   goal: string;
+  /**
+   * Optional photo path under /public. Falls back to initials, which is the
+   * normal case rather than a missing state — most people do not send one.
+   */
+  photo?: string;
 }
 
 /** A coach post — the social-feed surface that carries straight into the app. */
