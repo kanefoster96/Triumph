@@ -9,6 +9,19 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
 /**
+ * Every page the menu offers, as one list.
+ *
+ * `secondaryNav` mostly repeats `nav`, so grouping what is left under a "More"
+ * heading put a heading over a single link and a gap under it. The pages that
+ * are not already in the primary nav are pages in their own right — they get
+ * the same weight.
+ */
+const links = [
+  ...nav,
+  ...secondaryNav.filter((item) => !nav.some((n) => n.href === item.href)),
+];
+
+/**
  * Hamburger menu for the website. (The app navigates with the bottom tab bar
  * in `BottomTabBar` instead.)
  *
@@ -159,9 +172,9 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
               </button>
             </div>
 
-            <nav aria-label="Site" className="flex-1 overflow-y-auto px-5 py-6">
+            <nav aria-label="Site" className="flex-1 overflow-y-auto px-5 py-4">
               <ul className="space-y-1">
-                {nav.map((item) => {
+                {links.map((item) => {
                   const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
                   return (
                     <li key={item.href}>
@@ -169,7 +182,7 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                         href={item.href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "block rounded-2xl px-4 py-3.5 text-lg font-semibold transition-colors",
+                          "block rounded-2xl px-4 py-3 text-lg font-semibold transition-colors",
                           active ? "bg-accent/10 text-accent" : "text-text hover:bg-raised",
                         )}
                       >
@@ -179,25 +192,6 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                   );
                 })}
               </ul>
-
-              <p className="mt-8 mb-3 px-4 text-xs font-semibold text-faint">
-                More
-              </p>
-              <ul className="space-y-1">
-                {secondaryNav
-                  .filter((item) => !nav.some((n) => n.href === item.href))
-                  .map((item) => (
-                    <li key={item.href + item.label}>
-                      <Link
-                        href={item.href}
-                        className="block rounded-2xl px-4 py-2.5 text-sm text-muted transition-colors hover:bg-raised hover:text-text"
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-
             </nav>
 
             <div className="px-5 py-5">
@@ -215,15 +209,17 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
               {/* Three ways in, named for what they do. "Create account" is
                   the quick one and leads; applying for training is a different
                   decision and says so. */}
-              <Button href="/signup" fullWidth>
-                Create account
-              </Button>
-              <Button href="/login" variant="secondary" fullWidth>
-                Log in
-              </Button>
-              <Button href="/join" variant="secondary" fullWidth>
-                Apply for training
-              </Button>
+              <div className="space-y-2">
+                <Button href="/signup" fullWidth>
+                  Create account
+                </Button>
+                <Button href="/login" variant="secondary" fullWidth>
+                  Log in
+                </Button>
+                <Button href="/join" variant="secondary" fullWidth>
+                  Apply for training
+                </Button>
+              </div>
               <a
                 href={`tel:${site.phone.replace(/\s/g, "")}`}
                 className="mt-3 block text-center text-sm text-muted transition-colors hover:text-text"
