@@ -14,12 +14,10 @@ export function Hero() {
   return (
     <Container className="pt-14 pb-20 text-center sm:pt-24 sm:pb-28">
       <Reveal>
-        {/* A lit dot rather than an icon. The badge is a status line, not a
-            feature, and a sparkle promises magic the coaching does not do. */}
-        <span className="inline-flex items-center gap-2.5 rounded-full bg-raised px-4 py-2 text-sm font-medium text-muted">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-glow" />
-          Online training made easy
-        </span>
+        {/* The badge says something true and different every day rather than a
+            slogan that is the same on every visit. It renders nothing when
+            there is nobody in, and the hero simply starts at the headline. */}
+        <LiveMembers />
       </Reveal>
 
       <Reveal delay={60}>
@@ -44,14 +42,8 @@ export function Hero() {
         </p>
       </Reveal>
 
-      <Reveal delay={150}>
-        <div className="mt-8">
-          <LiveMembers />
-        </div>
-      </Reveal>
-
       <Reveal delay={180}>
-        <div className="mx-auto mt-7 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+        <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <Button href="/join" size="lg">
             Let&rsquo;s get started
           </Button>

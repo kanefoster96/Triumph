@@ -128,13 +128,41 @@
 
   /*
    * The outline follows the element's own corners, so it must not set a
-   * radius of its own — doing so squares off a pill mid-focus. Fields carry
-   * no border, so this is also their focus affordance: leave `outline-none`
-   * off them.
+   * radius of its own — doing so squares off a pill mid-focus. Never set
+   * `outline-none` on a field: this is what says which one you are in.
    */
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+
+  /*
+   * Every field is outlined.
+   *
+   * Written here rather than in the forty-one files that draw one, because a
+   * shared class only reaches the fields that remembered to import it and the
+   * point of a house style is that nothing is left out. It sits in the base
+   * layer, so any field that genuinely needs something else can still say so
+   * with a utility and win.
+   *
+   * `overlay` for the line, not `line`: the field is already `raised`, and a
+   * border has to be a step above the thing it is drawn around or it is
+   * invisible. That keeps the ramp — surface, then the field, then its edge.
+   *
+   * Checkboxes, radios and file inputs are left alone: a checkbox is a line
+   * and nothing else, and the browser draws its own.
+   */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+  textarea,
+  select {
+    border: 1px solid var(--color-overlay);
+    transition: border-color 200ms var(--ease-out-app);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):hover,
+  textarea:hover,
+  select:hover {
+    border-color: var(--color-faint);
   }
 
   h1,
