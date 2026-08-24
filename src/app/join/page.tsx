@@ -39,9 +39,8 @@ export default async function JoinPage({ searchParams }: PageProps<"/join">) {
 
       <div className="mt-8 text-center">
         <h1 className="text-3xl sm:text-4xl">Train with Dean</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
-          Three short questions. He reads every one himself and comes back to you with what he would
-          do — no plan to choose and nothing to pay yet.
+        <p className="mt-3 text-sm text-muted">
+          Three short questions. Nothing to pay yet.
         </p>
       </div>
 

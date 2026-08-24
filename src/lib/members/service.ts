@@ -1288,6 +1288,8 @@ function toApplication(row: any): Application {
     goalWeightKg: row.goal_weight_kg === null ? null : Number(row.goal_weight_kg),
     goalType: row.goal_type,
     goalOther: row.goal_other ?? null,
+    hasGym: row.has_gym ?? null,
+    gymName: row.gym_name ?? null,
     status: row.status,
     createdAt: row.created_at,
     decidedAt: row.decided_at ?? null,

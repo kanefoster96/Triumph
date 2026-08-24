@@ -433,6 +433,24 @@ function readGoalOther(formData: FormData): string | null {
   return String(formData.get("goalOther") ?? "").trim().slice(0, 120) || null;
 }
 
+/**
+ * Whether they said they have a gym.
+ *
+ * Three states, not two: an application sent before the question existed
+ * answered neither way, and null is what says so.
+ */
+function readHasGym(formData: FormData): boolean | null {
+  const value = formData.get("hasGym");
+  if (value === "yes") return true;
+  if (value === "no") return false;
+  return null;
+}
+
+function readGymName(formData: FormData): string | null {
+  if (readHasGym(formData) !== true) return null;
+  return String(formData.get("gymName") ?? "").trim().slice(0, 80) || null;
+}
+
 /** Starts a demo session as a particular account rather than a demo role. */
 async function signInAs(profileId: string) {
   const store = await cookies();
@@ -503,6 +521,8 @@ export async function submitApplication(formData: FormData) {
       goal_weight_kg: readNumber(formData, "goalWeightKg"),
       goal_type: readGoal(formData),
       goal_other: readGoalOther(formData),
+      has_gym: readHasGym(formData),
+      gym_name: readGymName(formData),
     });
     if (appError) console.error("[apply] application insert failed:", appError.message);
 
@@ -579,6 +599,8 @@ function demoApplication(
     goalWeightKg: readNumber(formData, "goalWeightKg"),
     goalType: readGoal(formData),
     goalOther: readGoalOther(formData),
+    hasGym: readHasGym(formData),
+    gymName: readGymName(formData),
     status: "pending",
     createdAt: new Date().toISOString(),
     decidedAt: null,
