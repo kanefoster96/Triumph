@@ -28,9 +28,18 @@ Tailwind v4, TypeScript. Fully static; no backend.
   over raw hex.
 - The look is minimal and dark: the page is true black, surfaces are flat,
   whitespace is generous and there is one cyan accent. No gradients, texture
-  overlays, glows, or condensed/uppercase display type — small labels are
-  sentence case, not tracked capitals. The only saturated block on a page is
+  overlays or condensed display type. The only saturated block on a page is
   the accent CTA band.
+- **The accent is for things you can act on** — a button, a link, a section
+  label — never for headline text. Cyan on a headline spends it on something
+  nobody can press, and then it no longer means "this one" where it counts. A
+  headline that wants two tones uses `text` and `muted`.
+- Exactly two things break the flat rule, both narrow. The primary button
+  carries `shadow-glow`, because flat cyan on true black reads as a coloured
+  rectangle where the same cyan throwing light around it reads as lit; nothing
+  else on the page gets a glow. And a `SectionHeader` eyebrow is tracked
+  capitals, because at that size it is seen as a marker rather than read as a
+  word. Every other small label is still sentence case.
 - **Tone separates, not lines.** Each layer is a step up from the one under it:
   `ink` (the page) → `surface` (a card) → `raised` (a row or control inside a
   card) → `overlay` (a control inside a row). Something nested must always sit

@@ -393,8 +393,8 @@ export function JoinWizard({
               disabled={!canContinue}
               className={cn(
                 pill,
-                "bg-accent text-accent-ink hover:bg-accent-strong",
-                "disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint",
+                "bg-accent text-accent-ink shadow-glow hover:bg-accent-strong",
+                "disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint disabled:shadow-none",
               )}
             >
               Next
@@ -418,8 +418,8 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
       disabled={disabled || pending}
       className={cn(
         pill,
-        "bg-accent text-accent-ink hover:bg-accent-strong",
-        "disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint",
+        "bg-accent text-accent-ink shadow-glow hover:bg-accent-strong",
+        "disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint disabled:shadow-none",
       )}
     >
       {pending ? (

@@ -20,11 +20,7 @@ Your only risk is staying the same
             <Button href="/join" size="lg" variant="onAccent">
               Request a free consultation
             </Button>
-            <Button
-              href="/contact"
-              size="lg"
-              className="border border-accent-ink/25 bg-transparent text-accent-ink hover:bg-accent-ink/10"
-            >
+            <Button href="/contact" size="lg" variant="onAccentSoft">
               Ask a question
             </Button>
           </div>

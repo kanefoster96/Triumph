@@ -30,6 +30,17 @@
   --radius-sheet: 1.5rem;
 
   /*
+   * The one glow on the site, and it belongs to the accent CTA alone.
+   *
+   * Flat cyan on true black reads as a coloured rectangle; the same cyan
+   * throwing a little light onto the black around it reads as lit. That is
+   * most of the difference between "a button" and "the button". It is a
+   * spread of the accent itself, so it follows the accent if that ever
+   * changes — and nothing else on the page is allowed one.
+   */
+  --shadow-glow: 0 6px 34px -8px color-mix(in oklab, var(--color-accent) 70%, transparent);
+
+  /*
    * Body: the platform UI font. On Apple devices this resolves to SF Pro —
    * nothing to download, and text matches the OS the way a native app does.
    */
@@ -149,6 +160,20 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  /*
+   * The accent CTA's bloom. Written out rather than left to Tailwind: a
+   * `--shadow-*` theme key did not produce a `shadow-glow` utility here, so
+   * the class silently did nothing — the token existed and the button was
+   * still flat.
+   */
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-none {
+    box-shadow: none;
   }
 }
 
