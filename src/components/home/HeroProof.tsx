@@ -59,28 +59,16 @@ export async function HeroProof() {
 /**
  * How many members were in today — the hero's badge.
  *
- * Zero is shown rather than hidden, but not as "0 members active today",
- * which reads as a dead site. Nobody in yet is the one morning where being
- * first is on offer, so the badge offers it.
+ * Nothing is drawn until somebody has actually been in. A quiet day is not
+ * worth announcing, and a badge that has to explain an empty room is worse
+ * than no badge — the hero simply starts at the headline instead.
  *
- * It still renders nothing when the count could not be had. That is not a
- * quiet day, it is a broken read, and inviting somebody to be first when we
- * have no idea who is already there would be making it up.
+ * `getActiveMemberCount` still separates nought from a failed read, because
+ * they are different facts even where they lead to the same blank space here.
  */
 export async function LiveMembers() {
   const active = await getActiveMemberCount();
-  if (active === null) return null;
-
-  if (active === 0) {
-    return (
-      <p className="lit inline-flex items-center gap-2.5 rounded-full bg-raised px-4 py-2 text-sm text-muted">
-        <span className="grid h-2 w-2 place-items-center text-success">
-          <span className="pulse-dot h-2 w-2 rounded-full bg-success" />
-        </span>
-        <span className="font-semibold text-text">Be the first</span> in today
-      </p>
-    );
-  }
+  if (active === null || active < 1) return null;
 
   return (
     <p className="lit inline-flex items-center gap-2.5 rounded-full bg-raised px-4 py-2 text-sm text-muted">
