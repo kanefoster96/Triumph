@@ -54,10 +54,10 @@ export function TransformationCard({
       </blockquote>
 
       <Link
-        href={`/coaching/${transformation.programmeSlug}`}
+        href={`/coaching/${transformation.goalSlug}`}
         className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
       >
-        See the programme
+        See the goal
         <ArrowRight className="h-4 w-4" />
       </Link>
     </article>

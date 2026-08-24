@@ -3,7 +3,7 @@ import { getFaqs } from "@/lib/services/content";
 import { Hero } from "@/components/home/Hero";
 import { WhatsIncluded } from "@/components/home/WhatsIncluded";
 import { HowItWorks } from "@/components/home/HowItWorks";
-import { ProgrammeRail } from "@/components/home/ProgrammeRail";
+import { GoalRail } from "@/components/home/GoalRail";
 import { MembersArea } from "@/components/home/MembersArea";
 import { CoachIntro } from "@/components/home/CoachIntro";
 import { ResultsRail } from "@/components/home/ResultsRail";
@@ -20,7 +20,7 @@ export default async function HomePage() {
       <Hero />
       <WhatsIncluded />
       <HowItWorks />
-      <ProgrammeRail />
+      <GoalRail />
       <MembersArea />
       <CoachIntro />
       <ResultsRail />

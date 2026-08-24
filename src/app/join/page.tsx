@@ -18,7 +18,7 @@ export const metadata: Metadata = {
  * The public way in.
  *
  * No plan to pick and no price to choose, because there is no shelf of
- * programmes — Dean reads what you sent and builds you something. So this
+ * plans — Dean reads what you sent and builds you something. So this
  * collects what he needs to do that and nothing else.
  */
 export default async function JoinPage({ searchParams }: PageProps<"/join">) {

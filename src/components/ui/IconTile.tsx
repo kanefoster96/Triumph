@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 /**
  * Rounded icon tile — the repeating unit of the layout.
  *
- * Programmes and results carry a `VisualKey` rather than an image path, so the
+ * Goals and results carry a `VisualKey` rather than an image path, so the
  * site is complete with no photography. Each key maps to an icon here.
  */
 const visualIcons: Record<VisualKey, ComponentType<{ className?: string }>> = {

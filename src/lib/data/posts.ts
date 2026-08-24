@@ -39,7 +39,7 @@ export const posts: Post[] = [
     id: "p-4",
     kind: "session",
     title: "Thirty minutes counts",
-    body: "The session you fit in during nap time is worth infinitely more than the ninety-minute one you keep planning for next week. Two hard compound lifts and something for your back will do more over a year than any perfect programme you never start.",
+    body: "The session you fit in during nap time is worth infinitely more than the ninety-minute one you keep planning for next week. Two hard compound lifts and something for your back will do more over a year than any perfect goal you never start.",
     date: "2026-07-30",
     likes: 96,
     comments: 12,

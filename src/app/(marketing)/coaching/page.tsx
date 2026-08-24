@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Check, X } from "lucide-react";
-import { getCoachingPrice, getProgrammes } from "@/lib/services/content";
+import { getCoachingPrice, getGoals } from "@/lib/services/content";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
-import { ProgrammeCard } from "@/components/cards/ProgrammeCard";
+import { GoalCard } from "@/components/cards/GoalCard";
 import { WhatsIncluded } from "@/components/home/WhatsIncluded";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { MembersArea } from "@/components/home/MembersArea";
@@ -36,7 +36,7 @@ const comparison = {
 };
 
 export default async function CoachingPage() {
-  const [programmes, price] = await Promise.all([getProgrammes(), getCoachingPrice()]);
+  const [goals, price] = await Promise.all([getGoals(), getCoachingPrice()]);
 
   return (
     <>
@@ -94,9 +94,9 @@ export default async function CoachingPage() {
           description="Pick the one that sounds like you — or book a consult and we will work it out together."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {programmes.map((programme, i) => (
-            <Reveal key={programme.id} delay={(i % 3) * 70} className="h-full">
-              <ProgrammeCard programme={programme} className="h-full" />
+          {goals.map((goal, i) => (
+            <Reveal key={goal.id} delay={(i % 3) * 70} className="h-full">
+              <GoalCard goal={goal} className="h-full" />
             </Reveal>
           ))}
         </div>
