@@ -18,11 +18,11 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      <CoachIntro />
       <WhatsIncluded />
       <HowItWorks />
       <GoalRail />
       <MembersArea />
-      <CoachIntro />
       <ResultsRail />
       <TestimonialWall />
 

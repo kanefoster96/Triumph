@@ -23,6 +23,9 @@ export interface Coach {
   role: string;
   location: string;
   headline: string;
+  /** Two or three lines for the introduction on the home page. */
+  intro: string;
+  /** The long version, for the about page. */
   bio: string[];
   /** How he works — deliberately not professional certifications. */
   highlights: string[];

@@ -6,6 +6,8 @@ export const coach: Coach = {
   role: "Online coach & founder",
   location: "Newcastle upon Tyne",
   headline: "I got in shape around a full-time job and two kids. Now I do it for people like you.",
+  intro:
+    "I got in shape around a full-time job and two kids — no secrets, just tracking what I did and adjusting every week. I have coached people across the UK the same way ever since. Whatever your goal, you get a plan built for your life and a coach who changes it when your life changes.",
   bio: [
     "No secrets, no hacks. I tracked what I did, checked in weekly, and adjusted as life happened. That’s the exact system every client gets — and it’s why they get results whether their goal is fat loss, strength, or just feeling good again.",
   ],
