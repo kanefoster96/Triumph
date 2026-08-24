@@ -70,9 +70,34 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
     if (!open) return;
 
     // Hold the page still behind the panel.
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
+    //
+    // `overflow: hidden` alone does not lock iOS Safari — the page stays
+    // scrollable and the compositor keeps painting it, and a slab of it lands
+    // *over* the fixed panel. Taking the body out of flow and holding it at
+    // its scroll offset leaves nothing behind the overlay to tear through.
+    const body = document.body;
+    const y = window.scrollY;
+    // Which page that offset belongs to. Tapping a link closes the panel, and
+    // handing the *new* page the old page's scroll position would land
+    // somebody halfway down a page they just opened.
+    const from = window.location.pathname;
+    const previous = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    // The panel is fixed, so there is nothing to scroll to — but the body is
+    // mid-swap and Safari will take any excuse.
+    closeRef.current?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -106,7 +131,16 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
+      Object.assign(body.style, previous);
+      // Putting the body back in flow drops it to the top, so the offset it
+      // was holding has to be handed back — without smooth scrolling, which
+      // would animate the whole page while the panel is still sliding out.
+      if (window.location.pathname === from) {
+        const behaviour = document.documentElement.style.scrollBehavior;
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo(0, y);
+        document.documentElement.style.scrollBehavior = behaviour;
+      }
     };
   }, [open, close]);
 
@@ -138,8 +172,11 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
             onClick={close}
             aria-hidden
             className={cn(
-              "fixed inset-0 z-50 bg-ink/70 transition-opacity duration-300 ease-[var(--ease-out-app)] md:hidden",
-              open ? "opacity-100 backdrop-blur-sm" : "pointer-events-none opacity-0",
+              // No backdrop-filter: a full-viewport one makes the compositor
+              // re-snapshot the screen every frame, and on iOS that snapshot
+              // can land on top of the panel. The tint does the job.
+              "fixed inset-0 z-50 bg-ink/80 transition-opacity duration-300 ease-[var(--ease-out-app)] md:hidden",
+              open ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           />
 
@@ -151,7 +188,9 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
             aria-label="Site menu"
             inert={!open}
             className={cn(
-              "pb-safe fixed inset-y-0 right-0 z-50 flex w-[84%] max-w-sm flex-col bg-surface",
+              // Above the scrim by number, not by which one happens to be
+              // written second.
+              "pb-safe fixed inset-y-0 right-0 z-[60] flex w-[84%] max-w-sm flex-col bg-surface",
               "transition-transform duration-300 ease-[var(--ease-out-app)] md:hidden",
               open ? "translate-x-0" : "translate-x-full",
             )}
@@ -172,7 +211,7 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
               </button>
             </div>
 
-            <nav aria-label="Site" className="flex-1 overflow-y-auto px-5 py-4">
+            <nav aria-label="Site" className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
               <ul className="space-y-1">
                 {links.map((item) => {
                   const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
