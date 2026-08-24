@@ -73,7 +73,7 @@ function NoteCard({
   }
 
   return (
-    <li className="rounded-2xl border border-line bg-ink p-4">
+    <li className="rounded-2xl bg-raised p-4">
       <p className="flex items-center gap-2 text-xs font-semibold text-faint">
         <MessageSquare className="h-3.5 w-3.5 text-accent" />
         {KIND[note.kind]}
@@ -92,7 +92,7 @@ function NoteCard({
             value={body}
             onChange={(event) => setBody(event.target.value)}
             placeholder={`Reply to ${firstName}…`}
-            className="w-full resize-y rounded-2xl border border-line bg-surface px-4 py-3 text-base text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none"
+            className="w-full resize-y rounded-2xl bg-overlay px-4 py-3 text-base text-text transition-colors placeholder:text-faint"
           />
           <div className="flex gap-2">
             <button
@@ -117,7 +117,7 @@ function NoteCard({
         <button
           type="button"
           onClick={() => setReplying(true)}
-          className="mt-3 inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+          className="mt-3 inline-flex h-11 items-center gap-2 rounded-full bg-overlay px-4 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent"
         >
           <Send className="h-3.5 w-3.5" />
           Reply

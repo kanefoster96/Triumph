@@ -6,15 +6,15 @@ import { Reveal } from "@/components/ui/Reveal";
 import { TransformationCard } from "@/components/cards/TransformationCard";
 
 export async function ResultsRail() {
-  const transformations = await getTransformations(4);
+  const transformations = await getTransformations(3);
 
   return (
-    <section className="border-y border-line bg-surface/40 py-20 sm:py-28">
+    <section className="bg-surface/40 py-20 sm:py-28">
       <Container>
         <SectionHeader
           eyebrow="Results"
-          title="Real numbers from real clients"
-          description="No dramatic lighting, no before-and-after taken an hour apart. Just what changed, over how long."
+          title="They did it. You&rsquo;re next."
+          description="Real clients. Real numbers. Same lighting, months apart."
         />
       </Container>
 
@@ -29,7 +29,7 @@ export async function ResultsRail() {
       </div>
 
       <Container className="hidden lg:block">
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-3">
           {transformations.map((transformation, i) => (
             <Reveal key={transformation.id} delay={i * 70} className="h-full">
               <TransformationCard transformation={transformation} className="h-full" />

@@ -7,7 +7,8 @@ type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
   primary: "bg-accent text-accent-ink hover:bg-accent-strong active:bg-accent-strong",
-  secondary: "border border-line text-text hover:border-accent hover:text-accent",
+  /** Filled rather than outlined — one less line on the page. */
+  secondary: "bg-raised text-text hover:bg-overlay",
   ghost: "text-muted hover:text-text hover:bg-raised",
   /** For use inside a solid accent panel. */
   onAccent: "bg-accent-ink text-accent hover:bg-ink",

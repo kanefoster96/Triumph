@@ -1,24 +1,9 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import type { MetricDelta, Transformation } from "@/lib/types";
+import type { Transformation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Chip } from "@/components/ui/Chip";
-
-function Metric({ metric }: { metric: MetricDelta }) {
-  return (
-    <div className="rounded-xl border border-line bg-ink px-3 py-2.5">
-      <p className="text-[11px] tracking-wide text-faint uppercase">{metric.label}</p>
-      <p
-        className={cn(
-          "mt-1 text-sm font-semibold",
-          metric.direction === "flat" ? "text-text" : "text-accent",
-        )}
-      >
-        {metric.value}
-      </p>
-    </div>
-  );
-}
+import { MediaFrame } from "@/components/ui/MediaFrame";
 
 export function TransformationCard({
   transformation,
@@ -27,37 +12,74 @@ export function TransformationCard({
   transformation: Transformation;
   className?: string;
 }) {
+  const { name, age, weeks, before, after, visual, headline, metrics, quote, goalSlug } =
+    transformation;
+
   return (
     <article
-      className={cn(
-        "flex flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-6",
-        className,
-      )}
+      className={cn("flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6", className)}
     >
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-faint">
-          {transformation.name}, {transformation.age}
+          {name}, {age}
         </p>
-        <Chip tone="accent">{transformation.weeks} weeks</Chip>
+        <Chip tone="accent">{weeks} weeks</Chip>
       </div>
 
-      <h3 className="mt-3 text-lg leading-snug text-balance">{transformation.headline}</h3>
+      {/*
+       * The same shot twice, months apart. Both frames stay empty until a real
+       * photo exists — see the note in `transformations.ts`.
+       */}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <MediaFrame
+          visual={visual}
+          src={before}
+          alt={before ? `${name} before coaching` : ""}
+          caption="Before"
+          tone="raised"
+          className="aspect-[4/5]"
+        />
+        <MediaFrame
+          visual={visual}
+          src={after}
+          alt={after ? `${name} after ${weeks} weeks` : ""}
+          caption="After"
+          tone="raised"
+          className="aspect-[4/5]"
+        />
+      </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        {transformation.metrics.map((metric) => (
-          <Metric key={metric.label} metric={metric} />
+      <h3 className="mt-5 text-lg leading-snug text-balance">{headline}</h3>
+
+      {/*
+       * A run of figures rather than a grid of boxes: the same proof in a
+       * third of the height, which is what makes room for the photos.
+       */}
+      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="flex items-baseline gap-1.5">
+            <dt className="text-faint">{metric.label}</dt>
+            <dd
+              className={cn(
+                "font-semibold tabular-nums",
+                metric.direction === "flat" ? "text-text" : "text-accent",
+              )}
+            >
+              {metric.value}
+            </dd>
+          </div>
         ))}
-      </div>
+      </dl>
 
-      <blockquote className="mt-5 flex-1 text-sm leading-relaxed text-muted">
-        “{transformation.quote}”
+      <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-muted">
+        “{quote}”
       </blockquote>
 
       <Link
-        href={`/coaching/${transformation.programmeSlug}`}
-        className="mt-5 inline-flex items-center gap-1.5 border-t border-line pt-4 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
+        href={`/coaching/${goalSlug}`}
+        className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
       >
-        See the programme
+        See the goal
         <ArrowRight className="h-4 w-4" />
       </Link>
     </article>

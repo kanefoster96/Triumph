@@ -9,6 +9,12 @@ interface MediaFrameProps {
   className?: string;
   /** Shown under the icon when there is no photo. */
   caption?: string;
+  /**
+   * Which tone the empty frame sits at. `cn` here is a plain join rather than
+   * a tailwind merge, so this cannot be overridden from `className` — a frame
+   * inside a `bg-surface` card needs `raised` or it disappears into it.
+   */
+  tone?: "surface" | "raised";
   children?: React.ReactNode;
 }
 
@@ -18,11 +24,12 @@ interface MediaFrameProps {
  * With no `src` it renders a quiet placeholder rather than pretending to be an
  * image. Drop a file in /public and pass `src` to swap it out.
  */
-export function MediaFrame({ visual, src, alt = "", className, caption, children }: MediaFrameProps) {
+export function MediaFrame({ visual, src, alt = "", className, caption, tone = "surface", children }: MediaFrameProps) {
   return (
     <div
       className={cn(
-        "relative isolate overflow-hidden rounded-[var(--radius-sheet)] border border-line bg-surface",
+        "relative isolate overflow-hidden rounded-[var(--radius-sheet)]",
+        tone === "raised" ? "bg-raised" : "bg-surface",
         className,
       )}
     >

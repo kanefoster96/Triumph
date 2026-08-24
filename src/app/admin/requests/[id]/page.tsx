@@ -110,7 +110,7 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
                 ).map(([value, title, hint, Icon], index) => (
                   <label
                     key={value}
-                    className="flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border border-line bg-ink p-4 transition-colors hover:border-accent/40 has-checked:border-accent has-checked:bg-accent/[0.07]"
+                    className="flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl bg-raised p-4 transition-colors hover:bg-overlay has-checked:bg-accent/10"
                   >
                     <input
                       type="radio"
@@ -140,12 +140,12 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
               </p>
             </form>
 
-            <form action={decideApplication} className="mt-3 border-t border-line pt-4">
+            <form action={decideApplication} className="mt-4">
               <input type="hidden" name="id" value={application.id} />
               <input type="hidden" name="decision" value="decline" />
               <button
                 type="submit"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-muted transition-colors hover:border-danger hover:text-danger"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-raised px-5 text-sm font-semibold text-muted transition-colors hover:bg-danger/10 hover:text-danger"
               >
                 <X className="h-4 w-4" />
                 Not right now
@@ -193,7 +193,7 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
             <button
               type="button"
               disabled
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-faint"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-raised px-5 text-sm font-semibold text-faint"
             >
               <CreditCard className="h-4 w-4" />
               Take payment — Stripe (coming soon)

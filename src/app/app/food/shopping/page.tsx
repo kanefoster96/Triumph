@@ -84,7 +84,7 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
                   <li key={list.id}>
                     <Link
                       href={`/app/food/shopping/${list.id}`}
-                      className="flex items-center gap-3 rounded-2xl border border-line bg-ink px-4 py-3 transition-colors hover:border-accent"
+                      className="flex items-center gap-3 rounded-2xl bg-raised px-4 py-3 transition-colors hover:bg-overlay"
                     >
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-semibold">
@@ -166,7 +166,7 @@ export default async function ShoppingListPage({ searchParams }: PageProps<"/app
 
                 return (
                   <div key={aisle}>
-                    <h3 className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                    <h3 className="text-xs font-semibold text-faint">
                       {aisle}
                     </h3>
                     <ul className="mt-1 divide-y divide-line">

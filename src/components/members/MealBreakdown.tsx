@@ -58,7 +58,7 @@ export function MealBreakdown({
         );
 
         return (
-          <div key={slot.id} className="rounded-2xl border border-line bg-ink p-4">
+          <div key={slot.id} className="rounded-2xl bg-raised p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="text-sm font-semibold">
                 <span className="text-faint">{slot.slot}</span> · {original.name}
@@ -118,7 +118,7 @@ export function MealBreakdown({
 
                         <form
                           action={swapIngredient}
-                          className="mt-3 space-y-3 rounded-xl border border-line bg-surface p-3"
+                          className="mt-3 space-y-3 rounded-xl bg-overlay p-3"
                         >
                           <input type="hidden" name="clientId" value={clientId} />
                           <input type="hidden" name="replaces" value={ingredient.name} />

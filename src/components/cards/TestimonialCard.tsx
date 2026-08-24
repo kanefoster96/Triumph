@@ -12,7 +12,7 @@ export function TestimonialCard({
   return (
     <figure
       className={cn(
-        "flex flex-col rounded-[var(--radius-sheet)] border border-line bg-surface p-6",
+        "flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
         className,
       )}
     >
@@ -22,10 +22,10 @@ export function TestimonialCard({
         “{testimonial.body}”
       </blockquote>
 
-      <figcaption className="mt-6 border-t border-line pt-4">
+      <figcaption className="mt-6">
         <p className="text-sm font-semibold">{testimonial.name}</p>
         <p className="mt-0.5 text-xs text-faint">
-          {testimonial.programme} · {relativeDate(testimonial.date)}
+          {testimonial.goal} · {relativeDate(testimonial.date)}
         </p>
       </figcaption>
     </figure>

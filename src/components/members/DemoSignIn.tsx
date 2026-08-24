@@ -16,7 +16,7 @@ export async function DemoSignIn({ variant = "menu" }: { variant?: "menu" | "inl
 
   const itemClass = menu
     ? "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-text transition-colors hover:bg-raised"
-    : "inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-accent";
+    : "inline-flex items-center gap-2 rounded-full bg-raised px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-overlay hover:text-accent";
 
   return (
     <div className={cn(menu ? "space-y-1" : "flex flex-wrap gap-2")}>

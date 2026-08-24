@@ -14,7 +14,7 @@ export function PageHeader({ eyebrow, title, description, children }: PageHeader
     <Container className="pt-14 pb-14 text-center sm:pt-20 sm:pb-20">
       <Reveal>
         {eyebrow ? (
-          <p className="mb-4 text-xs font-semibold tracking-[0.16em] text-accent uppercase">{eyebrow}</p>
+          <p className="mb-4 text-xs font-semibold text-accent">{eyebrow}</p>
         ) : null}
         <h1 className="mx-auto max-w-3xl text-4xl leading-[1.08] text-balance sm:text-5xl">{title}</h1>
         {description ? (

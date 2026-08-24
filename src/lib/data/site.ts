@@ -11,7 +11,7 @@ export const site = {
   shortName: "Triumph",
   tagline: "Online coaching that actually adapts to you",
   description:
-    "Online personal training with Dean Foster. A meal plan and training plan built around your life, regular check-ins, and real adjustments — never a copy-and-paste PDF.",
+    "Online coaching with Dean Foster. A plan you’ll stick to, an app that keeps you on target, and weekly check-ins for real accountability. Hit your first-month targets and get 50% back.",
   email: "hello@triumphtraining.fit",
   phone: "+44 7700 900412",
   location: "Newcastle upon Tyne",
@@ -48,8 +48,6 @@ export const secondaryNav = [
 ];
 
 export const headlineStats: Stat[] = [
-  { label: "Clients coached", value: "80", suffix: "+" },
-  { label: "Coaching since", value: "2021" },
-  { label: "Avg. client rating", value: "4.9", suffix: "/5" },
-  { label: "Plan turnaround", value: "48", suffix: "h" },
+  { label: "Clients helped", value: "80", suffix: "+" },
+  { label: "Star rating", value: "5", suffix: "/5" },
 ];

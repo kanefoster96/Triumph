@@ -7,7 +7,6 @@
  */
 
 export type TrainingFormat = "1:1" | "Small group" | "Online" | "Hybrid";
-export type Level = "Beginner" | "Intermediate" | "Advanced" | "All levels";
 
 /** Keys map to a gradient pair in `MediaFrame`, so no image asset is required. */
 export type VisualKey =
@@ -39,18 +38,26 @@ export interface Coach {
 }
 
 /**
- * A goal a client's programme gets built around. These are not separate
- * products — every one is delivered through the same monthly coaching.
+ * A goal somebody comes with, named after the person rather than a training
+ * style. These are not separate products — every one is delivered through the
+ * same monthly coaching, which is why there is no level and no price here.
+ *
+ * The three lists are the three questions a visitor actually has, in order:
+ * is this me, what would you do about it, and where does it get me.
  */
-export interface Programme {
+export interface Goal {
   id: string;
   slug: string;
+  /** Who they are — "Busy parents", not "Strength & muscle". */
   name: string;
+  /** What they get, in a line. */
   tagline: string;
   summary: string;
-  level: Level;
+  /** Is this me? */
   whoFor: string[];
-  typicalWeek: string[];
+  /** What I would do about it. */
+  howIHelp: string[];
+  /** Where it gets them. */
   outcomes: string[];
   visual: VisualKey;
   popular?: boolean;
@@ -62,9 +69,39 @@ export interface Feature {
   icon: FeatureIcon;
   title: string;
   body: string;
-  /** Marks a feature that is planned rather than live. */
-  comingSoon?: boolean;
+  /** A still of the screen, for features the marketing site previews. */
+  preview?: AppPreview;
 }
+
+/**
+ * One members'-area screen, as data rather than a screenshot.
+ *
+ * There are no image assets in this project, and a screenshot goes stale every
+ * time the screen behind it moves. Each variant carries only what its screen
+ * shows, so a preview is edited here rather than in markup.
+ */
+export type AppPreview =
+  | {
+      kind: "plan";
+      calorieTarget: number;
+      caloriesSoFar: number;
+      workout: string;
+      exercises: { name: string; target: string; done: boolean }[];
+    }
+  | {
+      kind: "log";
+      calories: number;
+      meals: { name: string; done: boolean }[];
+      note: string;
+    }
+  | {
+      kind: "feed";
+      posts: { id: string; name: string; when: string; body: string; likes: number; replies: number }[];
+    }
+  | {
+      kind: "chat";
+      messages: { id: string; from: "you" | "dean"; body: string }[];
+    };
 
 export type FeatureIcon =
   | "meal"
@@ -102,8 +139,15 @@ export interface Transformation {
   headline: string;
   quote: string;
   metrics: MetricDelta[];
-  programmeSlug: string;
+  goalSlug: string;
   visual: VisualKey;
+  /**
+   * Paths under /public. Both optional: the card shows a labelled empty frame
+   * until there is a real photo, because a made-up before-and-after is exactly
+   * the thing this page says it does not do.
+   */
+  before?: string;
+  after?: string;
 }
 
 export interface Testimonial {
@@ -115,7 +159,7 @@ export interface Testimonial {
   rating: 1 | 2 | 3 | 4 | 5;
   /** ISO date. */
   date: string;
-  programme: string;
+  goal: string;
 }
 
 /** A coach post — the social-feed surface that carries straight into the app. */

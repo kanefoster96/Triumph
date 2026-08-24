@@ -98,10 +98,10 @@ export default async function MyFoodPlanPage({
                     href={`/app/food/plan?date=${date}`}
                     aria-current={date === selected ? "page" : undefined}
                     className={cn(
-                      "block rounded-2xl border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
+                      "block rounded-2xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors",
                       date === selected
-                        ? "border-accent bg-accent text-accent-ink"
-                        : "border-line bg-ink text-muted hover:text-text",
+                        ? "bg-accent text-accent-ink"
+                        : "bg-raised text-muted hover:text-text",
                     )}
                   >
                     {date === now ? "Today" : shortLabel(date)}

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
  * The public way in.
  *
  * No plan to pick and no price to choose, because there is no shelf of
- * programmes — Dean reads what you sent and builds you something. So this
+ * plans — Dean reads what you sent and builds you something. So this
  * collects what he needs to do that and nothing else.
  */
 export default async function JoinPage({ searchParams }: PageProps<"/join">) {
@@ -46,7 +46,7 @@ export default async function JoinPage({ searchParams }: PageProps<"/join">) {
       </div>
 
       {query.e ? (
-        <p className="mt-7 inline-flex items-start gap-2 rounded-2xl border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
+        <p className="mt-7 inline-flex items-start gap-2 rounded-2xl bg-danger/10 p-3 text-sm text-danger">
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           {query.e === "taken" ? (
             <span>

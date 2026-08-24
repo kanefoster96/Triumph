@@ -44,7 +44,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
                 {details.map((detail) => (
                   <li
                     key={detail.label}
-                    className="flex items-center gap-4 rounded-[var(--radius-sheet)] border border-line bg-surface px-5 py-4"
+                    className="flex items-center gap-4 rounded-[var(--radius-sheet)] bg-surface px-5 py-4"
                   >
                     <IconTile icon={detail.icon} size="sm" />
                     <div className="min-w-0">
@@ -71,7 +71,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
                 {process.map((step, i) => (
                   <li
                     key={step.title}
-                    className="flex gap-4 rounded-[var(--radius-sheet)] border border-line bg-surface p-5"
+                    className="flex gap-4 rounded-[var(--radius-sheet)] bg-surface p-5"
                   >
                     <span className="text-sm font-bold text-accent">0{i + 1}</span>
                     <div className="min-w-0">

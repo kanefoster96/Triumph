@@ -18,7 +18,7 @@ export function Section({ children, className, id, tone = "base" }: SectionProps
   return (
     <section
       id={id}
-      className={cn("py-20 sm:py-28", tone === "raised" && "border-y border-line bg-surface/40", className)}
+      className={cn("py-20 sm:py-28", tone === "raised" && "bg-surface/40", className)}
     >
       <Container>{children}</Container>
     </section>
@@ -55,7 +55,7 @@ export function SectionHeader({
     >
       <div className={cn("max-w-2xl", centred && "mx-auto")}>
         {eyebrow ? (
-          <p className="mb-4 text-xs font-semibold tracking-[0.16em] text-accent uppercase">{eyebrow}</p>
+          <p className="mb-4 text-xs font-semibold text-accent">{eyebrow}</p>
         ) : null}
         <h2 className="text-3xl text-balance sm:text-4xl">{title}</h2>
         {description ? (

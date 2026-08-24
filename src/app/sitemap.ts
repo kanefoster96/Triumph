@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
-import { getProgrammeSlugs } from "@/lib/services/content";
+import { getGoalSlugs } from "@/lib/services/content";
 
 /** Set NEXT_PUBLIC_SITE_URL in the deploy environment. */
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://triumph.fit";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const slugs = await getProgrammeSlugs();
+  const slugs = await getGoalSlugs();
   const staticRoutes = ["", "/coaching", "/results", "/pricing", "/about", "/contact"];
 
   return [

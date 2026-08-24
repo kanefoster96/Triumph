@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Shared form styling for the admin editors. */
+/**
+ * Shared form styling for the admin editors.
+ *
+ * A field is a soft fill rather than an outlined box — it reads as somewhere
+ * to type without drawing a line around itself. It sets no `outline-none`, so
+ * the base `:focus-visible` rule supplies the accent ring on focus.
+ */
 export const field =
-  "w-full rounded-2xl border border-line bg-ink px-4 py-3 text-sm text-text transition-colors placeholder:text-faint focus:border-accent focus:outline-none";
-export const fieldLabel =
-  "mb-2 block text-xs font-semibold tracking-[0.14em] text-faint uppercase";
+  "w-full rounded-2xl bg-raised px-4 py-3 text-sm text-text transition-colors placeholder:text-faint";
+export const fieldLabel = "mb-2 block text-xs font-medium text-faint";
 export const submitButton =
   "rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint";
 
@@ -43,9 +48,9 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-[var(--radius-sheet)] border border-line bg-surface", className)}>
+    <section className={cn("rounded-[var(--radius-sheet)] bg-surface", className)}>
       {title ? (
-        <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
+        <header className="flex items-center justify-between gap-4 px-5 pt-5 pb-1">
           <h2 className="min-w-0 truncate text-base font-semibold">{title}</h2>
           {action}
         </header>
@@ -76,7 +81,7 @@ export function FoldPanel({
   return (
     <details
       open={defaultOpen}
-      className="group rounded-[var(--radius-sheet)] border border-line bg-surface"
+      className="group rounded-[var(--radius-sheet)] bg-surface"
     >
       <summary className="flex min-h-14 cursor-pointer list-none items-center gap-4 px-5 py-4 marker:content-none">
         <span className="min-w-0 flex-1">
@@ -86,7 +91,7 @@ export function FoldPanel({
         <span className="text-xs font-semibold text-accent group-open:hidden">Open</span>
         <span className="hidden text-xs font-semibold text-faint group-open:inline">Close</span>
       </summary>
-      <div className="border-t border-line p-5">{children}</div>
+      <div className="px-5 pb-5">{children}</div>
     </details>
   );
 }

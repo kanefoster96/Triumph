@@ -8,7 +8,7 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-line bg-surface/40 pt-16">
+    <footer className="bg-surface/40 pt-16">
       <Container>
         <div className="grid gap-10 pb-12 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
@@ -21,7 +21,7 @@ export function Footer() {
                   href={s.href}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="rounded-full border border-line px-4 py-1.5 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent"
+                  className="rounded-full bg-raised px-4 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-overlay hover:text-accent"
                 >
                   {s.label}
                 </a>
@@ -65,7 +65,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-line py-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 py-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {year} {site.name}. Online coaching UK-wide.
           </p>

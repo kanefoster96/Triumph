@@ -24,7 +24,7 @@ export default async function JoinThanksPage() {
     <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:py-16">
       <Logo className="mx-auto" />
 
-      <div className="mt-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-6 text-center sm:p-8">
+      <div className="mt-8 rounded-[var(--radius-sheet)] bg-surface p-6 text-center sm:p-8">
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent/10">
           <CheckCheck className="h-7 w-7 text-accent" />
         </span>
@@ -36,7 +36,7 @@ export default async function JoinThanksPage() {
         </p>
 
         {application ? (
-          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-line bg-ink p-4 text-left">
+          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-raised p-4 text-left">
             <Avatar name={application.fullName} src={application.avatarUrl} size="md" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{application.fullName}</p>

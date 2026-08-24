@@ -27,7 +27,7 @@ export function ClientTabs({ clientId }: { clientId: string }) {
 
   return (
     <nav aria-label="Client sections" className="no-scrollbar -mx-1 mb-5 overflow-x-auto px-1 sm:mb-8">
-      <ul className="flex w-max min-w-full gap-1 rounded-full border border-line bg-surface p-1">
+      <ul className="flex w-max min-w-full gap-1 rounded-full bg-surface p-1">
         {tabs.map((tab) => {
           const active = tab.href === base ? pathname === base : pathname.startsWith(tab.href);
           return (

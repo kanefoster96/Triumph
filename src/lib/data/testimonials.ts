@@ -13,7 +13,7 @@ export const testimonials: Testimonial[] = [
     body: "I had done every app and every plan. The difference here is that it changes. When I stalled for a fortnight Dean adjusted my calories and my sessions instead of telling me to be more disciplined.",
     rating: 5,
     date: "2026-05-18",
-    programme: "Fat loss",
+    goal: "Dieted before, it came back",
   },
   {
     id: "t-2",
@@ -23,7 +23,7 @@ export const testimonials: Testimonial[] = [
     body: "I work shifts, so every previous plan died in week two. My plan is written around nights. That is the whole reason it has lasted eight months.",
     rating: 5,
     date: "2026-04-02",
-    programme: "Strength & muscle",
+    goal: "Shift work and travel",
   },
   {
     id: "t-3",
@@ -33,7 +33,7 @@ export const testimonials: Testimonial[] = [
     body: "The check-ins are the bit that works. Knowing I have to write down what actually happened stops me quietly drifting for a month.",
     rating: 5,
     date: "2026-06-11",
-    programme: "Fat loss",
+    goal: "Dieted before, it came back",
   },
   {
     id: "t-4",
@@ -43,7 +43,7 @@ export const testimonials: Testimonial[] = [
     body: "Dean told me my food, not my training, was the problem — then actually helped me fix it without a meal plan full of things I would never cook.",
     rating: 5,
     date: "2026-03-24",
-    programme: "Fat loss",
+    goal: "Dieted before, it came back",
   },
   {
     id: "t-5",
@@ -53,7 +53,7 @@ export const testimonials: Testimonial[] = [
     body: "Two kids under four. My sessions are 35 minutes and they still work. That is the only reason I have kept it up.",
     rating: 5,
     date: "2026-07-08",
-    programme: "The parent reset",
+    goal: "Busy parents",
   },
   {
     id: "t-6",
@@ -63,6 +63,6 @@ export const testimonials: Testimonial[] = [
     body: "I added a few in-person sessions in Newcastle at the start to get my technique sorted, then carried on online. Best of both.",
     rating: 5,
     date: "2026-06-29",
-    programme: "Run & lift",
+    goal: "Back after time off",
   },
 ];

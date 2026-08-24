@@ -117,7 +117,7 @@ export default async function AboutPage() {
         <div className="grid gap-5 sm:grid-cols-2">
           {principles.map((principle, i) => (
             <Reveal key={principle.title} delay={(i % 2) * 70} className="h-full">
-              <div className="h-full rounded-[var(--radius-sheet)] border border-line bg-ink p-6">
+              <div className="h-full rounded-[var(--radius-sheet)] bg-raised p-6">
                 <h3 className="text-lg">{principle.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{principle.body}</p>
               </div>

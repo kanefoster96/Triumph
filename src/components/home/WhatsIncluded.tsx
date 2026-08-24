@@ -11,17 +11,22 @@ export async function WhatsIncluded() {
     <Section id="included" tone="raised">
       <SectionHeader
         eyebrow="Online coaching"
-        title="Everything below, for one monthly price"
-        description={`${formatPrice(price.amount)} a month. No tiers, no upsells, no add-ons you find out about later.`}
+        title={`${formatPrice(price.amount)} a month. Hit your targets, get ${formatPrice(price.amount / 2)} back.`}
+        description="Everything included. No tiers, no upsells, no contract. Hit every target in your first month and Dean sends you 50% back — because consistency should pay."
       />
 
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      {/* One column: read as a list, the icon anchoring each row rather than
+          sitting on a line of its own. Held to a readable measure so the body
+          copy does not run the full width of the container. */}
+      <div className="mx-auto grid max-w-3xl grid-cols-1 gap-4">
         {included.map((feature, i) => (
-          <Reveal key={feature.id} delay={(i % 3) * 70} className="h-full">
-            <div className="h-full rounded-[var(--radius-sheet)] border border-line bg-ink p-6">
+          <Reveal key={feature.id} delay={(i % 3) * 70}>
+            <div className="flex gap-5 rounded-[var(--radius-sheet)] bg-raised p-6">
               <IconTile feature={feature.icon} />
-              <h3 className="mt-5 text-lg">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{feature.body}</p>
+              <div className="min-w-0">
+                <h3 className="text-lg">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{feature.body}</p>
+              </div>
             </div>
           </Reveal>
         ))}

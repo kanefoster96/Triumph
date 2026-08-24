@@ -93,8 +93,8 @@ export default async function DashboardPage() {
         coach who has not answered yet.
       */}
       {profile.status === "applicant" ? (
-        <div className="mb-6 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
-          <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+        <div className="mb-6 rounded-[var(--radius-sheet)] bg-accent/10 p-5">
+          <p className="inline-flex items-center gap-2 text-xs font-semibold text-accent">
             <Hourglass className="h-3.5 w-3.5" />
             With Dean
           </p>
@@ -121,8 +121,8 @@ export default async function DashboardPage() {
           className={cn(
             "mb-6 rounded-[var(--radius-sheet)] border p-5",
             submission.missed.length > 0
-              ? "border-amber/40 bg-amber/[0.06]"
-              : "border-success/40 bg-success/[0.06]",
+              ? "border-amber/40 bg-amber/10"
+              : "border-success/40 bg-success/10",
           )}
         >
           <div className="flex flex-wrap items-center gap-4">
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
             <div>
               <p
                 className={cn(
-                  "text-xs font-semibold tracking-[0.14em] uppercase",
+                  "text-xs font-semibold tracking-[0.14em]",
                   submission.missed.length > 0 ? "text-amber" : "text-success",
                 )}
               >
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
           </div>
           {submission.missed.length > 0 ? (
             <div className="mt-4 rounded-2xl bg-raised p-4">
-              <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+              <p className="text-xs font-semibold text-faint">
                 Marked as missed
               </p>
               <p className="mt-1.5 text-sm text-muted">{submission.missed.join(" \u00b7 ")}</p>
@@ -163,8 +163,8 @@ export default async function DashboardPage() {
           ) : null}
         </div>
       ) : progress.allDone ? (
-        <div className="mb-6 rounded-[var(--radius-sheet)] border border-accent/50 bg-accent/[0.08] p-5">
-          <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+        <div className="mb-6 rounded-[var(--radius-sheet)] bg-accent/10 p-5">
+          <p className="text-xs font-semibold text-accent">
             That&rsquo;s the lot
           </p>
           <p className="mt-1.5 text-lg font-semibold">
@@ -183,9 +183,9 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-sheet)] border border-accent/40 bg-accent/[0.06] p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-sheet)] bg-accent/10 p-5">
             <div>
-              <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
+              <p className="text-xs font-semibold text-accent">
                 Next step
               </p>
               <p className="mt-1.5 text-lg font-semibold">{step.label}</p>
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
       )}
 
       {summary.unreadComments.length > 0 ? (
-        <div className="mb-6 rounded-[var(--radius-sheet)] border border-line bg-surface p-5">
+        <div className="mb-6 rounded-[var(--radius-sheet)] bg-surface p-5">
           <div className="flex items-center justify-between gap-4">
             <h2 className="inline-flex items-center gap-2 text-base font-semibold">
               <MessageCircle className="h-4 w-4 text-accent" />
@@ -237,7 +237,7 @@ export default async function DashboardPage() {
       {/* Dean's latest word, and the one place the client can answer him
           without having to hang the question on a workout or a food log. */}
       {summary.latestCheckIn ? (
-        <div className="mb-6 rounded-[var(--radius-sheet)] border border-line bg-surface p-5">
+        <div className="mb-6 rounded-[var(--radius-sheet)] bg-surface p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="inline-flex items-center gap-3 text-base font-semibold">
               {/* From a person, not from the system. */}

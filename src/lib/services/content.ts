@@ -3,7 +3,7 @@ import { coachingPrice, included, memberArea, process } from "@/lib/data/coachin
 import { faqs } from "@/lib/data/faqs";
 import { plans } from "@/lib/data/plans";
 import { posts } from "@/lib/data/posts";
-import { programmes } from "@/lib/data/programmes";
+import { goals } from "@/lib/data/goals";
 import { testimonials } from "@/lib/data/testimonials";
 import { transformations } from "@/lib/data/transformations";
 import type {
@@ -12,7 +12,7 @@ import type {
   Feature,
   Plan,
   Post,
-  Programme,
+  Goal,
   Testimonial,
   Transformation,
 } from "@/lib/types";
@@ -29,16 +29,16 @@ export async function getCoach(): Promise<Coach> {
   return coach;
 }
 
-export async function getProgrammes(): Promise<Programme[]> {
-  return programmes;
+export async function getGoals(): Promise<Goal[]> {
+  return goals;
 }
 
-export async function getProgramme(slug: string): Promise<Programme | undefined> {
-  return programmes.find((p) => p.slug === slug);
+export async function getGoal(slug: string): Promise<Goal | undefined> {
+  return goals.find((p) => p.slug === slug);
 }
 
-export async function getProgrammeSlugs(): Promise<string[]> {
-  return programmes.map((p) => p.slug);
+export async function getGoalSlugs(): Promise<string[]> {
+  return goals.map((p) => p.slug);
 }
 
 export async function getPlans(): Promise<Plan[]> {
@@ -73,8 +73,8 @@ export async function getTransformations(limit?: number): Promise<Transformation
   return typeof limit === "number" ? transformations.slice(0, limit) : transformations;
 }
 
-export async function getTransformationsByProgramme(slug: string): Promise<Transformation[]> {
-  return transformations.filter((t) => t.programmeSlug === slug);
+export async function getTransformationsByGoal(slug: string): Promise<Transformation[]> {
+  return transformations.filter((t) => t.goalSlug === slug);
 }
 
 export async function getPosts(limit?: number): Promise<Post[]> {

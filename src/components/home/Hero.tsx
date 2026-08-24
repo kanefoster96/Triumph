@@ -1,37 +1,39 @@
 import { Check, Sparkles } from "lucide-react";
 import { headlineStats } from "@/lib/data/site";
-import { getCoachingPrice } from "@/lib/services/content";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
+import { CountUp } from "@/components/ui/CountUp";
 import { Reveal } from "@/components/ui/Reveal";
-import { formatPrice } from "@/lib/utils";
 
-const proofPoints = ["Built for you, not downloaded", "Adjusted every week", "No contract"];
+const proofPoints = [
+  "Weekly check-ins with Dean",
+  "Track it all in your app",
+  "No contract, cancel any time",
+];
 
-export async function Hero() {
-  const price = await getCoachingPrice();
-
+export function Hero() {
   return (
     <Container className="pt-14 pb-20 text-center sm:pt-24 sm:pb-28">
       <Reveal>
         <span className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-2 text-sm font-medium text-accent">
           <Sparkles className="h-4 w-4" />
-          Online coaching · {formatPrice(price.amount)}/month
+          Hit your month-one targets → get 50% back
         </span>
       </Reveal>
 
       <Reveal delay={60}>
         <h1 className="mx-auto mt-8 max-w-3xl text-4xl leading-[1.05] text-balance sm:text-6xl">
-          A plan built around
+          Do the work. Get the results.
           <br />
-          <span className="text-accent">your life, not a template.</span>
+          <span className="text-accent">Get half your money back.</span>
         </h1>
       </Reveal>
 
       <Reveal delay={120}>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-          Online coaching with Dean Foster. Your meal plan, your training plan, regular check-ins and real
-          adjustments as you go — never a copy-and-paste PDF.
+          Tell Dean your goal on a free consult. He&rsquo;ll build a plan you&rsquo;ll actually stick to.
+          Track everything in your own app, check in with him every week — and if you hit every target
+          in your first month, you get 50% back.
         </p>
       </Reveal>
 
@@ -58,11 +60,11 @@ export async function Hero() {
       </Reveal>
 
       <Reveal delay={300}>
-        <dl className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-8 sm:mt-20 lg:grid-cols-4">
+        <dl className="mx-auto mt-16 grid max-w-lg grid-cols-2 gap-8 sm:mt-20">
           {headlineStats.map((stat) => (
             <div key={stat.label}>
-              <dd className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
-                {stat.value}
+              <dd className="font-display text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
+                <CountUp value={stat.value} />
                 {stat.suffix ? <span className="text-accent">{stat.suffix}</span> : null}
               </dd>
               <dt className="mt-2 text-sm text-muted">{stat.label}</dt>

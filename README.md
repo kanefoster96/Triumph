@@ -36,22 +36,23 @@ All copy and data lives in `src/lib/data/` — no content is hard-coded in compo
 - `site.ts` — brand name, contact details, navigation, headline stats
 - `coach.ts` — bio, credentials, specialties
 - `coaching.ts` — the monthly price, what's included, members' area, the process
-- `programmes.ts` — the goals plans get built around (drives `/coaching/[slug]`)
+- `goals.ts` — the five people Dean coaches (drives `/coaching/[slug]`)
 - `plans.ts` — the £120 online plan and the in-person add-on
 - `transformations.ts` / `testimonials.ts` — client results and reviews
 - `posts.ts` — the coach feed
 - `faqs.ts` — questions
 
-Renaming the business, changing the phone number, or adding a programme is a one-file
-edit. Adding a programme automatically creates its detail page, sitemap entry, and an
-option in the enquiry form.
+Renaming the business, changing the phone number, or adding a goal is a one-file
+edit. Adding a goal automatically creates its detail page and sitemap entry. Retiring
+one means adding a redirect in `next.config.ts`, so an old link still lands somewhere.
 
 ### Photography
 
-There are no image assets. Each programme and result carries a `visual` key that maps
+There are no image assets. Each goal and result carries a `visual` key that maps
 to an icon in `IconTile`, so cards are complete with nothing to upload. The one real
-photo slot — the coach portrait — uses `MediaFrame`, which shows a labelled placeholder
-until you give it a `src`. To use real photos, drop them in `public/` and pass `src` to
+photo slots — the coach portrait, and a before/after pair on each result — use
+`MediaFrame`, which shows a labelled placeholder until you give it a `src`. For a
+result, add `before` and `after` paths to its entry in `transformations.ts`. To use real photos, drop them in `public/` and pass `src` to
 `MediaFrame` (or add a `photo` path to `coach.ts`); the placeholder disappears on its own.
 
 ## How this maps to the React Native app
@@ -100,7 +101,7 @@ changed with it.
 - Scroll-reveal via `IntersectionObserver`, disabled under `prefers-reduced-motion`
   and pinned visible for no-JS via a `<noscript>` rule
 - Safe-area insets, no tap highlight, no overscroll chaining
-- Instant client-side filtering on `/programmes` rather than a page load per filter
+- Instant client-side filtering on `/coaching` rather than a page load per filter
 
 ## Deployment
 

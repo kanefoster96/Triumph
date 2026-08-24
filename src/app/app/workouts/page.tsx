@@ -72,7 +72,7 @@ export default async function WorkoutsPage() {
             <>
               {todays.coachNotes ? (
                 <div className="mb-5 rounded-2xl bg-raised p-4">
-                  <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">From me</p>
+                  <p className="text-xs font-semibold text-faint">From me</p>
                   <p className="mt-2 text-sm leading-relaxed text-muted">{todays.coachNotes}</p>
                 </div>
               ) : null}
@@ -84,7 +84,7 @@ export default async function WorkoutsPage() {
                     {todays.items.map((item) => (
                       <li
                         key={item.id}
-                        className="flex items-baseline justify-between gap-4 rounded-2xl border border-line bg-ink px-4 py-3"
+                        className="flex items-baseline justify-between gap-4 rounded-2xl bg-raised px-4 py-3"
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">{item.label}</span>
@@ -123,7 +123,7 @@ export default async function WorkoutsPage() {
               started: a session with sets already logged against it belongs to
               today whatever the plan says. */}
           {todays && !todays.completedAt && todays.items.every((item) => !item.done) ? (
-            <div className="mt-5 border-t border-line pt-5">
+            <div className="mt-5">
               <MoveWorkout
                 fromDate={date}
                 title={todays.title}
@@ -152,7 +152,7 @@ export default async function WorkoutsPage() {
               {past.map((workout) => {
                 const done = workout.items.filter((i) => i.done).length;
                 return (
-                  <li key={workout.id} className="rounded-2xl border border-line bg-ink p-5">
+                  <li key={workout.id} className="rounded-2xl bg-raised p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold">{workout.title}</p>
@@ -166,8 +166,8 @@ export default async function WorkoutsPage() {
                     </div>
 
                     {workout.clientNote ? (
-                      <div className="mt-4 rounded-2xl bg-raised p-4">
-                        <p className="text-xs font-semibold tracking-[0.14em] text-faint uppercase">
+                      <div className="mt-4 rounded-2xl bg-overlay p-4">
+                        <p className="text-xs font-semibold text-faint">
                           Your note
                         </p>
                         <p className="mt-2 text-sm leading-relaxed text-muted">{workout.clientNote}</p>

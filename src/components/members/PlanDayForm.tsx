@@ -162,7 +162,7 @@ export function PlanDayForm({
               onClick={() => setAsking(false)}
               className="absolute inset-0 bg-ink/80"
             />
-            <div className="relative w-full max-w-md rounded-t-[var(--radius-sheet)] border border-line bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-[var(--radius-sheet)]">
+            <div className="relative w-full max-w-md rounded-t-[var(--radius-sheet)] bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-[var(--radius-sheet)]">
               <h2 className="text-base font-semibold">Save this day to…</h2>
 
               <div className="mt-4 space-y-2">
@@ -203,7 +203,7 @@ export function PlanDayForm({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-sheet)] border border-line bg-surface px-5 py-3 text-left transition-colors hover:border-accent/40"
+          className="flex min-h-14 w-full items-center gap-3 rounded-[var(--radius-sheet)] bg-surface px-5 py-3 text-left transition-colors hover:bg-overlay"
         >
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold">{title}</span>
@@ -254,11 +254,11 @@ export function PlanDayForm({
   }
 
   return (
-    <div className="rounded-[var(--radius-sheet)] border border-line bg-surface">
+    <div className="rounded-[var(--radius-sheet)] bg-surface">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <h2 className="text-base font-semibold">{title}</h2>
         {dirty ? (
-          <span className="rounded-full border border-amber/40 bg-amber/10 px-3 py-1 text-xs font-semibold text-amber">
+          <span className="rounded-full bg-amber/10 px-3 py-1 text-xs font-semibold text-amber">
             Unsaved changes
           </span>
         ) : null}
@@ -295,7 +295,7 @@ function ScopeChoice({
       form={formId}
       name="scope"
       value={value}
-      className="flex w-full items-start gap-3 rounded-2xl border border-line bg-ink p-4 text-left transition-colors hover:border-accent hover:bg-accent/[0.07]"
+      className="flex w-full items-start gap-3 rounded-2xl bg-raised p-4 text-left transition-colors hover:bg-overlay hover:bg-accent/10"
     >
       <Icon className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
       <span className="min-w-0">

@@ -28,12 +28,12 @@ export default async function ResultsPage() {
       <PageHeader
         eyebrow="Results"
         title="The receipts"
-        description="Every result below is a real client on a named programme, with the timeframe attached. Numbers are self-reported at testing weeks and rounded to something honest."
+        description="Every result below is a real client on a named goal, with the timeframe attached. Numbers are self-reported at testing weeks and rounded to something honest."
       />
 
       <Container className="pb-8">
         <Reveal>
-          <dl className="grid grid-cols-2 gap-8 rounded-[var(--radius-sheet)] border border-line bg-surface p-8 text-center lg:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-8 rounded-[var(--radius-sheet)] bg-surface p-8 text-center lg:grid-cols-4">
             {summary.map((item) => (
               <div key={item.label}>
                 <dd className="font-display text-3xl font-bold tracking-tight text-accent sm:text-4xl">{item.value}</dd>

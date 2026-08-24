@@ -17,7 +17,7 @@ import { ReasonNote } from "./ReasonNote";
  */
 export function FinishAnyway({ date, missed }: { date: string; missed: string[] }) {
   return (
-    <details className="group mb-6 rounded-[var(--radius-sheet)] border border-line bg-surface">
+    <details className="group mb-6 rounded-[var(--radius-sheet)] bg-surface">
       <summary className="cursor-pointer list-none p-5 text-sm font-semibold text-muted transition-colors hover:text-text">
         Done for today anyway?
         <span className="mt-1 block text-xs font-normal text-faint">
@@ -25,8 +25,8 @@ export function FinishAnyway({ date, missed }: { date: string; missed: string[] 
         </span>
       </summary>
 
-      <div className="border-t border-line p-5">
-        <p className="inline-flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-amber uppercase">
+      <div className="px-5 pb-5">
+        <p className="inline-flex items-center gap-2 text-xs font-semibold text-amber">
           <TriangleAlert className="h-3.5 w-3.5" />
           Going down as missed
         </p>

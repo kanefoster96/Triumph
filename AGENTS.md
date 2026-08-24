@@ -26,12 +26,27 @@ Tailwind v4, TypeScript. Fully static; no backend.
   (`@theme`). Change both together.
 - Prefer semantic colour utilities (`bg-surface`, `text-muted`, `border-line`)
   over raw hex.
-- The look is minimal and dark: flat surfaces, hairline borders, generous
-  whitespace, one cyan accent. No gradients, texture overlays, glows, or
-  condensed/uppercase display type. The only saturated block on a page is the
-  accent CTA band.
-- Cards use `border border-line bg-surface` and `rounded-[var(--radius-sheet)]`;
-  a card's visual identity comes from an `IconTile`, not from imagery.
+- The look is minimal and dark: the page is true black, surfaces are flat,
+  whitespace is generous and there is one cyan accent. No gradients, texture
+  overlays, glows, or condensed/uppercase display type — small labels are
+  sentence case, not tracked capitals. The only saturated block on a page is
+  the accent CTA band.
+- **Tone separates, not lines.** Each layer is a step up from the one under it:
+  `ink` (the page) → `surface` (a card) → `raised` (a row or control inside a
+  card) → `overlay` (a control inside a row). Something nested must always sit
+  one step *above* its parent, never level with it or below — level is
+  invisible, below reads as a hole. Four levels is the whole ramp, so if you
+  need a fifth, the layout is too deep.
+- Cards use `bg-surface` and `rounded-[var(--radius-sheet)]` with **no border**;
+  a card's visual identity comes from an `IconTile`, not from imagery or an
+  outline. Images and avatars carry no border either.
+- `border-line` is for genuine rules only — the underside of a sticky header, a
+  sheet's pinned header and footer, separators between list rows. Never to
+  outline a card, a control, a field or a callout. A tinted callout is its tint
+  alone (`bg-amber/10`), a filled control its fill (`bg-raised`).
+- Fields are filled, not outlined, and set no `focus:outline-none`: the base
+  `:focus-visible` rule in `globals.css` is their focus ring. The one exception
+  to all of this is an empty checkbox, which has nothing but a line to show.
 
 ## Navigation
 
@@ -162,7 +177,7 @@ labelled **Portion** with fractions.
 
 The public way in is `/join` — a three-step wizard that creates an account and
 an `Application`. There is no plan to pick and no price to choose because there
-is no shelf of programmes: Dean reads the application in `/admin/requests` and
+is no shelf of plans: Dean reads the application in `/admin/requests` and
 enrols them, which flips the profile from `applicant` to `active` and opens
 their week. Coaching is online only on every public surface.
 
@@ -254,3 +269,49 @@ is now 1-to-1" rather than a column and an enum.
 ## Checks
 
 `npm run build` and `npm run lint` should both pass clean before committing.
+
+## The members'-area preview
+
+The marketing site shows the app before the app exists. `MemberTour` is a
+tablist over `memberArea`, and each feature carries a `preview` — an
+`AppPreview` variant holding only what its screen shows, so a screen is edited
+in `lib/data/coaching.ts` rather than in markup.
+
+They are drawings, not screenshots: there are no image assets in this project,
+and a screenshot goes stale every time the screen behind it moves. Nothing in a
+preview may tick, send or save — it is a picture of the screen, not the screen.
+
+The site no longer labels anything as unfinished, so **everything listed in
+`memberArea` is advertised as working and has to exist behind the login**. Add
+a feature here when it ships, not when it is planned, and say so in the reply
+rather than on the page if it is not ready.
+
+The frame is a fixed height because the screens differ by about 115px and it
+jumped on every switch, and the tablist is one element laid out two ways —
+a rail on a phone, a column beside the preview above `lg` — because rendering
+it twice would put two sets of tabs in the accessibility tree.
+
+On the rail the swipe is the control: cards snap centre, whichever lands in the
+middle is previewed, and the preview is the same width and centre as a card so
+the two read as one object rather than a picture floating under a list. The
+screen cross-fades on change — `shown` lags `active` by one fade so the old
+screen leaves before the new one arrives — and swaps instantly under
+`prefers-reduced-motion`.
+
+## Goals are people
+
+`lib/data/goals.ts` holds five **people**, not five products: busy parents,
+somebody who has dieted before, somebody back after time off, somebody on
+shifts, and somebody whose numbers have stopped moving. They are drawn from the
+specialties on `coach.ts`, so the about page and the goals never drift apart.
+
+A `Goal` therefore carries no level and no price — everything is the same
+monthly coaching — and its three lists answer the three questions a visitor
+actually has, in order: `whoFor` (is this me), `howIHelp` (what would you do
+about it), `outcomes` (where does it get me). The detail page renders them
+under exactly those headings.
+
+Renaming a goal changes its slug, which breaks any link already published, so
+retire the old slug with a redirect in `next.config.ts` rather than leaving a
+404. `transformations.ts` and `testimonials.ts` both point at goals — the first
+by `goalSlug`, which must resolve, the second by `goal`, which is only a label.
