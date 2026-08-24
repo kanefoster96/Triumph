@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { ArrowLeft, ArrowRight, Check, Loader2, Monitor } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Dumbbell, Loader2 } from "lucide-react";
 import { submitApplication } from "@/lib/members/actions";
 import { GOAL_LABELS, type GoalType } from "@/lib/members/types";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 const field =
   "h-12 w-full rounded-2xl bg-raised px-4 text-base text-text transition-colors placeholder:text-faint";
 const label = "mb-2 block text-sm font-semibold text-text";
+/** Both wizard controls. 44px tall, sized by their own words. */
+const pill =
+  "inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors";
 
 const STEPS = ["You", "Your goal", "Confirm"] as const;
 
@@ -43,6 +46,9 @@ export function JoinWizard({
   const [goalWeight, setGoalWeight] = useState("");
   const [goalType, setGoalType] = useState<GoalType>("fitness");
   const [goalOther, setGoalOther] = useState("");
+  /** null until they answer — Next waits for it. */
+  const [hasGym, setHasGym] = useState<boolean | null>(null);
+  const [gymName, setGymName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -64,7 +70,14 @@ export function JoinWizard({
       ? goalOther.trim() || "Something else"
       : GOAL_LABELS[goalType];
 
-  const canContinue = step === 0 ? fullName.trim().length > 1 : true;
+  /*
+   * The gym question is the one answer that decides whether the coaching can
+   * work at all — every workout Dean writes is a gym workout — so step one
+   * does not move until it has been given, and "yes" is not an answer without
+   * the gym it refers to.
+   */
+  const gymAnswered = hasGym === false || (hasGym === true && gymName.trim().length > 1);
+  const canContinue = step === 0 ? fullName.trim().length > 1 && gymAnswered : true;
   const canSubmit =
     signedIn || (email.trim().includes("@") && password.length >= 6);
 
@@ -100,15 +113,12 @@ export function JoinWizard({
         <input type="hidden" name="goalWeightKg" value={goalWeight} />
         <input type="hidden" name="goalType" value={goalType} />
         <input type="hidden" name="goalOther" value={goalOther} />
+        <input type="hidden" name="hasGym" value={hasGym === null ? "" : hasGym ? "yes" : "no"} />
+        <input type="hidden" name="gymName" value={hasGym ? gymName : ""} />
 
         {step === 0 ? (
-          <section className="space-y-5">
-            <div>
-              <h2 className="text-2xl">First, who are you?</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                Just a name to put to the plan. Everything else comes after.
-              </p>
-            </div>
+          <section className="space-y-6">
+            <h2 className="text-2xl">First, who are you?</h2>
 
             <div>
               <label className={label} htmlFor="join-name">
@@ -119,36 +129,79 @@ export function JoinWizard({
                 className={field}
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
-                placeholder="Alex Morgan"
                 autoComplete="name"
                 autoFocus
               />
             </div>
 
-            {/* No photo here on purpose: an upload needs an account to
-                own the file, and the account does not exist until the last
-                step. It is one tap from their profile once they are in. */}
-            <p className="text-xs leading-relaxed text-faint">
-              You can add a photo from your profile once you are in — it is
-              optional.
-            </p>
+            <div>
+              <span className={label}>Do you have a gym membership?</span>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["Yes", true],
+                  ["No", false],
+                ].map(([text, value]) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => setHasGym(value as boolean)}
+                    aria-pressed={hasGym === value}
+                    className={cn(
+                      "min-h-14 rounded-2xl px-4 text-sm font-semibold transition-colors",
+                      hasGym === value
+                        ? "bg-accent/15 text-accent"
+                        : "bg-raised text-muted hover:bg-overlay",
+                    )}
+                  >
+                    {text as string}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {hasGym === true ? (
+              <div>
+                <label className={label} htmlFor="join-gym">
+                  Which gym
+                </label>
+                <input
+                  id="join-gym"
+                  className={field}
+                  value={gymName}
+                  onChange={(event) => setGymName(event.target.value)}
+                  maxLength={80}
+                  autoFocus
+                />
+              </div>
+            ) : null}
+
+            {/* Said here rather than at the end: somebody without a gym should
+                find out what they are signing up to before they have filled
+                in three screens, not after. */}
+            {hasGym === false ? (
+              <div className="flex items-start gap-3 rounded-[var(--radius-sheet)] bg-amber/10 p-4">
+                <Dumbbell className="mt-0.5 h-5 w-5 shrink-0 text-amber" />
+                <p className="text-sm leading-relaxed text-muted">
+                  <span className="font-semibold text-text">
+                    You will need access to a gym.
+                  </span>{" "}
+                  Your sessions are built around gym equipment, so you will
+                  need a membership to train the plan as written. Dean can wait
+                  until you have one.
+                </p>
+              </div>
+            ) : null}
           </section>
         ) : null}
 
         {step === 1 ? (
-          <section className="space-y-5">
-            <div>
-              <h2 className="text-2xl">What are you after?</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                None of this is binding and none of it is required — it is what
-                Dean reads before he builds anything.
-              </p>
-            </div>
+          <section className="space-y-6">
+            <h2 className="text-2xl">What are you after?</h2>
 
             <div>
               <label className={label} htmlFor="join-weight">
                 What you weigh now{" "}
-                <span className="font-normal text-faint">— if you know it</span>
+                <span className="font-normal text-faint">— kg, if you know it</span>
               </label>
               <input
                 id="join-weight"
@@ -159,7 +212,6 @@ export function JoinWizard({
                 min="0"
                 value={currentWeight}
                 onChange={(event) => setCurrentWeight(event.target.value)}
-                placeholder="kg"
               />
             </div>
 
@@ -195,7 +247,6 @@ export function JoinWizard({
                   className={field}
                   value={goalOther}
                   onChange={(event) => setGoalOther(event.target.value)}
-                  placeholder="Back to five-a-side without wrecking my knee"
                   maxLength={120}
                   autoFocus
                 />
@@ -204,7 +255,7 @@ export function JoinWizard({
               <div>
                 <label className={label} htmlFor="join-goal-weight">
                   A weight you have in mind{" "}
-                  <span className="font-normal text-faint">— optional</span>
+                  <span className="font-normal text-faint">— kg, optional</span>
                 </label>
                 <input
                   id="join-goal-weight"
@@ -215,7 +266,6 @@ export function JoinWizard({
                   min="0"
                   value={goalWeight}
                   onChange={(event) => setGoalWeight(event.target.value)}
-                  placeholder="kg"
                 />
               </div>
             )}
@@ -223,25 +273,13 @@ export function JoinWizard({
         ) : null}
 
         {step === 2 ? (
-          <section className="space-y-5">
-            <div>
-              <h2 className="text-2xl">Online coaching, then</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                Everything is coached online — your training and your food,
-                planned for you and adjusted as you go.
-              </p>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-[var(--radius-sheet)] bg-accent/10 p-4">
-              <Monitor className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-              <p className="text-sm leading-relaxed text-muted">
-                <span className="font-semibold text-text">
-                  Online personal training.
-                </span>{" "}
-                No gym to get to and no fixed time to be there. Dean builds your
-                week; you follow it wherever you train.
-              </p>
-            </div>
+          <section className="space-y-6">
+            {/*
+             * This used to promise "no gym to get to", which is the opposite
+             * of what step one now asks for. Online is about there being no
+             * fixed appointment to keep, not about training without equipment.
+             */}
+            <h2 className="text-2xl">Check it over</h2>
 
             <dl className="divide-y divide-line rounded-[var(--radius-sheet)] bg-surface px-4">
               {(
@@ -260,6 +298,7 @@ export function JoinWizard({
                         ? `${goalWeight}kg`
                         : "Not said",
                   ],
+                  ["Gym", hasGym ? gymName.trim() || "Yes" : "Not yet"],
                 ] as const
               ).map(([key, value]) => (
                 <div
@@ -292,13 +331,15 @@ export function JoinWizard({
                     name="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@example.com"
                     autoComplete="email"
                   />
                 </div>
                 <div>
                   <label className={label} htmlFor="join-password">
-                    Password
+                    Password{" "}
+                    <span className="font-normal text-faint">
+                      — at least 6 characters
+                    </span>
                   </label>
                   <input
                     id="join-password"
@@ -307,7 +348,6 @@ export function JoinWizard({
                     name="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    placeholder="At least 6 characters"
                     autoComplete="new-password"
                   />
                 </div>
@@ -322,14 +362,40 @@ export function JoinWizard({
           </section>
         ) : null}
 
-        {/* Thumb-high and full width, in the order you read them. */}
-        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row-reverse">
+        {/*
+         * Two pills on one line, back on the left and forward on the right,
+         * the way the steps run.
+         *
+         * They used to be full-width and stacked, which made going back look
+         * like the main thing to do — and `flex-1` inside a *column* sets
+         * flex-basis on the height, so it beat the `h-12` and left Next half
+         * the height of Back. Neither grows now.
+         */}
+        <div className="mt-8 flex items-center justify-between gap-3">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStep((current) => current - 1)}
+              className={cn(pill, "bg-raised text-muted hover:bg-overlay hover:text-text")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+          ) : (
+            // Holds the right-hand pill on the right on the first step.
+            <span />
+          )}
+
           {step < STEPS.length - 1 ? (
             <button
               type="button"
               onClick={() => setStep((current) => current + 1)}
               disabled={!canContinue}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-accent text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint"
+              className={cn(
+                pill,
+                "bg-accent text-accent-ink hover:bg-accent-strong",
+                "disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint",
+              )}
             >
               Next
               <ArrowRight className="h-4 w-4" />
@@ -337,17 +403,6 @@ export function JoinWizard({
           ) : (
             <SubmitButton disabled={!canSubmit} />
           )}
-
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={() => setStep((current) => current - 1)}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-raised px-5 text-sm font-semibold text-muted transition-colors hover:bg-overlay hover:text-accent sm:flex-none"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-          ) : null}
         </div>
       </form>
     </div>
@@ -361,14 +416,18 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
     <button
       type="submit"
       disabled={disabled || pending}
-      className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-accent text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint"
+      className={cn(
+        pill,
+        "bg-accent text-accent-ink hover:bg-accent-strong",
+        "disabled:cursor-not-allowed disabled:bg-raised disabled:text-faint",
+      )}
     >
       {pending ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <Check className="h-4 w-4" />
       )}
-      Send my application
+      Finish
     </button>
   );
 }

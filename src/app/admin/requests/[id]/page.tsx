@@ -28,6 +28,16 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
 
   const rows: Array<[string, string]> = [
     ["Goal", goal],
+    // Three answers, not two: an application sent before the question existed
+    // said neither, and must not be read as "no".
+    [
+      "Gym",
+      application.hasGym === null
+        ? "Not asked"
+        : application.hasGym
+          ? application.gymName || "Yes"
+          : "No — told they will need one",
+    ],
     ["Weight now", application.currentWeightKg ? `${application.currentWeightKg}kg` : "Not said"],
     ["Goal weight", application.goalWeightKg ? `${application.goalWeightKg}kg` : "Not said"],
     ["Email", application.email],

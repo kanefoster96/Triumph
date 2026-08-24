@@ -528,6 +528,14 @@ export interface Application {
   goalType: GoalType;
   /** What they typed when they picked "Something else". */
   goalOther: string | null;
+  /**
+   * Whether they have a gym. `null` on applications written before the
+   * question existed — which is not the same answer as `false`, and the inbox
+   * says so.
+   */
+  hasGym: boolean | null;
+  /** Which gym, when they have one. */
+  gymName: string | null;
   status: ApplicationStatus;
   createdAt: string;
   decidedAt: string | null;
