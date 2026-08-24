@@ -71,7 +71,40 @@ export interface Feature {
   body: string;
   /** Marks a feature that is planned rather than live. */
   comingSoon?: boolean;
+  /** A still of the screen, for features the marketing site previews. */
+  preview?: AppPreview;
 }
+
+/**
+ * One members'-area screen, as data rather than a screenshot.
+ *
+ * There are no image assets in this project, and a screenshot of a screen that
+ * is still being built would age the moment it changed. Each variant carries
+ * only what its screen shows, so the preview is edited here rather than in
+ * markup — and so nothing in it can drift into claiming a feature works.
+ */
+export type AppPreview =
+  | {
+      kind: "plan";
+      calorieTarget: number;
+      caloriesSoFar: number;
+      workout: string;
+      exercises: { name: string; target: string; done: boolean }[];
+    }
+  | {
+      kind: "log";
+      calories: number;
+      meals: { name: string; done: boolean }[];
+      note: string;
+    }
+  | {
+      kind: "feed";
+      posts: { id: string; name: string; when: string; body: string; likes: number; replies: number }[];
+    }
+  | {
+      kind: "chat";
+      messages: { id: string; from: "you" | "dean"; body: string }[];
+    };
 
 export type FeatureIcon =
   | "meal"
