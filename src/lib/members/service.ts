@@ -414,6 +414,47 @@ export async function isDemoMode(): Promise<boolean> {
   return (await createClient()) === null;
 }
 
+/**
+ * How many clients have opened the app in the last day.
+ *
+ * `null` when there is nobody, or when the count cannot be had — the caller
+ * hides the line rather than printing a nought. A quiet day is not something
+ * to announce, and a made-up number is worse than no number.
+ *
+ * The count arrives through a SECURITY DEFINER function because the page that
+ * shows it is public: a stranger may know how many people were in today and
+ * may not read a single profile row.
+ */
+export async function getActiveMemberCount(): Promise<number | null> {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    /*
+     * Demo mode has no sign-in history to count, so this is the demo cast
+     * plus anybody who has signed up in this browser — a real count of the
+     * demo, which is what every other figure on a demo page is. The banner
+     * at the top of the members' area says which mode this is.
+     */
+    const people = await demoPeople();
+    const extra = people.profiles.filter(
+      (entry) => entry.role === "client" && (entry.status === "active" || entry.status === "paused"),
+    ).length;
+    const seeded = demoProfiles.filter(
+      (entry) => entry.role === "client" && (entry.status === "active" || entry.status === "paused"),
+    ).length;
+    const total = seeded + extra;
+    return total > 0 ? total : null;
+  }
+
+  const { data, error } = await supabase.rpc("active_members_24h");
+  if (error) {
+    console.error("[presence] count failed:", error.message);
+    return null;
+  }
+  const count = Number(data);
+  return Number.isFinite(count) && count > 0 ? count : null;
+}
+
 // ---------------------------------------------------------------------------
 // Sessions
 // ---------------------------------------------------------------------------

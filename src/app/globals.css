@@ -175,6 +175,44 @@
   .shadow-none {
     box-shadow: none;
   }
+
+  /*
+   * The live dot beside "active today". A ring pushed outwards and faded, so
+   * the dot itself never moves — a dot that scales makes the line of text
+   * beside it look unsteady.
+   *
+   * Held still under reduced motion: this is decoration, and the sentence
+   * says the same thing without it.
+   */
+  .pulse-dot {
+    position: relative;
+  }
+
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background-color: currentColor;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .pulse-dot::after {
+      animation: pulse-ring 2.4s var(--ease-out-app) infinite;
+    }
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
 }
 
 /* Scroll-reveal: pinned visible without JS via a <noscript> rule in layout. */
