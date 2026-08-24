@@ -2,9 +2,7 @@ import Link from "next/link";
 import { getFaqs } from "@/lib/services/content";
 import { Hero } from "@/components/home/Hero";
 import { WhatsIncluded } from "@/components/home/WhatsIncluded";
-import { HowItWorks } from "@/components/home/HowItWorks";
 import { GoalRail } from "@/components/home/GoalRail";
-import { MembersArea } from "@/components/home/MembersArea";
 import { CoachIntro } from "@/components/home/CoachIntro";
 import { ResultsRail } from "@/components/home/ResultsRail";
 import { TestimonialWall } from "@/components/home/TestimonialWall";
@@ -20,9 +18,7 @@ export default async function HomePage() {
       <Hero />
       <CoachIntro />
       <WhatsIncluded limit={3} />
-      <HowItWorks />
       <GoalRail />
-      <MembersArea />
       <ResultsRail />
       <TestimonialWall />
 
