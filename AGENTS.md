@@ -250,6 +250,13 @@ jumped on every switch, and the tablist is one element laid out two ways —
 a rail on a phone, a column beside the preview above `lg` — because rendering
 it twice would put two sets of tabs in the accessibility tree.
 
+On the rail the swipe is the control: cards snap centre, whichever lands in the
+middle is previewed, and the preview is the same width and centre as a card so
+the two read as one object rather than a picture floating under a list. The
+screen cross-fades on change — `shown` lags `active` by one fade so the old
+screen leaves before the new one arrives — and swaps instantly under
+`prefers-reduced-motion`.
+
 ## Goals are people
 
 `lib/data/goals.ts` holds five **people**, not five products: busy parents,
