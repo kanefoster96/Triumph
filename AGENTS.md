@@ -231,6 +231,25 @@ yes and the plan never changing.
 
 `npm run build` and `npm run lint` should both pass clean before committing.
 
+## The members'-area preview
+
+The marketing site shows the app before the app exists. `MemberTour` is a
+tablist over `memberArea`, and each feature carries a `preview` — an
+`AppPreview` variant holding only what its screen shows, so a screen is edited
+in `lib/data/coaching.ts` rather than in markup.
+
+They are drawings, not screenshots: there are no image assets in this project,
+and a screenshot of a screen still being built would age the moment it changed.
+Nothing in a preview may tick, send or save, every feature keeps its **In
+build** chip, and the caption under the frame says out loud that it is a
+preview. A mockup that looked live would be a promise the product cannot keep
+yet.
+
+The frame is a fixed height because the screens differ by about 115px and it
+jumped on every switch, and the tablist is one element laid out two ways —
+a rail on a phone, a column beside the preview above `lg` — because rendering
+it twice would put two sets of tabs in the accessibility tree.
+
 ## Goals are people
 
 `lib/data/goals.ts` holds five **people**, not five products: busy parents,

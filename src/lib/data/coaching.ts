@@ -57,6 +57,18 @@ export const memberArea: Feature[] = [
     title: "Your plan page",
     body: "Your calorie targets and your workout for the day, in one place. Open it in the gym, work down the list, tick sessions off as you go.",
     comingSoon: true,
+    preview: {
+      kind: "plan",
+      calorieTarget: 1950,
+      caloriesSoFar: 1030,
+      workout: "Lower body — strength",
+      exercises: [
+        { name: "Back squat", target: "4 × 5 @ 70kg", done: true },
+        { name: "Romanian deadlift", target: "3 × 8 @ 60kg", done: true },
+        { name: "Walking lunges", target: "3 × 10 each leg", done: false },
+        { name: "Leg curl", target: "3 × 12", done: false },
+      ],
+    },
   },
   {
     id: "mem-log",
@@ -64,6 +76,17 @@ export const memberArea: Feature[] = [
     title: "Daily logging",
     body: "Enter your final calorie total and any notes from the session — what felt heavy, what you had to swap, what hurt. That is what your next adjustment is built from.",
     comingSoon: true,
+    preview: {
+      kind: "log",
+      calories: 1890,
+      meals: [
+        { name: "Breakfast", done: true },
+        { name: "Lunch", done: true },
+        { name: "Dinner", done: true },
+        { name: "Snack", done: false },
+      ],
+      note: "Bench felt strong — went up to 45kg on the last set. Shoulder fine.",
+    },
   },
   {
     id: "mem-community",
@@ -71,6 +94,27 @@ export const memberArea: Feature[] = [
     title: "Community feed",
     body: "A members-only feed for everyone being coached. Ask questions, post wins, and see that everyone else has hard weeks too.",
     comingSoon: true,
+    preview: {
+      kind: "feed",
+      posts: [
+        {
+          id: "fp-1",
+          name: "Sofia M.",
+          when: "2h",
+          body: "First unassisted chin-up this morning. Six months ago I could not hang off the bar.",
+          likes: 14,
+          replies: 5,
+        },
+        {
+          id: "fp-2",
+          name: "Danny O.",
+          when: "Yesterday",
+          body: "Third week of nights and I have still hit every session. Writing the plan around the rota is the only reason.",
+          likes: 9,
+          replies: 3,
+        },
+      ],
+    },
   },
   {
     id: "mem-chat",
@@ -78,6 +122,15 @@ export const memberArea: Feature[] = [
     title: "Chat with Dean",
     body: "Message me directly from inside the app, with your plan and your logs right there in the conversation.",
     comingSoon: true,
+    preview: {
+      kind: "chat",
+      messages: [
+        { id: "m-1", from: "you", body: "Knee felt off on squats today so I dropped to 60kg." },
+        { id: "m-2", from: "dean", body: "Good call. Leave it there this week and we will reassess Friday." },
+        { id: "m-3", from: "you", body: "Should I still do the lunges?" },
+        { id: "m-4", from: "dean", body: "Swap them for a leg press. Same job, kinder on the knee." },
+      ],
+    },
   },
 ];
 
