@@ -16,7 +16,7 @@ export const goals: Goal[] = [
     name: "Busy parents",
     tagline: "Fit enough to keep up with them",
     summary:
-      "The reason I started. Training built around nap times, night wakings and a week you do not fully control — short enough that it actually happens, hard enough to be worth doing.",
+      "Short sessions that survive nap times, night wakings and chaos weeks — so you keep progressing no matter what the week throws at you.",
     whoFor: [
       "You have not trained properly since the kids arrived",
       "Your time is not really your own",

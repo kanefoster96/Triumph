@@ -11,7 +11,7 @@ export const site = {
   shortName: "Triumph",
   tagline: "Online coaching that actually adapts to you",
   description:
-    "Online personal training with Dean Foster. A meal plan and training plan built around your life, regular check-ins, and real adjustments — never a copy-and-paste PDF.",
+    "Online coaching with Dean Foster. A plan you’ll stick to, an app that keeps you on target, and weekly check-ins for real accountability. Hit your first-month targets and get 50% back.",
   email: "hello@triumphtraining.fit",
   phone: "+44 7700 900412",
   location: "Newcastle upon Tyne",

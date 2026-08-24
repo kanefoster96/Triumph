@@ -13,8 +13,8 @@ export async function ResultsRail() {
       <Container>
         <SectionHeader
           eyebrow="Results"
-          title="Real numbers from real clients"
-          description="The same photo months apart, and the numbers that go with it. No dramatic lighting, no second shot taken an hour later under a better bulb."
+          title="They did it. You&rsquo;re next."
+          description="Real clients. Real numbers. Same lighting, months apart."
         />
       </Container>
 
