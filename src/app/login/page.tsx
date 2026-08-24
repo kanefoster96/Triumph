@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         {/* One form for both modes. The action decides what to do with it —
             Supabase when it is connected, the demo accounts when it is not —
             and where somebody lands is read off their profile either way. */}
-        <form action={signIn} className="mt-6 space-y-4">
+        <form action={signIn} className="mt-7 space-y-5">
           {query.e === "1" ? (
             <p className="inline-flex items-start gap-2 rounded-2xl bg-danger/10 p-3 text-sm text-danger">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />

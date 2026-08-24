@@ -57,7 +57,7 @@ export async function HeroProof() {
 }
 
 /**
- * How many members were in today — the live line above the buttons.
+ * How many members were in today — the hero's badge.
  *
  * It renders nothing at all when there is nobody, or when the count cannot be
  * had. A quiet day is not worth announcing and "0 members active today" reads
@@ -68,7 +68,7 @@ export async function LiveMembers() {
   if (active === null) return null;
 
   return (
-    <p className="inline-flex items-center gap-2.5 text-sm text-muted">
+    <p className="lit inline-flex items-center gap-2.5 rounded-full bg-raised px-4 py-2 text-sm text-muted">
       <span className="grid h-2 w-2 place-items-center text-success">
         <span className="pulse-dot h-2 w-2 rounded-full bg-success" />
       </span>

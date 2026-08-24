@@ -65,9 +65,16 @@ Tailwind v4, TypeScript. Fully static; no backend.
   sheet's pinned header and footer, separators between list rows. Never to
   outline a card, a control, a field or a callout. A tinted callout is its tint
   alone (`bg-amber/10`), a filled control its fill (`bg-raised`).
-- Fields are filled, not outlined, and set no `focus:outline-none`: the base
-  `:focus-visible` rule in `globals.css` is their focus ring. The one exception
-  to all of this is an empty checkbox, which has nothing but a line to show.
+- **Fields are filled *and* outlined** — `raised` with an `overlay` hairline,
+  which is a step above the fill, or the edge would not be visible on it. That
+  rule lives in the base layer of `globals.css` on `input`, `textarea` and
+  `select` rather than in a shared class, because a class only reaches the
+  fields that remembered to import it and this has to reach all of them. A
+  field that genuinely needs something else can still override it with a
+  utility. Checkboxes, radios and file inputs are excluded: the browser draws
+  those, and a checkbox is a line and nothing else already.
+- Fields still set no `focus:outline-none` — the base `:focus-visible` rule is
+  what says which one you are in, and the hairline does not replace it.
 
 ## Navigation
 
