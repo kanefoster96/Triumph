@@ -17,7 +17,7 @@ export function TransformationCard({
 
   return (
     <article
-      className={cn("flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6", className)}
+      className={cn("lit flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6", className)}
     >
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-faint">

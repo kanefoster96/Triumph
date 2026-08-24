@@ -43,6 +43,18 @@ export const palette = {
    * this as a shadow colour; the web mirrors it as `--shadow-glow`.
    */
   accentGlow: "rgba(34, 211, 238, 0.7)",
+  /**
+   * Anything filled, lit from above: white along the top edge, black along
+   * the bottom. Both are needed — the dark surfaces have room to be lifted
+   * and the accent has none, so the white does the work on one and the black
+   * on the other.
+   *
+   * The white is kept under half of `surface`-to-`raised`, the smallest step
+   * on the ramp above, so a lit card's top edge stays darker than a plain
+   * `raised` row and nesting never inverts.
+   */
+  sheenTop: "rgba(255, 255, 255, 0.022)",
+  sheenBottom: "rgba(0, 0, 0, 0.055)",
 
   // Supporting signal colours.
   amber: "#F5B23D",
