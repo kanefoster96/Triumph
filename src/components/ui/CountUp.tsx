@@ -44,7 +44,6 @@ export function CountUp({
       });
 
     const settled = node.textContent;
-    node.textContent = format(0);
 
     let frame = 0;
     let start: number | null = null;
@@ -63,6 +62,14 @@ export function CountUp({
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
+        /*
+         * Zeroed here rather than when the effect runs, so a figure that is
+         * never scrolled to is never zeroed. It used to drop to nought
+         * immediately and wait to be seen — which is invisible at the bottom
+         * of a long page, but this number now sits in the hero, below the
+         * fold on a phone, where it simply read "0+" until you scrolled.
+         */
+        node.textContent = format(0);
         frame = requestAnimationFrame(step);
       },
       /*

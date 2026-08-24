@@ -4,6 +4,7 @@ import { faqs } from "@/lib/data/faqs";
 import { plans } from "@/lib/data/plans";
 import { posts } from "@/lib/data/posts";
 import { goals } from "@/lib/data/goals";
+import { clientCount } from "@/lib/data/site";
 import { testimonials } from "@/lib/data/testimonials";
 import { transformations } from "@/lib/data/transformations";
 import type {
@@ -71,6 +72,34 @@ export async function getProcess(): Promise<typeof process> {
 export async function getTestimonials(limit?: number): Promise<Testimonial[]> {
   const sorted = [...testimonials].sort((a, b) => b.date.localeCompare(a.date));
   return typeof limit === "number" ? sorted.slice(0, limit) : sorted;
+}
+
+/**
+ * The proof line under the hero's buttons: who is training, and how they rate
+ * it.
+ *
+ * Both halves come from the reviews rather than from figures typed beside
+ * them, so the stars here and the wall of reviews further down the page
+ * cannot drift apart. The faces are the review authors for the same reason —
+ * they are the clients, so replacing the placeholder reviews with real ones
+ * replaces this too, and adding a photo to `public/clients` lights it up
+ * without touching this file.
+ */
+export async function getSocialProof(): Promise<{
+  people: { name: string; photo?: string }[];
+  /** Averaged across every review, to one decimal. */
+  rating: number;
+  reviews: number;
+  clients: typeof clientCount;
+}> {
+  const all = await getTestimonials();
+  const total = all.reduce((sum, entry) => sum + entry.rating, 0);
+  return {
+    people: all.slice(0, 5).map(({ name, photo }) => ({ name, photo })),
+    rating: all.length ? Math.round((total / all.length) * 10) / 10 : 0,
+    reviews: all.length,
+    clients: clientCount,
+  };
 }
 
 export async function getTransformations(limit?: number): Promise<Transformation[]> {
