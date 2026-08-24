@@ -50,8 +50,9 @@ one means adding a redirect in `next.config.ts`, so an old link still lands some
 
 There are no image assets. Each goal and result carries a `visual` key that maps
 to an icon in `IconTile`, so cards are complete with nothing to upload. The one real
-photo slot — the coach portrait — uses `MediaFrame`, which shows a labelled placeholder
-until you give it a `src`. To use real photos, drop them in `public/` and pass `src` to
+photo slots — the coach portrait, and a before/after pair on each result — use
+`MediaFrame`, which shows a labelled placeholder until you give it a `src`. For a
+result, add `before` and `after` paths to its entry in `transformations.ts`. To use real photos, drop them in `public/` and pass `src` to
 `MediaFrame` (or add a `photo` path to `coach.ts`); the placeholder disappears on its own.
 
 ## How this maps to the React Native app

@@ -144,6 +144,13 @@ export interface Transformation {
   metrics: MetricDelta[];
   goalSlug: string;
   visual: VisualKey;
+  /**
+   * Paths under /public. Both optional: the card shows a labelled empty frame
+   * until there is a real photo, because a made-up before-and-after is exactly
+   * the thing this page says it does not do.
+   */
+  before?: string;
+  after?: string;
 }
 
 export interface Testimonial {
