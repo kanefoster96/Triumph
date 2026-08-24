@@ -7,7 +7,7 @@ import { isPaymentsConfigured } from "@/lib/services/payments";
 import { Panel } from "@/components/members/ui";
 import { Avatar } from "@/components/members/Avatar";
 import { Chip } from "@/components/ui/Chip";
-import { GOAL_LABELS } from "@/lib/members/types";
+import { goalPhrase } from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export default async function AdminRequestPage({ params }: PageProps<"/admin/req
   const application = await getApplication(id);
   if (!application) notFound();
 
-  const goal = application.goalOther ?? GOAL_LABELS[application.goalType];
+  const goal = goalPhrase(application.goalTypes, { other: application.goalOther });
   const pending = application.status === "pending";
 
   const rows: Array<[string, string]> = [

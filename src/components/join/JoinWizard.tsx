@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ArrowLeft, ArrowRight, Check, Dumbbell, Loader2 } from "lucide-react";
 import { submitApplication } from "@/lib/members/actions";
-import { GOAL_LABELS, type GoalType } from "@/lib/members/types";
+import { GOAL_LABELS, goalPhrase, type GoalType } from "@/lib/members/types";
 import { cn } from "@/lib/utils";
 
 const field =
@@ -44,7 +44,13 @@ export function JoinWizard({
   const [fullName, setFullName] = useState(name);
   const [currentWeight, setCurrentWeight] = useState("");
   const [goalWeight, setGoalWeight] = useState("");
-  const [goalType, setGoalType] = useState<GoalType>("fitness");
+  /*
+   * A list, and it starts empty. Wanting to lose weight and build muscle is
+   * the normal answer, and the single choice made people pick the half that
+   * mattered least. Nothing is preselected because with more than one allowed
+   * there is no sensible default — a tick nobody put there is not an answer.
+   */
+  const [goalTypes, setGoalTypes] = useState<GoalType[]>([]);
   const [goalOther, setGoalOther] = useState("");
   /** null until they answer — Next waits for it. */
   const [hasGym, setHasGym] = useState<boolean | null>(null);
@@ -65,10 +71,15 @@ export function JoinWizard({
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [step]);
 
-  const goalLabel =
-    goalType === "other"
-      ? goalOther.trim() || "Something else"
-      : GOAL_LABELS[goalType];
+  /** Kept in the order they were picked, so the phrase reads as they chose. */
+  function toggleGoal(goal: GoalType) {
+    setGoalTypes((current) =>
+      current.includes(goal) ? current.filter((entry) => entry !== goal) : [...current, goal],
+    );
+  }
+
+  const wantsOther = goalTypes.includes("other");
+  const goalLabel = goalPhrase(goalTypes, { other: goalOther });
 
   /*
    * The gym question is the one answer that decides whether the coaching can
@@ -77,7 +88,8 @@ export function JoinWizard({
    * the gym it refers to.
    */
   const gymAnswered = hasGym === false || (hasGym === true && gymName.trim().length > 1);
-  const canContinue = step === 0 ? fullName.trim().length > 1 && gymAnswered : true;
+  const canContinue =
+    step === 0 ? fullName.trim().length > 1 && gymAnswered : goalTypes.length > 0;
   const canSubmit =
     signedIn || (email.trim().includes("@") && password.length >= 6);
 
@@ -111,7 +123,7 @@ export function JoinWizard({
         <input type="hidden" name="fullName" value={fullName} />
         <input type="hidden" name="currentWeightKg" value={currentWeight} />
         <input type="hidden" name="goalWeightKg" value={goalWeight} />
-        <input type="hidden" name="goalType" value={goalType} />
+        <input type="hidden" name="goalTypes" value={goalTypes.join(",")} />
         <input type="hidden" name="goalOther" value={goalOther} />
         <input type="hidden" name="hasGym" value={hasGym === null ? "" : hasGym ? "yes" : "no"} />
         <input type="hidden" name="gymName" value={hasGym ? gymName : ""} />
@@ -216,28 +228,39 @@ export function JoinWizard({
             </div>
 
             <div>
-              <span className={label}>What you are aiming at</span>
+              <span className={label}>
+                What you are aiming at{" "}
+                <span className="font-normal text-faint">— pick as many as fit</span>
+              </span>
+              {/* Toggles, not a choice: `aria-pressed` is what tells a screen
+                  reader these do not cancel each other out. */}
               <div className="grid grid-cols-2 gap-2">
-                {GOALS.map((goal) => (
-                  <button
-                    key={goal}
-                    type="button"
-                    onClick={() => setGoalType(goal)}
-                    aria-pressed={goalType === goal}
-                    className={cn(
-                      "min-h-14 rounded-2xl px-4 text-sm font-semibold transition-colors",
-                      goalType === goal
-                        ? "bg-accent/15 text-accent"
-                        : "bg-raised text-muted hover:bg-overlay",
-                    )}
-                  >
-                    {GOAL_LABELS[goal]}
-                  </button>
-                ))}
+                {GOALS.map((goal) => {
+                  const on = goalTypes.includes(goal);
+                  return (
+                    <button
+                      key={goal}
+                      type="button"
+                      onClick={() => toggleGoal(goal)}
+                      aria-pressed={on}
+                      className={cn(
+                        "flex min-h-14 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold transition-colors",
+                        on
+                          ? "bg-accent/15 text-accent"
+                          : "bg-raised text-muted hover:bg-overlay",
+                      )}
+                    >
+                      {on ? <Check className="h-4 w-4 shrink-0" /> : null}
+                      {GOAL_LABELS[goal]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {goalType === "other" ? (
+            {/* Both can be open at once now — "build muscle" and "something
+                else" is a pair somebody will pick. */}
+            {wantsOther ? (
               <div>
                 <label className={label} htmlFor="join-other">
                   Tell him what
@@ -251,7 +274,9 @@ export function JoinWizard({
                   autoFocus
                 />
               </div>
-            ) : (
+            ) : null}
+
+            {goalTypes.some((goal) => goal !== "other") ? (
               <div>
                 <label className={label} htmlFor="join-goal-weight">
                   A weight you have in mind{" "}
@@ -268,7 +293,7 @@ export function JoinWizard({
                   onChange={(event) => setGoalWeight(event.target.value)}
                 />
               </div>
-            )}
+            ) : null}
           </section>
         ) : null}
 
@@ -292,7 +317,7 @@ export function JoinWizard({
                   ["Goal", goalLabel],
                   [
                     "Goal weight",
-                    goalType === "other"
+                    goalTypes.every((goal) => goal === "other")
                       ? "—"
                       : goalWeight
                         ? `${goalWeight}kg`
@@ -306,7 +331,10 @@ export function JoinWizard({
                   className="flex items-baseline justify-between gap-4 py-3"
                 >
                   <dt className="text-sm text-faint">{key}</dt>
-                  <dd className="min-w-0 truncate text-sm font-semibold">
+                  {/* Wraps rather than truncates: with more than one goal
+                      allowed, the end of this line is the part worth reading
+                      and an ellipsis ate it. */}
+                  <dd className="min-w-0 text-right text-sm font-semibold text-balance">
                     {value}
                   </dd>
                 </div>
