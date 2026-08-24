@@ -4,6 +4,11 @@ import { demoWeightEntries } from "./demo";
 import type { RawRevision } from "./service";
 import type {
   Application,
+  BoardComment,
+  BoardPost,
+  ChangeRequest,
+  ChatMessage,
+  Notification,
   DaySubmission,
   Comment,
   FoodDayFeedback,
@@ -498,4 +503,101 @@ export async function writeDemoPeople(mutate: (people: DemoPeople) => void): Pro
   } catch {
     /* Called outside a request that can set cookies — nothing to persist to. */
   }
+}
+
+// ---------------------------------------------------------------------------
+// Talking to each other, in a fifth cookie
+//
+// Chat, requests, notifications and the board are their own concern and get
+// their own budget for the same reason the plan does: a fortnight of messages
+// must not be able to prune away the day the client submitted, and a busy
+// board must not prune away a message. Demo mode has no bucket behind it, so
+// nothing here carries a file — the attach button is simply not offered.
+// ---------------------------------------------------------------------------
+
+const SOCIAL_COOKIE = "triumph-demo-social";
+const MAX_SOCIAL_BYTES = 3950;
+
+/** The one thread demo mode has, since it has one client and one coach. */
+export const DEMO_THREAD_ID = "demo-thread";
+
+export interface DemoSocial {
+  chatMessages: ChatMessage[];
+  chatClientReadAt: string | null;
+  chatCoachReadAt: string | null;
+  chatClosedAt: string | null;
+  changeRequests: ChangeRequest[];
+  /** Announcements Dean has sent, on top of the seeded one. */
+  notifications: Notification[];
+  /** When whoever is looking last opened the bell. */
+  notificationsReadAt: string | null;
+  posts: BoardPost[];
+  /** Post ids the viewer has liked. Their own like is the only one they set. */
+  likes: string[];
+  postComments: BoardComment[];
+}
+
+function emptySocial(): DemoSocial {
+  return {
+    chatMessages: [],
+    chatClientReadAt: null,
+    chatCoachReadAt: null,
+    chatClosedAt: null,
+    changeRequests: [],
+    notifications: [],
+    notificationsReadAt: null,
+    posts: [],
+    likes: [],
+    postComments: [],
+  };
+}
+
+export const demoSocial = cache(async (): Promise<DemoSocial> => {
+  try {
+    const raw = (await cookies()).get(SOCIAL_COOKIE)?.value;
+    if (!raw) return emptySocial();
+    return { ...emptySocial(), ...(JSON.parse(raw) as Partial<DemoSocial>) };
+  } catch {
+    return emptySocial();
+  }
+});
+
+export async function writeDemoSocial(mutate: (data: DemoSocial) => void): Promise<void> {
+  const data = await demoSocial();
+  mutate(data);
+
+  try {
+    (await cookies()).set(SOCIAL_COOKIE, pruneSocial(data), {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax" as const,
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  } catch {
+    /* Called outside a request that can set cookies — nothing to persist to. */
+  }
+}
+
+/**
+ * Drop the oldest thing first until it fits.
+ *
+ * Board comments go before posts and posts go before messages, which is the
+ * order of how much it hurts to lose one: a comment on a fortnight-old post is
+ * scenery, a message is the thing somebody actually said to their coach.
+ */
+function pruneSocial(data: DemoSocial): string {
+  const copy: DemoSocial = { ...data };
+  let value = JSON.stringify(copy);
+
+  while (wireSize(value) > MAX_SOCIAL_BYTES) {
+    if (copy.postComments.length > 0) copy.postComments = copy.postComments.slice(1);
+    else if (copy.posts.length > 0) copy.posts = copy.posts.slice(1);
+    else if (copy.notifications.length > 0) copy.notifications = copy.notifications.slice(1);
+    else if (copy.changeRequests.length > 0) copy.changeRequests = copy.changeRequests.slice(1);
+    else if (copy.chatMessages.length > 1) copy.chatMessages = copy.chatMessages.slice(1);
+    else break;
+    value = JSON.stringify(copy);
+  }
+
+  return value;
 }

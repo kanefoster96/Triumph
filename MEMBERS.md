@@ -198,6 +198,9 @@ policies at the bottom of the migration.
 - `src/lib/members/demo.ts` — the fixture used before connection
 - `src/components/members/*` — the UI
 
+Chat, the board, requests and announcements follow the same split: reads in
+`service.ts`, writes in `actions.ts`, demo fallbacks in `demo-store.ts`.
+
 `memberTabs` in `MemberTabBar.tsx` is the app's navigation too — a React
 Navigation tab navigator can be built from that array directly. Its order is
 deliberate: home, then the three tabs the day asks something of (workout, food,
@@ -215,16 +218,69 @@ demo, switch between them, or sign out. No cookie means signed out, so `/app`
 and `/admin` bounce to `/login` exactly as they will with real auth. The whole
 section disappears once the environment variables are set.
 
+## Talking to each other
+
+Everything above is Dean writing a plan and a client working through it: one
+voice, one direction. Four features are the other direction and the sideways
+one — see `supabase/migrations/0002_community.sql`.
+
+**Messages** (`/app/chat`, `/admin/chat`). One thread per client, forever —
+Dean coaches a few dozen people rather than a queue of strangers, so there is
+nothing to route and nothing to assign. A thread is opened by the first message
+rather than at signup, so his inbox is the people who have actually said
+something. `ChatThread` is one component drawn from both ends, with the writes
+handed in as props rather than imported, which is what will make it the same
+component in the phone app. A message appears the instant it is sent under a
+`temp-` id and is swapped for the real row when it lands; every path into the
+list goes through one merge keyed on id, so the socket delivering something the
+poll already fetched is a no-op. Dean can mark a thread done, and anything new
+said in it reopens it — "done" can never hide a question. Attachments live in a
+private bucket under the thread's own id and are served as URLs signed for an
+hour, minted per render.
+
+**Change requests** (`/app/profile`, answered in `/admin/requests`). A client
+asking Dean to change their goal, their goal weight, how they are coached, who
+plans their food, or their name. The same shape as a day swap and for the same
+reason: these are coaching decisions, so a client may ask and only Dean's yes
+moves anything — and approving performs the change rather than reminding him to
+go and make it. `changeValueLabel` exists because the stored value is a token:
+nobody should ever read "one_to_one" on their own screen.
+
+**Announcements** (`/app/notifications`, sent from `/admin/notifications`).
+Everyone, everyone online, everyone 1-to-1, or one person. "Everyone" is a
+single row with no recipient — an announcement is one thing that happened, and
+the select policy is what turns it into everybody's; anything narrower fans out.
+Who has read what is one timestamp on the reader's own auth metadata, because
+the only question the bell asks is "anything since I last looked", and a row per
+person per notification to answer it would be the largest table here inside a
+year. Only Dean writes to the table: a client telling him something is a message
+or a request, and both have their own badge.
+
+**The board** (`/app/board`, `/admin/board`). The one place clients see each
+other. `has_community_access` is the door, and the page asks it the same way
+every policy on every table behind it does — so somebody who has made an account
+but is not training yet is told plainly rather than shown an empty wall the
+database would refuse to fill. One page load is three round trips whatever is on
+the wall: the posts, then their likes and comments by `in`, then one call
+signing every photo. Likes and comments land before the server answers. Dean
+typing `@everyone`, `@online` or `@1to1` fans a notification out to them; a
+client typing it is making a joke.
+
+Chat, announcements, requests, posts, likes and comments are all on the
+`supabase_realtime` publication, which applies the same select policies — a
+client is only ever told about a row they could have read anyway. Every screen
+also polls, because a phone that has been in a pocket comes back with a dead
+socket and no way to know it missed anything.
+
 ## Not built yet
 
 - Payments. Nothing checks that a member is actually paying £120/month.
 - Client invites from inside the admin UI (invite via the Supabase dashboard
   for now).
-- Realtime push. Client actions appear on Dean's next page load, not by
-  live subscription.
-- An inbox for Dean. A client's replies on a food log, weight entry or
-  workout only show on that client's own tab — nothing counts them anywhere.
-  Replies to a check-in do surface, on the check-in board.
+- An inbox for Dean covering the *older* replies. A client's comment on a food
+  log, weight entry or workout still only shows on that client's own tab —
+  messages and announcements have badges, those do not. Replies to a check-in
+  surface on the check-in board.
 - A password reset. The login form tells people to ask Dean, and there is no
   route that does it.
 - An error boundary. Only `not-found.tsx` exists, so a server throw shows the

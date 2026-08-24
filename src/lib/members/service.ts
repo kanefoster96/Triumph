@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import {
   DEMO_ADMIN_ID,
   DEMO_CLIENT_ID,
+  demoBoardComments,
+  demoChatMessages,
+  demoNotifications,
+  demoPosts,
   demoCheckIns,
   demoComments,
   demoFoodDayFeedback,
@@ -16,9 +20,26 @@ import {
   demoSessions,
   demoWorkouts,
 } from "./demo";
-import { demoData, demoPeople, demoWeights, unpackRevision, withFoodMode } from "./demo-store";
+import {
+  DEMO_THREAD_ID,
+  demoData,
+  demoPeople,
+  demoSocial,
+  demoWeights,
+  unpackRevision,
+  withFoodMode,
+} from "./demo-store";
 import type {
   Application,
+  BoardAudience,
+  BoardComment,
+  BoardPost,
+  ChangeRequest,
+  ChangeRequestRow,
+  ChatInboxRow,
+  ChatMessage,
+  ChatThread,
+  Notification,
   CheckIn,
   ClientStatus,
   DaySubmission,
@@ -66,6 +87,15 @@ import type {
  */
 
 export const DEMO_ROLE_COOKIE = "triumph-demo-role";
+
+/**
+ * How long a signed URL lasts.
+ *
+ * An hour: long enough to read a thread and open every photo in it, short
+ * enough that a link copied out of the page is worthless by the time it is
+ * pasted anywhere.
+ */
+export const SIGNED_URL_SECONDS = 60 * 60;
 
 export function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -2339,4 +2369,437 @@ export async function getDayProgress(clientId: string, date: string): Promise<Da
     mealsPlanned,
     missed,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Chat
+//
+// One thread per client. It is created by the first message rather than at
+// signup, so a client who has never written to Dean costs nothing and his
+// inbox is the people who have actually said something.
+// ---------------------------------------------------------------------------
+
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase rows */
+
+function toChatMessage(row: any): ChatMessage {
+  return {
+    id: row.id,
+    threadId: row.thread_id,
+    senderId: row.sender_id,
+    fromCoach: row.from_coach ?? false,
+    body: row.body ?? null,
+    attachmentPath: row.attachment_path ?? null,
+    attachmentType: row.attachment_type ?? null,
+    attachmentName: row.attachment_name ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+function toChatThread(row: any): ChatThread {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    lastMessageAt: row.last_message_at ?? null,
+    clientReadAt: row.client_read_at ?? null,
+    coachReadAt: row.coach_read_at ?? null,
+    closedAt: row.closed_at ?? null,
+  };
+}
+
+/** The demo thread, assembled from the seed plus anything said since. */
+async function demoThread(): Promise<{ thread: ChatThread; messages: ChatMessage[] }> {
+  const social = await demoSocial();
+  const messages = [...demoChatMessages, ...social.chatMessages].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
+  return {
+    thread: {
+      id: DEMO_THREAD_ID,
+      clientId: DEMO_CLIENT_ID,
+      lastMessageAt: messages.at(-1)?.createdAt ?? null,
+      clientReadAt: social.chatClientReadAt,
+      coachReadAt: social.chatCoachReadAt,
+      closedAt: social.chatClosedAt,
+    },
+    messages,
+  };
+}
+
+export async function getThreadFor(clientId: string): Promise<ChatThread | null> {
+  const supabase = await createClient();
+  if (!supabase) return (await demoThread()).thread;
+
+  const { data } = await supabase
+    .from("chat_threads")
+    .select("*")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  return data ? toChatThread(data) : null;
+}
+
+export async function getThreadMessages(threadId: string): Promise<ChatMessage[]> {
+  const supabase = await createClient();
+  if (!supabase) return (await demoThread()).messages;
+
+  const { data } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("thread_id", threadId)
+    .order("created_at", { ascending: true });
+  return (data ?? []).map(toChatMessage);
+}
+
+/**
+ * Dean's inbox.
+ *
+ * Two queries rather than one per thread: the threads with their client, then
+ * every message in them in one go, folded down to a preview and an unread
+ * count. A dozen threads should not be a dozen round trips.
+ */
+export async function getChatInbox(): Promise<ChatInboxRow[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { thread, messages } = await demoThread();
+    if (messages.length === 0) return [];
+    const client = demoProfiles.find((p) => p.id === DEMO_CLIENT_ID);
+    return [
+      {
+        ...thread,
+        clientName: client?.fullName ?? "Client",
+        avatarUrl: client?.avatarUrl ?? null,
+        preview: messages.at(-1)?.body ?? "Sent a file",
+        unread: messages.filter(
+          (m) => !m.fromCoach && (!thread.coachReadAt || m.createdAt > thread.coachReadAt),
+        ).length,
+      },
+    ];
+  }
+
+  const { data: threads } = await supabase
+    .from("chat_threads")
+    .select("*, client:profiles!chat_threads_client_id_fkey(full_name, avatar_url)")
+    .order("last_message_at", { ascending: false, nullsFirst: false });
+
+  const rows = threads ?? [];
+  if (rows.length === 0) return [];
+
+  const { data: messages } = await supabase
+    .from("chat_messages")
+    .select("thread_id, body, attachment_name, from_coach, created_at")
+    .in(
+      "thread_id",
+      rows.map((row: any) => row.id),
+    )
+    .order("created_at", { ascending: true });
+
+  const byThread = new Map<string, any[]>();
+  for (const message of messages ?? []) {
+    const list = byThread.get(message.thread_id) ?? [];
+    list.push(message);
+    byThread.set(message.thread_id, list);
+  }
+
+  return rows.map((row: any) => {
+    const thread = toChatThread(row);
+    const list = byThread.get(thread.id) ?? [];
+    const last = list.at(-1);
+    return {
+      ...thread,
+      clientName: row.client?.full_name || "Client",
+      avatarUrl: row.client?.avatar_url ?? null,
+      preview: last ? (last.body || last.attachment_name || "Sent a file") : null,
+      unread: list.filter(
+        (m) => !m.from_coach && (!thread.coachReadAt || m.created_at > thread.coachReadAt),
+      ).length,
+    };
+  });
+}
+
+/**
+ * How many messages are waiting for whoever is looking.
+ *
+ * The badge in the header, and the only thing most page loads need to know
+ * about chat — so it counts rather than fetching a conversation.
+ */
+export async function getUnreadChat(profile: Profile): Promise<number> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const { thread, messages } = await demoThread();
+    const coach = profile.role === "admin";
+    const since = coach ? thread.coachReadAt : thread.clientReadAt;
+    return messages.filter((m) => m.fromCoach !== coach && (!since || m.createdAt > since)).length;
+  }
+
+  if (profile.role === "admin") {
+    return (await getChatInbox()).reduce((total, row) => total + row.unread, 0);
+  }
+
+  const { data: thread } = await supabase
+    .from("chat_threads")
+    .select("id, client_read_at")
+    .eq("client_id", profile.id)
+    .maybeSingle();
+  if (!thread) return 0;
+
+  let query = supabase
+    .from("chat_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("thread_id", thread.id)
+    .eq("from_coach", true);
+  if (thread.client_read_at) query = query.gt("created_at", thread.client_read_at);
+
+  const { count } = await query;
+  return count ?? 0;
+}
+
+// ---------------------------------------------------------------------------
+// Change requests
+// ---------------------------------------------------------------------------
+
+function toChangeRequest(row: any): ChangeRequest {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    field: row.field,
+    currentValue: row.current_value ?? null,
+    requestedValue: row.requested_value,
+    reason: row.reason ?? null,
+    status: row.status,
+    createdAt: row.created_at,
+    decidedAt: row.decided_at ?? null,
+  };
+}
+
+export async function getMyChangeRequests(clientId: string): Promise<ChangeRequest[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const social = await demoSocial();
+    return social.changeRequests
+      .filter((request) => request.clientId === clientId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const { data } = await supabase
+    .from("change_requests")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toChangeRequest);
+}
+
+export async function getChangeRequests(): Promise<ChangeRequestRow[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const social = await demoSocial();
+    return social.changeRequests
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((request) => {
+        const client = demoProfiles.find((p) => p.id === request.clientId);
+        return {
+          ...request,
+          clientName: client?.fullName ?? "Client",
+          avatarUrl: client?.avatarUrl ?? null,
+        };
+      });
+  }
+
+  const { data } = await supabase
+    .from("change_requests")
+    .select("*, client:profiles!change_requests_client_id_fkey(full_name, avatar_url)")
+    .order("created_at", { ascending: false });
+
+  return (data ?? []).map((row: any) => ({
+    ...toChangeRequest(row),
+    clientName: row.client?.full_name || "Client",
+    avatarUrl: row.client?.avatar_url ?? null,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+//
+// No filtering happens here. The select policy decides what comes back — a
+// broadcast for everyone, a targeted one for its recipient — so a bug in this
+// function cannot show somebody a notification meant for someone else.
+// ---------------------------------------------------------------------------
+
+function toNotification(row: any): Notification {
+  return {
+    id: row.id,
+    recipientId: row.recipient_id ?? null,
+    sentByName: row.sent_by_name || "Dean",
+    title: row.title,
+    body: row.body ?? null,
+    actionHref: row.action_href ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getNotifications(limit = 40): Promise<Notification[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const social = await demoSocial();
+    return [...demoNotifications, ...social.notifications]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  }
+
+  const { data } = await supabase
+    .from("notifications")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map(toNotification);
+}
+
+/**
+ * When this person last opened the bell.
+ *
+ * On their own auth metadata rather than a table, because a row per person per
+ * notification to answer one question would be the largest table here inside a
+ * year.
+ */
+export async function getNotificationsReadAt(): Promise<string | null> {
+  const supabase = await createClient();
+  if (!supabase) return (await demoSocial()).notificationsReadAt;
+
+  const { data } = await supabase.auth.getUser();
+  const value = data.user?.user_metadata?.notifications_read_at;
+  return typeof value === "string" ? value : null;
+}
+
+export async function getUnreadNotifications(): Promise<number> {
+  const [notifications, readAt] = await Promise.all([
+    getNotifications(),
+    getNotificationsReadAt(),
+  ]);
+  return notifications.filter((n) => !readAt || n.createdAt > readAt).length;
+}
+
+// ---------------------------------------------------------------------------
+// The board
+//
+// One page of posts, then every like and every comment on them in one query
+// each, then a single call to sign all the media. Three round trips whatever
+// is on the wall, rather than three per post.
+// ---------------------------------------------------------------------------
+
+export async function getBoard(viewerId: string, limit = 30): Promise<BoardPost[]> {
+  const supabase = await createClient();
+  if (!supabase) {
+    const social = await demoSocial();
+    const comments = [...demoBoardComments, ...social.postComments];
+    return [...demoPosts, ...social.posts]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit)
+      .map((post) => ({
+        ...post,
+        likedByMe: social.likes.includes(post.id),
+        likes: post.likes + (social.likes.includes(post.id) ? 1 : 0),
+        comments: comments
+          .filter((comment) => comment.postId === post.id)
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+      }));
+  }
+
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  const rows = posts ?? [];
+  if (rows.length === 0) return [];
+  const ids = rows.map((row: any) => row.id);
+
+  const paths = rows.flatMap((row: any) => (row.media_paths ?? []) as string[]);
+  const [likes, comments, signed] = await Promise.all([
+    supabase.from("post_likes").select("post_id, user_id").in("post_id", ids),
+    supabase
+      .from("post_comments")
+      .select("*")
+      .in("post_id", ids)
+      .order("created_at", { ascending: true }),
+    paths.length > 0
+      ? supabase.storage.from("board").createSignedUrls(paths, SIGNED_URL_SECONDS)
+      : Promise.resolve({ data: [] as Array<{ path: string | null; signedUrl: string }> }),
+  ]);
+
+  const urlByPath = new Map<string, string>();
+  for (const entry of signed.data ?? []) {
+    // A path that failed to sign comes back with no URL rather than throwing,
+    // so one bad file leaves a gap in a post instead of blanking the board.
+    if (entry.path && entry.signedUrl) urlByPath.set(entry.path, entry.signedUrl);
+  }
+
+  const likeRows = likes.data ?? [];
+  const commentRows = comments.data ?? [];
+
+  return rows.map((row: any) => {
+    const mine = likeRows.filter((like: any) => like.post_id === row.id);
+    return {
+      id: row.id,
+      authorId: row.author_id,
+      authorName: row.author_name || "Someone",
+      authorAvatarUrl: row.author_avatar_url ?? null,
+      fromCoach: row.from_coach ?? false,
+      body: row.body,
+      media: ((row.media_paths ?? []) as string[])
+        .map((path) => urlByPath.get(path))
+        .filter((url): url is string => Boolean(url)),
+      tagged: (row.tagged ?? []) as BoardAudience[],
+      likes: mine.length,
+      likedByMe: mine.some((like: any) => like.user_id === viewerId),
+      comments: commentRows
+        .filter((comment: any) => comment.post_id === row.id)
+        .map(toBoardComment),
+      createdAt: row.created_at,
+    };
+  });
+}
+
+function toBoardComment(row: any): BoardComment {
+  return {
+    id: row.id,
+    postId: row.post_id,
+    authorId: row.author_id,
+    authorName: row.author_name || "Someone",
+    authorAvatarUrl: row.author_avatar_url ?? null,
+    fromCoach: row.from_coach ?? false,
+    body: row.body,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Whether this person may see the board at all.
+ *
+ * The same question `has_community_access` asks in every policy on it, asked
+ * here so a page never renders a door the database will not open.
+ */
+export function hasBoardAccess(profile: Profile): boolean {
+  return profile.role === "admin" || profile.status === "active" || profile.status === "paused";
+}
+
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Dean.
+ *
+ * His profile row is readable by everyone signed in — the "read the coach"
+ * policy exists for exactly this — because his name and face are on every
+ * message, comment and announcement a client reads.
+ */
+export async function getCoach(): Promise<Profile | null> {
+  const supabase = await createClient();
+  if (!supabase) return demoProfiles.find((p) => p.role === "admin") ?? null;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("role", "admin")
+    .order("started_on", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data ? toProfile(data) : null;
 }

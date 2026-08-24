@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { site } from "@/lib/data/site";
+import { AUDIENCE_TAGS, CHANGE_LABELS, CHANGE_MINE, changeValueLabel } from "./types";
 import {
   demoCheckIns,
   demoExercises,
@@ -13,10 +14,13 @@ import {
   demoSessions,
 } from "./demo";
 import {
+  DEMO_THREAD_ID,
   demoPeople,
+  demoSocial,
   packRevision,
   writeDemoData,
   writeDemoPeople,
+  writeDemoSocial,
   type PackedRevision,
 } from "./demo-store";
 import {
@@ -32,7 +36,10 @@ import {
   getLearnedOrder,
   getShoppingList,
   getShoppingListById,
+  getThreadMessages,
   getWorkoutFor,
+  hasBoardAccess,
+  SIGNED_URL_SECONDS,
   scaleMeal,
   shiftDate,
   today,
@@ -41,6 +48,11 @@ import {
 } from "./service";
 import type {
   Application,
+  BoardAudience,
+  BoardComment,
+  ChangeField,
+  ChangeRequest,
+  ChatMessage,
   CommentTarget,
   EditScope,
   FoodMode,
@@ -61,6 +73,9 @@ import type {
  * not. Demo edits live for the lifetime of the server process — enough to try
  * the interactions, not a substitute for the database.
  */
+
+/** The fields a client may ask about, as a set the action can check against. */
+const CHANGE_FIELDS = new Set<ChangeField>(Object.keys(CHANGE_LABELS) as ChangeField[]);
 
 function refresh() {
   revalidatePath("/app", "layout");
@@ -2660,4 +2675,687 @@ export async function setShoppingItemChecked(itemId: string, checked: boolean) {
   }
 
   refresh();
+}
+
+// ---------------------------------------------------------------------------
+// Chat
+//
+// Sending returns the row it wrote. The thread on screen has already drawn the
+// message optimistically, so what it needs back is the real id and timestamp
+// to replace its own placeholder with — not a page revalidation that would
+// throw away everything else it is holding.
+// ---------------------------------------------------------------------------
+
+/**
+ * The client's thread, opening it if this is the first time.
+ *
+ * Called from the page rather than at signup: a client who has never written
+ * to Dean costs nothing, and his inbox is the people who actually have.
+ */
+export async function ensureThread(clientId: string): Promise<string | null> {
+  const supabase = await createClient();
+  if (!supabase) return DEMO_THREAD_ID;
+
+  const { data: existing } = await supabase
+    .from("chat_threads")
+    .select("id")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (existing) return existing.id;
+
+  const { data } = await supabase
+    .from("chat_threads")
+    .insert({ client_id: clientId })
+    .select("id")
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+export async function sendChatMessage(input: {
+  threadId: string;
+  body: string;
+  attachmentPath?: string | null;
+  attachmentType?: string | null;
+  attachmentName?: string | null;
+}): Promise<ChatMessage | null> {
+  const profile = await getCurrentProfile();
+  if (!profile) return null;
+
+  const body = input.body.trim().slice(0, 4000);
+  const path = input.attachmentPath || null;
+  if (!body && !path) return null;
+
+  const fromCoach = profile.role === "admin";
+  const now = new Date().toISOString();
+
+  const supabase = await createClient();
+  if (!supabase) {
+    const message: ChatMessage = {
+      id: crypto.randomUUID(),
+      threadId: DEMO_THREAD_ID,
+      senderId: profile.id,
+      fromCoach,
+      body: body || null,
+      attachmentPath: null,
+      attachmentType: null,
+      attachmentName: null,
+      createdAt: now,
+    };
+    await writeDemoSocial((data) => {
+      data.chatMessages.push(message);
+      // Somebody just wrote in it, so it is not dealt with any more.
+      data.chatClosedAt = null;
+    });
+    return message;
+  }
+
+  const { data } = await supabase
+    .from("chat_messages")
+    .insert({
+      thread_id: input.threadId,
+      sender_id: profile.id,
+      from_coach: fromCoach,
+      body: body || null,
+      attachment_path: path,
+      attachment_type: input.attachmentType || null,
+      attachment_name: input.attachmentName || null,
+    })
+    .select("*")
+    .maybeSingle();
+  if (!data) return null;
+
+  // A thread somebody has just written in is not dealt with, whoever closed it.
+  await supabase
+    .from("chat_threads")
+    .update({ last_message_at: now, closed_at: null, closed_by: null })
+    .eq("id", input.threadId);
+
+  return {
+    id: data.id,
+    threadId: data.thread_id,
+    senderId: data.sender_id,
+    fromCoach: data.from_coach,
+    body: data.body ?? null,
+    attachmentPath: data.attachment_path ?? null,
+    attachmentType: data.attachment_type ?? null,
+    attachmentName: data.attachment_name ?? null,
+    createdAt: data.created_at,
+  };
+}
+
+/** Everything said since a given moment. The poll behind the socket. */
+export async function fetchNewMessages(
+  threadId: string,
+  since: string | null,
+): Promise<ChatMessage[]> {
+  const profile = await getCurrentProfile();
+  if (!profile) return [];
+
+  const all = await getThreadMessages(threadId);
+  return since ? all.filter((message) => message.createdAt > since) : all;
+}
+
+export async function markChatRead(threadId: string) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const now = new Date().toISOString();
+  const column = profile.role === "admin" ? "coach_read_at" : "client_read_at";
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      if (profile.role === "admin") data.chatCoachReadAt = now;
+      else data.chatClientReadAt = now;
+    });
+  } else {
+    await supabase.from("chat_threads").update({ [column]: now }).eq("id", threadId);
+  }
+
+  refresh();
+}
+
+/** Dean saying a thread is dealt with. Any new message undoes it. */
+export async function setThreadClosed(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "admin") return;
+
+  const threadId = String(formData.get("threadId") ?? "");
+  const closed = String(formData.get("closed") ?? "") === "true";
+  if (!threadId) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.chatClosedAt = closed ? new Date().toISOString() : null;
+    });
+  } else {
+    await supabase
+      .from("chat_threads")
+      .update({
+        closed_at: closed ? new Date().toISOString() : null,
+        closed_by: closed ? profile.id : null,
+      })
+      .eq("id", threadId);
+  }
+
+  refresh();
+}
+
+/**
+ * A link to an attachment, good for an hour.
+ *
+ * Minted per request rather than stored, so nothing in the database is a URL
+ * anybody could paste somewhere. The bucket is private and the policy on it
+ * asks the same question the thread does.
+ */
+export async function attachmentUrl(path: string): Promise<string | null> {
+  const profile = await getCurrentProfile();
+  if (!profile) return null;
+
+  const supabase = await createClient();
+  if (!supabase) return null;
+
+  const { data } = await supabase.storage
+    .from("chat-attachments")
+    .createSignedUrl(path, SIGNED_URL_SECONDS);
+  return data?.signedUrl ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Change requests
+// ---------------------------------------------------------------------------
+
+/** What a field currently reads as, so the request still makes sense later. */
+function currentValueOf(profile: Profile, field: ChangeField): string | null {
+  switch (field) {
+    case "full_name":
+      return profile.fullName || null;
+    case "goal":
+      return profile.goal;
+    case "goal_weight":
+      return null;
+    case "coaching_mode":
+      return profile.coachingMode;
+    case "food_mode":
+      return profile.foodMode;
+  }
+}
+
+export async function askForChange(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const field = String(formData.get("field") ?? "") as ChangeField;
+  if (!CHANGE_FIELDS.has(field)) return;
+
+  const requested = String(formData.get("value") ?? "").trim().slice(0, 200);
+  if (!requested) return;
+  const reason = String(formData.get("reason") ?? "").trim().slice(0, 400) || null;
+
+  const request: ChangeRequest = {
+    id: crypto.randomUUID(),
+    clientId: profile.id,
+    field,
+    currentValue: currentValueOf(profile, field),
+    requestedValue: requested,
+    reason,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+    decidedAt: null,
+  };
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      // One open ask per field. Asking twice is a correction, not a queue.
+      data.changeRequests = data.changeRequests.filter(
+        (entry) =>
+          !(entry.clientId === profile.id && entry.field === field && entry.status === "pending"),
+      );
+      data.changeRequests.push(request);
+    });
+  } else {
+    await supabase.from("change_requests").insert({
+      client_id: profile.id,
+      field,
+      current_value: request.currentValue,
+      requested_value: requested,
+      reason,
+    });
+  }
+
+  refresh();
+}
+
+export async function withdrawChange(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.changeRequests = data.changeRequests.filter(
+        (entry) => !(entry.id === id && entry.clientId === profile.id && entry.status === "pending"),
+      );
+    });
+  } else {
+    await supabase
+      .from("change_requests")
+      .delete()
+      .eq("id", id)
+      .eq("client_id", profile.id)
+      .eq("status", "pending");
+  }
+
+  refresh();
+}
+
+/**
+ * Dean's answer.
+ *
+ * Approving makes the change rather than reminding him to go and make it —
+ * the same reason a day swap performs the move. A request he said yes to and
+ * then never applied is the failure this is built to avoid.
+ */
+export async function decideChange(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "admin") return;
+
+  const id = String(formData.get("id") ?? "");
+  const approve = String(formData.get("decision") ?? "") === "approve";
+  if (!id) return;
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  if (!supabase) {
+    const social = await demoSocial();
+    const request = social.changeRequests.find((entry) => entry.id === id);
+    if (!request) return;
+    await writeDemoSocial((data) => {
+      const entry = data.changeRequests.find((r) => r.id === id);
+      if (!entry) return;
+      entry.status = approve ? "approved" : "declined";
+      entry.decidedAt = now;
+      data.notifications.push({
+        id: crypto.randomUUID(),
+        recipientId: request.clientId,
+        sentByName: profile.fullName || "Dean",
+        title: approve ? "I've made that change" : "I've had a look at that",
+        body: approve
+          ? `${CHANGE_MINE[request.field]} is now ${changeValueLabel(request.field, request.requestedValue)}.`
+          : `I've left ${CHANGE_MINE[request.field].toLowerCase()} as it is for now — message me and we'll talk it through.`,
+        actionHref: "/app/profile",
+        createdAt: now,
+      });
+    });
+    refresh();
+    return;
+  }
+
+  const { data: request } = await supabase
+    .from("change_requests")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!request || request.status !== "pending") return;
+
+  if (approve) {
+    const patch = patchFor(request.field, request.requested_value);
+    if (patch) await supabase.from("profiles").update(patch).eq("id", request.client_id);
+  }
+
+  await supabase
+    .from("change_requests")
+    .update({
+      status: approve ? "approved" : "declined",
+      decided_at: now,
+      decided_by: profile.id,
+    })
+    .eq("id", id);
+
+  await supabase.from("notifications").insert({
+    recipient_id: request.client_id,
+    sent_by: profile.id,
+    sent_by_name: profile.fullName || "Dean",
+    title: approve ? "I've made that change" : "I've had a look at that",
+    body: approve
+      ? `${CHANGE_MINE[request.field as ChangeField]} is now ${changeValueLabel(request.field as ChangeField, request.requested_value)}.`
+      : `I've left ${CHANGE_MINE[request.field as ChangeField].toLowerCase()} as it is for now — message me and we'll talk it through.`,
+    action_href: "/app/profile",
+  });
+
+  refresh();
+}
+
+/**
+ * What an approved request writes onto the profile.
+ *
+ * Validated here rather than trusted: the request holds text whatever the
+ * field is, because it is a record of what somebody asked for, not a staging
+ * copy of a profile. A value that is not one of the allowed ones changes
+ * nothing — the request is still answered, it just does not move anything.
+ */
+function patchFor(field: string, value: string): Record<string, unknown> | null {
+  switch (field) {
+    case "full_name":
+      return { full_name: value.slice(0, 80) };
+    case "goal":
+      return { goal: value.slice(0, 200) };
+    case "coaching_mode":
+      return value === "online" || value === "one_to_one" ? { coaching_mode: value } : null;
+    case "food_mode":
+      return value === "coach" || value === "self" ? { food_mode: value } : null;
+    // Goal weight is not a column on the profile — it is what somebody applied
+    // with, and Dean acts on it in the plan rather than by editing a number.
+    case "goal_weight":
+      return null;
+    default:
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+/**
+ * Dean telling people something.
+ *
+ * "Everyone" is one row with no recipient rather than one row per person: an
+ * announcement is one thing that happened, and the select policy is what turns
+ * it into everybody's. Anything narrower fans out, because the alternative is
+ * an audience expression stored on the row that every read would have to
+ * evaluate.
+ */
+export async function sendNotification(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "admin") return;
+
+  const title = String(formData.get("title") ?? "").trim().slice(0, 120);
+  if (!title) return;
+  const body = String(formData.get("body") ?? "").trim().slice(0, 1000) || null;
+  const href = String(formData.get("href") ?? "").trim().slice(0, 200) || null;
+  const audience = String(formData.get("audience") ?? "everyone");
+  // Only in-app paths. An absolute URL here would make a notification a way to
+  // send everybody somewhere off the site.
+  const actionHref = href && href.startsWith("/") ? href : null;
+
+  const recipients = await recipientsFor(audience);
+  const now = new Date().toISOString();
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      for (const recipientId of recipients) {
+        data.notifications.push({
+          id: crypto.randomUUID(),
+          recipientId,
+          sentByName: profile.fullName || "Dean",
+          title,
+          body,
+          actionHref,
+          createdAt: now,
+        });
+      }
+    });
+    refresh();
+    redirect("/admin/notifications?sent=1");
+  }
+
+  await supabase.from("notifications").insert(
+    recipients.map((recipientId) => ({
+      recipient_id: recipientId,
+      sent_by: profile.id,
+      sent_by_name: profile.fullName || "Dean",
+      title,
+      body,
+      action_href: actionHref,
+    })),
+  );
+
+  refresh();
+  // Back to an empty form with a word to say it went. Without the redirect the
+  // fields keep what was typed and it reads as a send that did nothing.
+  redirect("/admin/notifications?sent=1");
+}
+
+/** Null in the list means "no recipient", which is everybody. */
+async function recipientsFor(audience: string): Promise<Array<string | null>> {
+  if (audience === "everyone") return [null];
+  if (audience.startsWith("client:")) return [audience.slice("client:".length)];
+
+  const clients = await getClients();
+  if (audience === "online") {
+    return clients.filter((c) => c.coachingMode === "online").map((c) => c.id);
+  }
+  if (audience === "one_to_one") {
+    return clients.filter((c) => c.coachingMode === "one_to_one").map((c) => c.id);
+  }
+  return [null];
+}
+
+/**
+ * The bell has been opened.
+ *
+ * One timestamp on the reader's own account. A row per person per notification
+ * to answer "anything since I last looked" would be the largest table here
+ * inside a year, and it would still only answer that one question.
+ */
+export async function markNotificationsRead() {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const now = new Date().toISOString();
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.notificationsReadAt = now;
+    });
+  } else {
+    await supabase.auth.updateUser({ data: { notifications_read_at: now } });
+  }
+
+  refresh();
+}
+
+// ---------------------------------------------------------------------------
+// The board
+// ---------------------------------------------------------------------------
+
+/**
+ * Who a post was meant for, read out of what was typed.
+ *
+ * Dean writes "@everyone" or "@online" the way he would say it, and those are
+ * the words that fan the notifications out. It never restricts who can see the
+ * post — everybody on the board sees everything, or it stops being a board.
+ */
+function audiencesIn(body: string): BoardAudience[] {
+  const found = (Object.keys(AUDIENCE_TAGS) as BoardAudience[]).filter((key) =>
+    body.toLowerCase().includes(AUDIENCE_TAGS[key].toLowerCase()),
+  );
+  return found;
+}
+
+export async function createPost(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile || !hasBoardAccess(profile)) return;
+
+  const body = String(formData.get("body") ?? "").trim().slice(0, 2000);
+  const media = formData
+    .getAll("media")
+    .map((value) => String(value))
+    .filter(Boolean)
+    .slice(0, 4);
+  if (!body && media.length === 0) return;
+
+  const fromCoach = profile.role === "admin";
+  // Only Dean's posts carry an audience — a client typing "@everyone" is
+  // making a joke, not sending a notification to the whole gym.
+  const tagged = fromCoach ? audiencesIn(body) : [];
+  const now = new Date().toISOString();
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.posts.push({
+        id: crypto.randomUUID(),
+        authorId: profile.id,
+        authorName: profile.fullName || "Someone",
+        authorAvatarUrl: profile.avatarUrl,
+        fromCoach,
+        body,
+        media: [],
+        tagged,
+        likes: 0,
+        likedByMe: false,
+        comments: [],
+        createdAt: now,
+      });
+    });
+    refresh();
+    return;
+  }
+
+  const { data: post } = await supabase
+    .from("posts")
+    .insert({
+      author_id: profile.id,
+      author_name: profile.fullName || "Someone",
+      author_avatar_url: profile.avatarUrl,
+      from_coach: fromCoach,
+      body,
+      media_paths: media,
+      tagged,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (post && tagged.length > 0) {
+    const recipients = new Set<string | null>();
+    for (const audience of tagged) {
+      for (const id of await recipientsFor(audience)) recipients.add(id);
+    }
+    await supabase.from("notifications").insert(
+      [...recipients].map((recipientId) => ({
+        recipient_id: recipientId,
+        sent_by: profile.id,
+        sent_by_name: profile.fullName || "Dean",
+        title: "New on the board",
+        body: body.slice(0, 160),
+        action_href: "/app/board",
+      })),
+    );
+  }
+
+  refresh();
+}
+
+export async function deletePost(formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.posts = data.posts.filter((post) => post.id !== id);
+      data.postComments = data.postComments.filter((comment) => comment.postId !== id);
+    });
+  } else {
+    await supabase.from("posts").delete().eq("id", id);
+  }
+
+  refresh();
+}
+
+/**
+ * A like, without a page revalidation.
+ *
+ * The heart is already filled in on screen before this runs. Sending the page
+ * back would land a second later and redraw a wall of posts to change one
+ * number that is already right.
+ */
+export async function setLiked(postId: string, liked: boolean): Promise<boolean> {
+  const profile = await getCurrentProfile();
+  if (!profile || !hasBoardAccess(profile)) return !liked;
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.likes = liked
+        ? [...new Set([...data.likes, postId])]
+        : data.likes.filter((id) => id !== postId);
+    });
+    return liked;
+  }
+
+  if (liked) {
+    await supabase.from("post_likes").upsert({ post_id: postId, user_id: profile.id });
+  } else {
+    await supabase.from("post_likes").delete().eq("post_id", postId).eq("user_id", profile.id);
+  }
+  return liked;
+}
+
+/** Returns the row it wrote, so the thread appends it rather than refetching. */
+export async function addBoardComment(
+  postId: string,
+  body: string,
+): Promise<BoardComment | null> {
+  const profile = await getCurrentProfile();
+  if (!profile || !hasBoardAccess(profile)) return null;
+
+  const text = body.trim().slice(0, 1000);
+  if (!text) return null;
+
+  const comment: BoardComment = {
+    id: crypto.randomUUID(),
+    postId,
+    authorId: profile.id,
+    authorName: profile.fullName || "Someone",
+    authorAvatarUrl: profile.avatarUrl,
+    fromCoach: profile.role === "admin",
+    body: text,
+    createdAt: new Date().toISOString(),
+  };
+
+  const supabase = await createClient();
+  if (!supabase) {
+    await writeDemoSocial((data) => {
+      data.postComments.push(comment);
+    });
+    return comment;
+  }
+
+  const { data } = await supabase
+    .from("post_comments")
+    .insert({
+      post_id: postId,
+      author_id: profile.id,
+      author_name: comment.authorName,
+      author_avatar_url: profile.avatarUrl,
+      from_coach: comment.fromCoach,
+      body: text,
+    })
+    .select("*")
+    .maybeSingle();
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    postId: data.post_id,
+    authorId: data.author_id,
+    authorName: data.author_name || comment.authorName,
+    authorAvatarUrl: data.author_avatar_url ?? null,
+    fromCoach: data.from_coach ?? false,
+    body: data.body,
+    createdAt: data.created_at,
+  };
 }

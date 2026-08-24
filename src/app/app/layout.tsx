@@ -1,10 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentProfile, getDayProgress, isDemoMode, today } from "@/lib/members/service";
+import {
+  getCurrentProfile,
+  getDayProgress,
+  getUnreadChat,
+  getUnreadNotifications,
+  hasBoardAccess,
+  isDemoMode,
+  today,
+} from "@/lib/members/service";
 import { MemberTabBar, MemberTabsInline } from "@/components/members/MemberTabBar";
 import { DemoBanner } from "@/components/members/DemoBanner";
 import { Logo } from "@/components/layout/Logo";
 import { Avatar } from "@/components/members/Avatar";
+import { HeaderActions } from "@/components/members/HeaderActions";
 import { displayName } from "@/lib/utils";
 
 /** Per-client and private, so never cached. */
@@ -16,7 +25,11 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
   if (profile.role === "admin") redirect("/admin");
 
   // Read once here so every tab bar on the page agrees about the day.
-  const progress = await getDayProgress(profile.id, today());
+  const [progress, unreadChat, unreadNotifications] = await Promise.all([
+    getDayProgress(profile.id, today()),
+    getUnreadChat(profile),
+    getUnreadNotifications(),
+  ]);
 
   return (
     <>
@@ -26,14 +39,18 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
           <Logo href="/app" />
           <MemberTabsInline progress={progress} />
-          <div className="flex items-center gap-3">
-            <Link
-              href="/logout"
-              className="inline-flex min-h-11 items-center text-sm text-muted transition-colors hover:text-text"
-              prefetch={false}
-            >
-              Sign out
-            </Link>
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Messages, the board and the bell. Sign out lives on the profile
+                screen behind the face — three things that change while you are
+                looking elsewhere earn a place in the header, and a link you
+                press once a month does not. */}
+            <HeaderActions
+              base="/app"
+              chatHref="/app/chat"
+              unreadChat={unreadChat}
+              unreadNotifications={unreadNotifications}
+              boardHref={hasBoardAccess(profile) ? "/app/board" : null}
+            />
             {/* Their own face, ringed — small, but it is their app and it
                 should look like it belongs to them, and it is the way to the
                 one screen that is about them rather than about today. */}

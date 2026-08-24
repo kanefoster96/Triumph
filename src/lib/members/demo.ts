@@ -1,6 +1,10 @@
 import type { RawRevision } from "./service";
 import type {
+  BoardComment,
+  BoardPost,
+  ChatMessage,
   CheckIn,
+  Notification,
   CoachSession,
   Exercise,
   FoodDayFeedback,
@@ -1558,3 +1562,91 @@ export const demoDaySubmissions: Array<{
   onDate: string;
   submittedAt: string;
 }> = [];
+
+// ---------------------------------------------------------------------------
+// Talking to each other
+//
+// Enough to see the shape of each screen with something on it. Everything
+// written while looking round lands in `demo-store`, on top of these.
+// ---------------------------------------------------------------------------
+
+export const demoChatMessages: ChatMessage[] = [
+  {
+    id: "demo-msg-1",
+    threadId: "demo-thread",
+    senderId: DEMO_CLIENT_ID,
+    fromCoach: false,
+    body: "Shoulder felt fine on the presses today — no twinge at all.",
+    attachmentPath: null,
+    attachmentType: null,
+    attachmentName: null,
+    createdAt: isoTime(-1, 19),
+  },
+  {
+    id: "demo-msg-2",
+    threadId: "demo-thread",
+    senderId: DEMO_ADMIN_ID,
+    fromCoach: true,
+    body: "That's what I wanted to hear. Keep it at that weight this week and we'll add 2.5kg on Monday.",
+    attachmentPath: null,
+    attachmentType: null,
+    attachmentName: null,
+    createdAt: isoTime(-1, 20),
+  },
+];
+
+export const demoNotifications: Notification[] = [
+  {
+    id: "demo-note-1",
+    recipientId: null,
+    sentByName: "Dean Foster",
+    title: "The gym's shut Monday morning",
+    body: "Refurb on the free weights area — it's open again from 2pm. Shift your session if you're a morning person.",
+    actionHref: "/app/sessions",
+    createdAt: isoTime(-2, 9),
+  },
+];
+
+export const demoPosts: BoardPost[] = [
+  {
+    id: "demo-post-1",
+    authorId: DEMO_ADMIN_ID,
+    authorName: "Dean Foster",
+    authorAvatarUrl: null,
+    fromCoach: true,
+    body: "Big week on the board — three of you hit a deadlift PB. Post it here if you got one, I want to see them.",
+    media: [],
+    tagged: ["everyone"],
+    likes: 4,
+    likedByMe: false,
+    comments: [],
+    createdAt: isoTime(-3, 18),
+  },
+  {
+    id: "demo-post-2",
+    authorId: DEMO_CLIENT_ID,
+    authorName: "Priya Raman",
+    authorAvatarUrl: null,
+    fromCoach: false,
+    body: "100kg off the floor this morning. Two years ago I couldn't do 40.",
+    media: [],
+    tagged: [],
+    likes: 7,
+    likedByMe: false,
+    comments: [],
+    createdAt: isoTime(-2, 8),
+  },
+];
+
+export const demoBoardComments: BoardComment[] = [
+  {
+    id: "demo-bc-1",
+    postId: "demo-post-2",
+    authorId: DEMO_ADMIN_ID,
+    authorName: "Dean Foster",
+    authorAvatarUrl: null,
+    fromCoach: true,
+    body: "Told you it was coming. Next one's 105.",
+    createdAt: isoTime(-2, 9),
+  },
+];

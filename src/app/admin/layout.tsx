@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentProfile, isDemoMode } from "@/lib/members/service";
+import {
+  getCurrentProfile,
+  getUnreadChat,
+  getUnreadNotifications,
+  isDemoMode,
+} from "@/lib/members/service";
 import { DemoBanner } from "@/components/members/DemoBanner";
 import { Logo } from "@/components/layout/Logo";
 import { AdminNav } from "@/components/members/AdminNav";
+import { HeaderActions } from "@/components/members/HeaderActions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +17,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const [profile, demo] = await Promise.all([getCurrentProfile(), isDemoMode()]);
   if (!profile) redirect("/login");
   if (profile.role !== "admin") redirect("/app");
+
+  const [unreadChat, unreadNotifications] = await Promise.all([
+    getUnreadChat(profile),
+    getUnreadNotifications(),
+  ]);
 
   return (
     <>
@@ -27,13 +38,24 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               Coach
             </span>
           </div>
-          <Link
-            href="/logout"
-            className="order-1 -my-2 inline-flex min-h-11 items-center text-sm text-muted transition-colors hover:text-text sm:order-none"
-            prefetch={false}
-          >
-            Sign out
-          </Link>
+          <div className="order-1 -my-2 flex items-center gap-1 sm:order-none">
+            {/* The board is a section and sits in the nav; these two carry a
+                number that changes while he is on another screen. */}
+            <HeaderActions
+              base="/admin"
+              chatHref="/admin/chat"
+              unreadChat={unreadChat}
+              unreadNotifications={unreadNotifications}
+              boardHref={null}
+            />
+            <Link
+              href="/logout"
+              className="inline-flex min-h-11 items-center px-2 text-sm text-muted transition-colors hover:text-text"
+              prefetch={false}
+            >
+              Sign out
+            </Link>
+          </div>
           <div className="order-2 -mx-5 w-[calc(100%+2.5rem)] px-5 sm:order-none sm:mx-0 sm:w-auto sm:px-0">
             <AdminNav />
           </div>

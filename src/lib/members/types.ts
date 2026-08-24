@@ -691,3 +691,209 @@ export interface ExerciseTrend {
   /** True when actual reps fell short of target in the last two sessions. */
   slipping: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// Chat
+//
+// One thread per client, forever. Dean coaches a few dozen people rather than
+// a queue of strangers, so there is nothing to route and nothing to assign —
+// the pair of them have one conversation and it is the same one in a year.
+// ---------------------------------------------------------------------------
+
+export interface ChatMessage {
+  id: string;
+  threadId: string;
+  senderId: string;
+  /** Which way round it is drawn. Snapshotted, not derived from a role today. */
+  fromCoach: boolean;
+  body: string | null;
+  /**
+   * A path in the private bucket, never a URL. Anything shown is a signed URL
+   * minted at read time and good for an hour.
+   */
+  attachmentPath: string | null;
+  attachmentType: string | null;
+  attachmentName: string | null;
+  createdAt: string;
+  /**
+   * Set on a message that has been sent but not yet acknowledged, so the
+   * bubble can be drawn faint. Never comes back from the database.
+   */
+  pending?: boolean;
+}
+
+export interface ChatThread {
+  id: string;
+  clientId: string;
+  lastMessageAt: string | null;
+  clientReadAt: string | null;
+  coachReadAt: string | null;
+  /** Dean saying "that's dealt with". Any new message clears it. */
+  closedAt: string | null;
+}
+
+/** A row in Dean's inbox: the thread, who it is with, and the last thing said. */
+export interface ChatInboxRow extends ChatThread {
+  clientName: string;
+  avatarUrl: string | null;
+  preview: string | null;
+  unread: number;
+}
+
+// ---------------------------------------------------------------------------
+// Change requests
+//
+// A client asking Dean to change something about how they are coached. The
+// same shape as a day swap and for the same reason: their goal and their mode
+// are coaching decisions, so a client may ask and only Dean's yes moves
+// anything.
+// ---------------------------------------------------------------------------
+
+export type ChangeField =
+  | "full_name"
+  | "goal"
+  | "goal_weight"
+  | "coaching_mode"
+  | "food_mode";
+
+export const CHANGE_LABELS: Record<ChangeField, string> = {
+  full_name: "Their name",
+  goal: "What they're working towards",
+  goal_weight: "Goal weight",
+  coaching_mode: "How they're coached",
+  food_mode: "Who plans their food",
+};
+
+/** How the client is asked for it — first person, because they are reading it. */
+export const CHANGE_ASKS: Record<ChangeField, string> = {
+  full_name: "Change my name",
+  goal: "Change what I'm working towards",
+  goal_weight: "Change my goal weight",
+  coaching_mode: "Change how I'm coached",
+  food_mode: "Change who plans my food",
+};
+
+/**
+ * The same five fields as the client owns them, for anything written to them.
+ *
+ * `CHANGE_LABELS` is Dean's inbox reading about somebody else — "their name".
+ * A notification lands in the client's own app, so it has to say "your name"
+ * or it reads like it was meant for a different person.
+ */
+export const CHANGE_MINE: Record<ChangeField, string> = {
+  full_name: "Your name",
+  goal: "What you're working towards",
+  goal_weight: "Your goal weight",
+  coaching_mode: "How you're coached",
+  food_mode: "Who plans your food",
+};
+
+/**
+ * A requested value, in words.
+ *
+ * Two of these fields are a choice between things Dean offers, and the value
+ * stored is the token the database uses. Showing that token to either of them
+ * would put "one_to_one" on a client's screen, which is a database column
+ * leaking into a conversation between two people.
+ */
+export function changeValueLabel(field: ChangeField, value: string | null): string {
+  if (!value) return "—";
+  if (field === "coaching_mode") {
+    return value === "online" || value === "one_to_one" ? COACHING_LABELS[value] : value;
+  }
+  if (field === "food_mode") {
+    if (value === "coach") return "Dean plans it";
+    if (value === "self") return "They plan it to Dean's targets";
+    return value;
+  }
+  if (field === "goal_weight") return `${value}kg`;
+  return value;
+}
+
+export type ChangeStatus = "pending" | "approved" | "declined";
+
+export interface ChangeRequest {
+  id: string;
+  clientId: string;
+  field: ChangeField;
+  /** What it was when they asked, so the request still reads months later. */
+  currentValue: string | null;
+  requestedValue: string;
+  reason: string | null;
+  status: ChangeStatus;
+  createdAt: string;
+  decidedAt: string | null;
+}
+
+export interface ChangeRequestRow extends ChangeRequest {
+  clientName: string;
+  avatarUrl: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+//
+// One row is either for everybody (`recipientId` null) or for one person. Who
+// has read what is a single timestamp on the reader's own account rather than
+// a row per person per notification, because the only question the bell asks
+// is "anything since I last looked".
+// ---------------------------------------------------------------------------
+
+export interface Notification {
+  id: string;
+  /** Null is everyone. */
+  recipientId: string | null;
+  sentByName: string;
+  title: string;
+  body: string | null;
+  /** Where it takes you when tapped. An in-app path, never an absolute URL. */
+  actionHref: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// The board
+//
+// The one place in the product where clients see each other. Author name and
+// photo are snapshotted onto the row, so a wall of posts renders without a
+// join per post and a post still reads after somebody leaves.
+// ---------------------------------------------------------------------------
+
+/**
+ * Who Dean meant a post for. It fans out notifications; it does not restrict
+ * who can see the post, or it would stop being a board.
+ */
+export type BoardAudience = "everyone" | "online" | "one_to_one";
+
+export const AUDIENCE_TAGS: Record<BoardAudience, string> = {
+  everyone: "@everyone",
+  online: "@online",
+  one_to_one: "@1to1",
+};
+
+export interface BoardComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  fromCoach: boolean;
+  body: string;
+  createdAt: string;
+}
+
+export interface BoardPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatarUrl: string | null;
+  fromCoach: boolean;
+  body: string;
+  /** Signed URLs, minted in one batch when the page renders. */
+  media: string[];
+  tagged: BoardAudience[];
+  likes: number;
+  likedByMe: boolean;
+  comments: BoardComment[];
+  createdAt: string;
+}

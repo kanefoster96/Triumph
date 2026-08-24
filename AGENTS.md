@@ -180,6 +180,45 @@ home page. Approving performs the move — writes the day onto the new date and
 rests the old one — because the failure mode worth designing out is him saying
 yes and the plan never changing.
 
+## Talking to each other
+
+Chat, change requests, announcements and the board are the four things that are
+not Dean writing a plan — see MEMBERS.md and
+`supabase/migrations/0002_community.sql`.
+
+**All four are RLS-only.** There is no service-role key and nothing needs one:
+every write is a `with check` on a policy, so a client sending a message, liking
+a post or raising a request is doing it as themselves, and the database is what
+says whether they may. Do not reach for a service-role client to make a new
+write "simpler" — that would move the rule out of the schema and into whichever
+action happened to be written last.
+
+**`has_community_access()` is the door to the board**, and `hasBoardAccess()` in
+`service.ts` asks the same question in TypeScript. Change one and change the
+other, or a page will offer a door the database refuses to open.
+
+**Notifications carry no application-level filter.** `getNotifications` is a
+plain `select *`; the select policy decides what comes back. Adding a `.eq()`
+there to "be safe" would hide the broadcast rows and look like a bug in sending.
+
+**Read state for the bell is a timestamp on the reader's auth metadata**
+(`notifications_read_at`), not a table. Chat read state is two columns on the
+thread. Neither is per-row, deliberately.
+
+**Realtime is the fast path, never the only one.** Every live screen also polls,
+and channel names are namespaced with `useId()` — the browser client dedupes
+channels by topic, so two components subscribing to the same name would be one
+subscription and only one of them would hear anything.
+
+**Anything shown from a private bucket is a signed URL minted at render**, good
+for an hour (`SIGNED_URL_SECONDS`). Nothing stored anywhere is a URL. Board
+media is signed for a whole page in one `createSignedUrls` call — do not sign
+per post.
+
+**A value stored as a token is not a value shown to a person.**
+`changeValueLabel` and `CHANGE_MINE` exist so a client reads "How you're coached
+is now 1-to-1" rather than a column and an enum.
+
 ## Gotchas
 
 - Custom utilities in `globals.css` sit in the same cascade layer as Tailwind's,

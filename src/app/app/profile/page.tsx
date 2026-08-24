@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Check, LogOut } from "lucide-react";
-import { getCurrentProfile } from "@/lib/members/service";
+import { getCurrentProfile, getMyChangeRequests } from "@/lib/members/service";
 import { displayName } from "@/lib/utils";
-import { saveMyProfile } from "@/lib/members/actions";
-import { Panel, ScreenTitle, field, fieldLabel, submitButton } from "@/components/members/ui";
+import { saveMyProfile, withdrawChange } from "@/lib/members/actions";
+import {
+  FoldPanel,
+  Panel,
+  ScreenTitle,
+  field,
+  fieldLabel,
+  submitButton,
+} from "@/components/members/ui";
 import { AvatarUpload } from "@/components/members/AvatarUpload";
+import { AskForChange } from "@/components/members/AskForChange";
+import { CHANGE_ASKS, changeValueLabel } from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +25,8 @@ export const dynamic = "force-dynamic";
 export default async function MyProfilePage({ searchParams }: PageProps<"/app/profile">) {
   const [profile, query] = await Promise.all([getCurrentProfile(), searchParams]);
   if (!profile) redirect("/login");
+
+  const asks = await getMyChangeRequests(profile.id);
 
   return (
     <>
@@ -65,6 +76,60 @@ export default async function MyProfilePage({ searchParams }: PageProps<"/app/pr
             ) : null}
           </form>
         </Panel>
+
+        {/* Shut by default: most visits here are a photo or a name, and this
+            is the thing somebody comes looking for twice a year. */}
+        <FoldPanel
+          title="Ask Dean to change something"
+          hint={
+            asks.some((ask) => ask.status === "pending")
+              ? "One waiting on him"
+              : "Your goal, how you're coached, your name"
+          }
+        >
+          <AskForChange />
+
+          {asks.length > 0 ? (
+            <ul className="mt-6 space-y-2 border-t border-line pt-5">
+              {asks.map((ask) => (
+                <li
+                  key={ask.id}
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-ink p-3"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">
+                      {CHANGE_ASKS[ask.field]}
+                    </span>
+                    <span className="block truncate text-xs text-muted">
+                      {changeValueLabel(ask.field, ask.requestedValue)}
+                    </span>
+                  </span>
+                  {ask.status === "pending" ? (
+                    <form action={withdrawChange}>
+                      <input type="hidden" name="id" value={ask.id} />
+                      <button
+                        type="submit"
+                        className="inline-flex h-11 items-center rounded-full px-3 text-xs font-semibold text-faint transition-colors hover:text-danger"
+                      >
+                        Withdraw
+                      </button>
+                    </form>
+                  ) : (
+                    <span
+                      className={
+                        ask.status === "approved"
+                          ? "shrink-0 text-xs font-semibold text-success"
+                          : "shrink-0 text-xs font-semibold text-faint"
+                      }
+                    >
+                      {ask.status === "approved" ? "Done" : "Left as it was"}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </FoldPanel>
 
         <Panel title="Account">
           <dl className="divide-y divide-line">

@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { Check, ChevronRight, Inbox, MessageSquare } from "lucide-react";
-import { getApplications, getQuestions } from "@/lib/members/service";
+import { getApplications, getChangeRequests, getQuestions } from "@/lib/members/service";
 import { EmptyState, Panel, ScreenTitle } from "@/components/members/ui";
 import { Avatar } from "@/components/members/Avatar";
 import { Chip } from "@/components/ui/Chip";
-import { markQuestionAnswered } from "@/lib/members/actions";
-import { GOAL_LABELS, type Application } from "@/lib/members/types";
+import { decideChange, markQuestionAnswered } from "@/lib/members/actions";
+import {
+  CHANGE_LABELS,
+  changeValueLabel,
+  GOAL_LABELS,
+  type Application,
+} from "@/lib/members/types";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +30,13 @@ function sentOn(iso: string) {
  * has to do well is make the pending ones impossible to miss.
  */
 export default async function AdminRequestsPage() {
-  const [applications, questions] = await Promise.all([getApplications(), getQuestions()]);
+  const [applications, questions, changes] = await Promise.all([
+    getApplications(),
+    getQuestions(),
+    getChangeRequests(),
+  ]);
   const openQuestions = questions.filter((question) => !question.answeredAt);
+  const openChanges = changes.filter((change) => change.status === "pending");
   const pending = applications.filter((entry) => entry.status === "pending");
   const decided = applications.filter((entry) => entry.status !== "pending");
 
@@ -35,11 +45,12 @@ export default async function AdminRequestsPage() {
       <ScreenTitle
         title="Requests"
         subtitle={
-          pending.length + openQuestions.length === 0
+          pending.length + openQuestions.length + openChanges.length === 0
             ? "Nothing waiting on you."
             : [
                 pending.length > 0 ? `${pending.length} to enrol` : null,
-                openQuestions.length > 0 ? `${openQuestions.length} to answer` : null,
+                openChanges.length > 0 ? `${openChanges.length} to answer` : null,
+                openQuestions.length > 0 ? `${openQuestions.length} to reply to` : null,
               ]
                 .filter(Boolean)
                 .join(" · ")
@@ -80,6 +91,67 @@ export default async function AdminRequestsPage() {
                     </span>
                     <ChevronRight className="h-4 w-4 shrink-0 text-faint" />
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        {/* A change somebody has asked for. Approving makes it rather than
+            reminding him to go and make it — a yes that never reached the
+            profile is the failure this is built to avoid. */}
+        <Panel title="Changes they've asked for">
+          {openChanges.length === 0 ? (
+            <EmptyState>Nobody has asked for anything.</EmptyState>
+          ) : (
+            <ul className="space-y-2">
+              {openChanges.map((change) => (
+                <li key={change.id} className="rounded-2xl border border-line bg-ink p-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar name={change.clientName} src={change.avatarUrl} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{change.clientName}</p>
+                      <p className="text-xs text-faint">{CHANGE_LABELS[change.field]}</p>
+                      <p className="mt-2 text-sm">
+                        {change.currentValue ? (
+                          <span className="text-faint line-through">
+                            {changeValueLabel(change.field, change.currentValue)}{" "}
+                          </span>
+                        ) : null}
+                        <span className="font-semibold">
+                          {changeValueLabel(change.field, change.requestedValue)}
+                        </span>
+                      </p>
+                      {change.reason ? (
+                        <p className="mt-2 text-sm leading-relaxed text-muted">{change.reason}</p>
+                      ) : null}
+                      <p className="mt-2 text-xs text-faint">Asked {sentOn(change.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <form action={decideChange}>
+                      <input type="hidden" name="id" value={change.id} />
+                      <input type="hidden" name="decision" value="approve" />
+                      <button
+                        type="submit"
+                        className="inline-flex h-11 items-center gap-2 rounded-full bg-accent px-4 text-sm font-semibold text-accent-ink transition-colors hover:bg-accent-strong"
+                      >
+                        <Check className="h-4 w-4" />
+                        Make the change
+                      </button>
+                    </form>
+                    <form action={decideChange}>
+                      <input type="hidden" name="id" value={change.id} />
+                      <input type="hidden" name="decision" value="decline" />
+                      <button
+                        type="submit"
+                        className="inline-flex h-11 items-center rounded-full border border-line px-4 text-sm font-semibold text-muted transition-colors hover:border-accent hover:text-accent"
+                      >
+                        Leave it as it is
+                      </button>
+                    </form>
+                  </div>
                 </li>
               ))}
             </ul>
