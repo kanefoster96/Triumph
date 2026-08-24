@@ -3,6 +3,7 @@ import { headlineStats } from "@/lib/data/site";
 import { getCoachingPrice } from "@/lib/services/content";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
+import { CountUp } from "@/components/ui/CountUp";
 import { Reveal } from "@/components/ui/Reveal";
 import { formatPrice } from "@/lib/utils";
 
@@ -58,11 +59,11 @@ export async function Hero() {
       </Reveal>
 
       <Reveal delay={300}>
-        <dl className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-8 sm:mt-20 lg:grid-cols-4">
+        <dl className="mx-auto mt-16 grid max-w-lg grid-cols-2 gap-8 sm:mt-20">
           {headlineStats.map((stat) => (
             <div key={stat.label}>
-              <dd className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
-                {stat.value}
+              <dd className="font-display text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
+                <CountUp value={stat.value} />
                 {stat.suffix ? <span className="text-accent">{stat.suffix}</span> : null}
               </dd>
               <dt className="mt-2 text-sm text-muted">{stat.label}</dt>
