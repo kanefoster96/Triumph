@@ -70,7 +70,7 @@ export function IconTile({ icon, visual, feature, size = "md", className }: Icon
         // Grey tile, accent icon. A tinted tile behind every card, goal and
         // feature put fifteen cyan squares on the home page and read as a
         // filter over the whole thing; the icon alone carries the colour.
-        "grid shrink-0 place-items-center bg-overlay text-accent",
+        "lit grid shrink-0 place-items-center bg-overlay text-accent",
         s.box,
         className,
       )}

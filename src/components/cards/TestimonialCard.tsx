@@ -13,7 +13,7 @@ export function TestimonialCard({
   return (
     <figure
       className={cn(
-        "flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
+        "lit flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
         className,
       )}
     >

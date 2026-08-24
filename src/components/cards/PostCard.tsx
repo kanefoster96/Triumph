@@ -22,7 +22,7 @@ export function PostCard({ post, className }: { post: Post; className?: string }
 
   return (
     <article
-      className={cn("flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6", className)}
+      className={cn("lit flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6", className)}
     >
       <header className="flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-full bg-accent/10 text-sm font-bold text-accent">

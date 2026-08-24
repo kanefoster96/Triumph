@@ -27,9 +27,21 @@ Tailwind v4, TypeScript. Fully static; no backend.
 - Prefer semantic colour utilities (`bg-surface`, `text-muted`, `border-line`)
   over raw hex.
 - The look is minimal and dark: the page is true black, surfaces are flat,
-  whitespace is generous and there is one cyan accent. No gradients, texture
-  overlays or condensed display type. The only saturated block on a page is
-  the accent CTA band.
+  whitespace is generous and there is one cyan accent. No texture overlays or
+  condensed display type. The only saturated block on a page is the accent
+  CTA band.
+- **There is one light source, above the page.** Anything filled — a button, a
+  card, an avatar's initials, an icon tile — carries `lit`: white along the
+  top edge, black along the bottom. That is the only gradient on the site, and
+  it is the same one everywhere. Both halves are needed because the dark
+  surfaces have room to be lifted and the accent has none. Its white is held
+  under half of `surface`-to-`raised`, the smallest step on the ramp, so a lit
+  card's top edge stays darker than a plain `raised` row — go past that and
+  the ramp inverts. `lit` is a background *image* over whatever the background
+  colour is, so `hover:bg-overlay` and the rest keep working underneath it;
+  never swap it for a `bg-gradient-*` that replaces the colour, or every hover
+  state on the site goes with it. Photographs do not get it — tinting
+  somebody's face is not lighting a surface.
 - **The accent is for things you can act on** — a button, a link, a section
   label — never for headline text. Cyan on a headline spends it on something
   nobody can press, and then it no longer means "this one" where it counts. A

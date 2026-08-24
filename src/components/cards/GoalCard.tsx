@@ -10,7 +10,7 @@ export function GoalCard({ goal, className }: { goal: Goal; className?: string }
     <Link
       href={`/coaching/${goal.slug}`}
       className={cn(
-        "group flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
+        "lit group flex flex-col rounded-[var(--radius-sheet)] bg-surface p-6",
         "transition-colors duration-200 hover:bg-raised",
         className,
       )}

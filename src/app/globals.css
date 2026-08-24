@@ -41,6 +41,31 @@
   --shadow-glow: 0 6px 34px -8px color-mix(in oklab, var(--color-accent) 70%, transparent);
 
   /*
+   * A light source above the page. Two flat greys side by side read as paint;
+   * the same two lit from above read as objects.
+   *
+   * White at the top and black at the bottom, because one alone cannot do
+   * both jobs. Almost everything here is nearly black and has room to be
+   * lifted; the accent button is bright and has none — white over #22D3EE
+   * moves its green channel by one, which is nothing. So the same gradient
+   * deepens the bottom instead, which is invisible on a dark surface (black
+   * over #141414 costs it about one point) and clearly there on a bright one.
+   *
+   * The white is 2.2%, which lifts #141414 by 5 — a little under half the
+   * smallest step on the tone ramp, `surface` to `raised`, which is 11. That
+   * is the whole constraint: a lit card's top edge must stay darker than a
+   * plain `raised` row, or the ramp inverts and a nested row reads as a hole.
+   * 4.5% looked right and was 96% of a step, which is a step.
+   */
+  --sheen: linear-gradient(
+    to bottom,
+    rgb(255 255 255 / 0.022),
+    rgb(255 255 255 / 0.006) 45%,
+    rgb(0 0 0 / 0.02) 72%,
+    rgb(0 0 0 / 0.055) 100%
+  );
+
+  /*
    * Body: the platform UI font. On Apple devices this resolves to SF Pro —
    * nothing to download, and text matches the OS the way a native app does.
    */
@@ -174,6 +199,16 @@
 
   .shadow-none {
     box-shadow: none;
+  }
+
+  /*
+   * Catches the light. Written as a background *image* over whatever the
+   * background colour is, so `hover:bg-overlay` and the rest still work
+   * underneath it — a gradient that replaced the colour would have killed
+   * every hover state on the site.
+   */
+  .lit {
+    background-image: var(--sheen);
   }
 
   /*

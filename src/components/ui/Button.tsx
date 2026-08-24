@@ -12,19 +12,19 @@ const variants: Record<Variant, string> = {
    * problem it exists to solve.
    */
   primary:
-    "bg-accent text-accent-ink shadow-glow hover:bg-accent-strong active:bg-accent-strong disabled:shadow-none",
+    "lit bg-accent text-accent-ink shadow-glow hover:bg-accent-strong active:bg-accent-strong disabled:shadow-none",
   /** Filled rather than outlined — one less line on the page. */
-  secondary: "bg-raised text-text hover:bg-overlay",
+  secondary: "lit bg-raised text-text hover:bg-overlay",
   ghost: "text-muted hover:text-text hover:bg-raised",
   /** For use inside a solid accent panel. */
-  onAccent: "bg-accent-ink text-accent hover:bg-ink",
+  onAccent: "lit bg-accent-ink text-accent hover:bg-ink",
   /*
    * The secondary action inside that panel. It needs to be a variant rather
    * than a `className`, because `cn` is a plain join: passing `bg-accent-ink/10`
    * to a primary button leaves both backgrounds in the class list and the
    * stylesheet decides, so the "quiet" button came out lit.
    */
-  onAccentSoft: "bg-accent-ink/10 text-accent-ink hover:bg-accent-ink/20",
+  onAccentSoft: "lit bg-accent-ink/10 text-accent-ink hover:bg-accent-ink/20",
 };
 
 const sizes: Record<Size, string> = {

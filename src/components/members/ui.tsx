@@ -48,7 +48,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-[var(--radius-sheet)] bg-surface", className)}>
+    <section className={cn("lit rounded-[var(--radius-sheet)] bg-surface", className)}>
       {title ? (
         <header className="flex items-center justify-between gap-4 px-5 pt-5 pb-1">
           <h2 className="min-w-0 truncate text-base font-semibold">{title}</h2>

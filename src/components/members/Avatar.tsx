@@ -62,7 +62,9 @@ export function Avatar({
   }
 
   return (
-    <span className={cn(shell, "bg-raised text-muted")} aria-hidden="true">
+    // `lit` on the initials only. A photo is somebody's face; laying a sheen
+    // over it would be tinting a photograph rather than lighting a surface.
+    <span className={cn(shell, "lit bg-raised text-muted")} aria-hidden="true">
       {initials(name)}
     </span>
   );
