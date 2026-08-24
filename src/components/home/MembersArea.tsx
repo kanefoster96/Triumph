@@ -6,9 +6,8 @@ import { MemberTour } from "./MemberTour";
 /**
  * A walk through the members' area, one screen at a time.
  *
- * Features still being built are labelled as such and the preview says out
- * loud that it is a drawing rather than a screenshot — the point is to show
- * somebody what they are signing up to, not to imply it already exists.
+ * The point is to show somebody what they are signing up to. Anything listed
+ * here has to exist behind the login — see the note in `coaching.ts`.
  */
 export async function MembersArea() {
   const features = await getMemberArea();
@@ -24,13 +23,6 @@ export async function MembersArea() {
 
       <Reveal>
         <MemberTour features={tour} />
-      </Reveal>
-
-      <Reveal delay={140}>
-        <p className="mt-10 text-center text-sm text-faint">
-          The members&rsquo; area is being built now. Coaching, plans and check-ins are running today —
-          they arrive by email and message until the app is live.
-        </p>
       </Reveal>
     </Section>
   );

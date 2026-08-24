@@ -69,8 +69,6 @@ export interface Feature {
   icon: FeatureIcon;
   title: string;
   body: string;
-  /** Marks a feature that is planned rather than live. */
-  comingSoon?: boolean;
   /** A still of the screen, for features the marketing site previews. */
   preview?: AppPreview;
 }
@@ -78,10 +76,9 @@ export interface Feature {
 /**
  * One members'-area screen, as data rather than a screenshot.
  *
- * There are no image assets in this project, and a screenshot of a screen that
- * is still being built would age the moment it changed. Each variant carries
- * only what its screen shows, so the preview is edited here rather than in
- * markup — and so nothing in it can drift into claiming a feature works.
+ * There are no image assets in this project, and a screenshot goes stale every
+ * time the screen behind it moves. Each variant carries only what its screen
+ * shows, so a preview is edited here rather than in markup.
  */
 export type AppPreview =
   | {

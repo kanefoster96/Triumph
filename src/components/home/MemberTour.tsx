@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Feature } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Chip } from "@/components/ui/Chip";
 import { IconTile } from "@/components/ui/IconTile";
 import { AppScreen } from "./AppScreen";
 
@@ -147,9 +146,8 @@ export function MemberTour({ features }: { features: Feature[] }) {
             >
               <IconTile feature={feature.icon} />
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <span className="text-base whitespace-nowrap lg:text-lg">{feature.title}</span>
-                  {feature.comingSoon ? <Chip tone="amber">In build</Chip> : null}
+                <span className="block text-base whitespace-nowrap lg:text-lg">
+                  {feature.title}
                 </span>
                 {/* On a phone this sits under the preview instead, where there
                     is width for it. */}
@@ -191,10 +189,6 @@ export function MemberTour({ features }: { features: Feature[] }) {
               {preview.preview ? <AppScreen preview={preview.preview} /> : null}
             </div>
           </div>
-
-          <p className="mt-4 text-center text-xs leading-relaxed text-faint">
-            A preview, not a screenshot — these screens are still being built.
-          </p>
         </div>
 
         <p className="mt-5 text-sm leading-relaxed text-muted lg:hidden">{preview.body}</p>

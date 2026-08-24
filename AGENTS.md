@@ -239,11 +239,13 @@ tablist over `memberArea`, and each feature carries a `preview` — an
 in `lib/data/coaching.ts` rather than in markup.
 
 They are drawings, not screenshots: there are no image assets in this project,
-and a screenshot of a screen still being built would age the moment it changed.
-Nothing in a preview may tick, send or save, every feature keeps its **In
-build** chip, and the caption under the frame says out loud that it is a
-preview. A mockup that looked live would be a promise the product cannot keep
-yet.
+and a screenshot goes stale every time the screen behind it moves. Nothing in a
+preview may tick, send or save — it is a picture of the screen, not the screen.
+
+The site no longer labels anything as unfinished, so **everything listed in
+`memberArea` is advertised as working and has to exist behind the login**. Add
+a feature here when it ships, not when it is planned, and say so in the reply
+rather than on the page if it is not ready.
 
 The frame is a fixed height because the screens differ by about 115px and it
 jumped on every switch, and the tablist is one element laid out two ways —

@@ -30,9 +30,9 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 /**
  * One members'-area screen, drawn from data.
  *
- * Everything here is a still. Nothing ticks, sends or saves — the features are
- * still being built, and a preview that appeared to work would be a promise
- * the product cannot keep yet.
+ * Everything here is a still. Nothing ticks, sends or saves: it is a drawing
+ * of the screen, not the screen, and a preview that appeared to work would
+ * have people trying to use it on the marketing site.
  */
 export function AppScreen({ preview }: { preview: AppPreview }) {
   if (preview.kind === "plan") {
