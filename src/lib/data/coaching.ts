@@ -154,3 +154,37 @@ export const process = [
     body: "You track, Dean reviews weekly and adjusts. Hit all your targets in month one — get 50% of your money back.",
   },
 ];
+
+/**
+ * Everything a client gets, as short phrases rather than sentences.
+ *
+ * These scroll past on the home page and stand still under reduced motion, so
+ * each one has to make sense on its own and at a glance. Value, not mechanics:
+ * what they get, never how it is built.
+ */
+export const everything: string[] = [
+  "Your calorie target, every day",
+  "Every meal, with the amounts",
+  "A shopping list that writes itself",
+  "Swap a meal you do not fancy",
+  "Recipes with the method",
+  "Protein and macro targets",
+  "Your workout, set by set",
+  "Tick sessions off as you go",
+  "Personal bests tracked",
+  "Every weight and rep logged",
+  "Your whole training history",
+  "Weekly check-ins",
+  "Weigh-ins and the trend",
+  "Progress photos",
+  "24-hour access to your coach",
+  "Request an adjustment",
+  "Move a session when life moves",
+  "Message Dean directly",
+  "A note back on every session",
+  "The members' community",
+  "Train at home or in the gym",
+  "Holidays planned around",
+  "Injured? The plan changes",
+  "A plan for the week ahead",
+];

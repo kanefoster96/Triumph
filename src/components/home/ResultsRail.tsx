@@ -9,12 +9,12 @@ export async function ResultsRail() {
   const transformations = await getTransformations(3);
 
   return (
-    <section className="bg-surface/40 py-20 sm:py-28">
+    <section className="bg-surface/40 py-24 sm:py-36">
       <Container>
         <SectionHeader
           eyebrow="Results"
-          title="They did it. You&rsquo;re next."
-          description="Real clients. Real numbers. Same lighting, months apart."
+          title="They did it."
+          description="Real clients, real numbers, months apart."
         />
       </Container>
 

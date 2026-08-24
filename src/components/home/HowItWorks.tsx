@@ -9,8 +9,8 @@ export async function HowItWorks() {
     <Section id="how-it-works">
       <SectionHeader
         eyebrow="How it works"
-        title="Four steps to your best shape"
-        description="Same system. Same results. Wherever you are in the UK."
+        title="Four steps."
+        description="Same system, wherever you are in the UK."
       />
 
       <ol className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
