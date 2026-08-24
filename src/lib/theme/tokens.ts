@@ -14,23 +14,28 @@ export const palette = {
   // border: `surface` on `ink` is a wider gap than the hairline ever drew.
   // Each level must stay clearly lighter than the one below, or a nested row
   // loses its only edge.
+  //
+  // Neutral grey, deliberately. These used to carry a blue cast, and with a
+  // cyan accent on top of them the whole page read as though it had a filter
+  // over it. The colour belongs to the accent; everything under it is grey so
+  // the accent is the only thing that is coloured.
   ink: "#000000",
-  surface: "#111820",
-  raised: "#1A242E",
-  overlay: "#232E3A",
+  surface: "#141414",
+  raised: "#1F1F1F",
+  overlay: "#2A2A2A",
   // Only for genuine rules — a divider between rows, the underside of a
   // header. Never to outline a card.
-  line: "#1F2A35",
+  line: "#262626",
 
-  // Text.
-  text: "#F2F6F9",
-  muted: "#94A3B2",
-  faint: "#7A8A9A",
+  // Text. Also neutral: blue-grey body copy tints every paragraph on the page.
+  text: "#FAFAFA",
+  muted: "#A1A1A1",
+  faint: "#8A8A8A",
 
   // Brand accent — cyan.
   accent: "#22D3EE",
   accentStrong: "#06B6D4",
-  accentInk: "#04212A",
+  accentInk: "#0A0A0A",
   accentSoft: "rgba(34, 211, 238, 0.12)",
 
   // Supporting signal colours.

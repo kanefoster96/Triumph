@@ -2,19 +2,25 @@
 
 /* Mirrors src/lib/theme/tokens.ts — keep the two in step. */
 @theme {
+  /*
+   * Surfaces and text are neutral grey on purpose. They used to carry a blue
+   * cast, and under a cyan accent the whole page read as though a filter had
+   * been laid over it. The colour belongs to the accent; everything beneath it
+   * is grey so the accent is the only coloured thing on the page.
+   */
   --color-ink: #000000;
-  --color-surface: #111820;
-  --color-raised: #1a242e;
-  --color-overlay: #232e3a;
-  --color-line: #1f2a35;
+  --color-surface: #141414;
+  --color-raised: #1f1f1f;
+  --color-overlay: #2a2a2a;
+  --color-line: #262626;
 
-  --color-text: #f2f6f9;
-  --color-muted: #94a3b2;
-  --color-faint: #7a8a9a;
+  --color-text: #fafafa;
+  --color-muted: #a1a1a1;
+  --color-faint: #8a8a8a;
 
   --color-accent: #22d3ee;
   --color-accent-strong: #06b6d4;
-  --color-accent-ink: #04212a;
+  --color-accent-ink: #0a0a0a;
 
   --color-amber: #f5b23d;
   --color-success: #34d399;

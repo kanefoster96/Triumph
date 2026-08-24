@@ -65,7 +65,16 @@ export function IconTile({ icon, visual, feature, size = "md", className }: Icon
   const s = sizes[size];
 
   return (
-    <span className={cn("grid shrink-0 place-items-center bg-accent/10 text-accent", s.box, className)}>
+    <span
+      className={cn(
+        // Grey tile, accent icon. A tinted tile behind every card, goal and
+        // feature put fifteen cyan squares on the home page and read as a
+        // filter over the whole thing; the icon alone carries the colour.
+        "grid shrink-0 place-items-center bg-overlay text-accent",
+        s.box,
+        className,
+      )}
+    >
       <Icon className={s.icon} />
     </span>
   );
