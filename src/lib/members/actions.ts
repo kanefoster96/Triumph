@@ -465,6 +465,31 @@ function readGymName(formData: FormData): string | null {
   return String(formData.get("gymName") ?? "").trim().slice(0, 80) || null;
 }
 
+/**
+ * Stamp that this member has been in.
+ *
+ * Called from the members' layout, so it runs whenever somebody opens a
+ * screen. The throttle is the `where` clause rather than a read first: one
+ * statement, no round trip to find out whether to write, and a member
+ * clicking through six tabs writes once rather than six times.
+ *
+ * Nothing is awaited on the render path that matters — a failed stamp costs
+ * an undercount on a marketing line and nothing else, so it stays quiet.
+ */
+export async function touchPresence(): Promise<void> {
+  const supabase = await createClient();
+  if (!supabase) return;
+
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return;
+
+  await supabase
+    .from("profiles")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("id", data.user.id)
+    .or(`last_seen_at.is.null,last_seen_at.lt.${new Date(Date.now() - 15 * 60_000).toISOString()}`);
+}
+
 /** Starts a demo session as a particular account rather than a demo role. */
 async function signInAs(profileId: string) {
   const store = await cookies();

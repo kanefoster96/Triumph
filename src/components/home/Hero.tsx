@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
-import { HeroProof } from "./HeroProof";
+import { HeroProof, LiveMembers } from "./HeroProof";
 
 const proofPoints = [
   "Weekly check-ins with Dean",
@@ -44,8 +44,14 @@ export function Hero() {
         </p>
       </Reveal>
 
+      <Reveal delay={150}>
+        <div className="mt-8">
+          <LiveMembers />
+        </div>
+      </Reveal>
+
       <Reveal delay={180}>
-        <div className="mx-auto mt-9 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+        <div className="mx-auto mt-7 flex max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <Button href="/join" size="lg">
             Let&rsquo;s get started
           </Button>

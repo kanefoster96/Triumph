@@ -9,6 +9,7 @@ import {
   isDemoMode,
   today,
 } from "@/lib/members/service";
+import { touchPresence } from "@/lib/members/actions";
 import { MemberTabBar, MemberTabsInline } from "@/components/members/MemberTabBar";
 import { DemoBanner } from "@/components/members/DemoBanner";
 import { Logo } from "@/components/layout/Logo";
@@ -23,6 +24,11 @@ export default async function MemberLayout({ children }: LayoutProps<"/app">) {
   const [profile, demo] = await Promise.all([getCurrentProfile(), isDemoMode()]);
   if (!profile) redirect("/login");
   if (profile.role === "admin") redirect("/admin");
+
+  // They are here, which is the whole of what "active today" means. Not
+  // awaited with the reads below: it is a write, and nothing on this page is
+  // waiting to render it.
+  void touchPresence();
 
   // Read once here so every tab bar on the page agrees about the day.
   const [progress, unreadChat, unreadNotifications] = await Promise.all([
