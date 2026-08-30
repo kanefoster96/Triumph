@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
-import { HeroProof, LiveMembers } from "./HeroProof";
+import { HeroProof, JoinCount, LiveMembers } from "./HeroProof";
 
 const proofPoints = [
   "Weekly check-ins with Dean",
@@ -14,10 +14,16 @@ export function Hero() {
   return (
     <Container className="pt-14 pb-20 text-center sm:pt-24 sm:pb-28">
       <Reveal>
+        <HeroProof />
+      </Reveal>
+
+      <Reveal delay={30}>
         {/* The badge says something true and different every day rather than a
             slogan that is the same on every visit. It renders nothing when
             there is nobody in, and the hero simply starts at the headline. */}
-        <LiveMembers />
+        <div className="mt-6">
+          <LiveMembers />
+        </div>
       </Reveal>
 
       <Reveal delay={60}>
@@ -54,7 +60,9 @@ export function Hero() {
       </Reveal>
 
       <Reveal delay={240}>
-        <HeroProof />
+        <div className="mt-9">
+          <JoinCount />
+        </div>
       </Reveal>
 
       <Reveal delay={300}>

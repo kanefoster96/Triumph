@@ -5,12 +5,8 @@ import { Rating } from "@/components/ui/Rating";
 import { CountUp } from "@/components/ui/CountUp";
 
 /**
- * Who is already training, right under the buttons.
- *
- * This replaced a pair of big figures — "80+ clients helped" and "5/5 star
- * rating" — which said the same two things at four times the height and
- * without showing anybody. Faces, then the rating those faces gave, then the
- * number: proof reads better as people than as statistics.
+ * Who is already training — faces and the rating those faces gave, at the
+ * top of the hero, ahead of everything else.
  *
  * Nobody here is invented. The faces are the review authors, so real reviews
  * make this real, and a photo dropped into `public/clients` lights one up
@@ -20,10 +16,10 @@ import { CountUp } from "@/components/ui/CountUp";
  * cannot disagree.
  */
 export async function HeroProof() {
-  const { people, rating, clients } = await getSocialProof();
+  const { people, rating } = await getSocialProof();
 
   return (
-    <div className="mt-9 flex flex-col items-center gap-3.5">
+    <div className="flex flex-col items-center gap-3.5">
       {/*
        * The overlap is what it is because these are initials, not faces. A
        * photo fills its circle and can be covered by a third; two letters sit
@@ -43,16 +39,30 @@ export async function HeroProof() {
       </div>
 
       <Rating value={Math.round(rating)} />
-
-      <p className="text-sm text-muted">
-        Join{" "}
-        <span className="font-semibold text-text">
-          <CountUp value={clients.value} />
-          {clients.suffix} people
-        </span>{" "}
-        improving themselves daily
-      </p>
     </div>
+  );
+}
+
+/**
+ * "Join 80+ people improving themselves daily" — right under the buttons.
+ *
+ * Split out from the avatars and stars above: this replaced a pair of big
+ * figures — "80+ clients helped" and "5/5 star rating" — which said the same
+ * two things at four times the height and without showing anybody, so the
+ * count still belongs near the call to action even though the faces moved up.
+ */
+export async function JoinCount() {
+  const { clients } = await getSocialProof();
+
+  return (
+    <p className="text-sm text-muted">
+      Join{" "}
+      <span className="font-semibold text-text">
+        <CountUp value={clients.value} />
+        {clients.suffix} people
+      </span>{" "}
+      improving themselves daily
+    </p>
   );
 }
 
