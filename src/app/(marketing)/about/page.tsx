@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Check } from "lucide-react";
 import { getCoach, getPosts } from "@/lib/services/content";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Avatar } from "@/components/members/Avatar";
 import { Chip } from "@/components/ui/Chip";
 import { Section, SectionHeader } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
@@ -40,6 +41,7 @@ export default async function AboutPage() {
   return (
     <>
       <PageHeader
+        avatar={<Avatar name={coach.name} src={coach.photo} size="sm" ring />}
         eyebrow="About"
         title={coach.name}
         description={`${coach.role} · ${coach.location} · Coaching since ${coach.since}`}
