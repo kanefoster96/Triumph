@@ -27,5 +27,6 @@ export const coach: Coach = {
     "Training around shift work and travel",
     "Getting started after years off",
   ],
+  photo: "/coach/dean.jpg",
   since: 2021,
 };

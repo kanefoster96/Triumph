@@ -241,7 +241,7 @@ export default async function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="inline-flex items-center gap-3 text-base font-semibold">
               {/* From a person, not from the system. */}
-              <Avatar name={coach.name} size="sm" />
+              <Avatar name={coach.name} src={coach.photo} size="sm" />
               Your check-in from {coach.name.split(" ")[0]}
             </h2>
             <span className="text-xs text-faint">
