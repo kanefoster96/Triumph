@@ -28,5 +28,6 @@ export const coach: Coach = {
     "Getting started after years off",
   ],
   photo: "/coach/dean.jpg",
+  photoLarge: "/coach/dean-training.jpg",
   since: 2021,
 };
