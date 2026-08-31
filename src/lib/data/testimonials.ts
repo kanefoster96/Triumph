@@ -40,7 +40,7 @@ export const testimonials: Testimonial[] = [
     name: "Tom W.",
     handle: "@tomw",
     role: "Teacher",
-    body: "Dean told me my food, not my training, was the problem — then actually helped me fix it without a meal plan full of things I would never cook.",
+    body: "Dean told me my food, not my training, was the problem. He built me a full meal plan to start, made entirely from things I would actually cook — once I got the hang of it, we dropped it back to just a calorie target and I have not looked back.",
     rating: 5,
     date: "2026-03-24",
     goal: "Dieted before, it came back",

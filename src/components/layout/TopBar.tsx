@@ -65,15 +65,11 @@ export function TopBar({ demoSlot }: { demoSlot?: ReactNode }) {
             Log in
           </Link>
           {/* Wrapped rather than given `hidden` directly: the Button sets its
-              own `inline-flex`, which wins over a `hidden` passed in. */}
-          <span className="hidden lg:inline-flex">
-            <Button href="/join" size="sm" variant="secondary">
-              Apply for training
-            </Button>
-          </span>
+              own `inline-flex`, which wins over a `hidden` passed in. The one
+              CTA in the header, so it carries the accent. */}
           <span className="hidden md:inline-flex">
-            <Button href="/signup" size="sm">
-              Create account
+            <Button href="/join" size="sm">
+              Apply for training
             </Button>
           </span>
           <MobileMenu demoSlot={demoSlot} />

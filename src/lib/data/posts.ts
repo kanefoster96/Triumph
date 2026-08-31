@@ -8,8 +8,8 @@ export const posts: Post[] = [
   {
     id: "p-1",
     kind: "tip",
-    title: "You are not plateaued, you are inconsistent",
-    body: "Nine times out of ten, a client who says progress has stalled has trained eleven of the last twenty sessions. Before we change the plan, we count the sessions that actually happened. The fix is usually attendance, not exercise selection.",
+    title: "A stall almost never means the plan is wrong",
+    body: "Nine times out of ten, when someone tells me progress has stalled, life just got busy for a few weeks — a handful of sessions missed, nothing to feel bad about. Before I touch the plan, we look at what actually happened. Most of the time the fix is not a new programme, it is picking back up where you left off — and I would rather help you do that than make you feel guilty about it.",
     date: "2026-08-11",
     likes: 302,
     comments: 41,
@@ -18,8 +18,8 @@ export const posts: Post[] = [
   {
     id: "p-2",
     kind: "note",
-    title: "Why I do not send meal plans",
-    body: "A meal plan tells you what to eat on a perfect day. You do not have perfect days — you have a school run, a work lunch and a Friday night. Targets plus a structure you can hit in a real week beat a perfect plan you abandon by Wednesday.",
+    title: "Meal plan, or just the numbers — whatever you will use",
+    body: "Some people want to know exactly what to eat, meal by meal, so that is where we start. Others find a meal plan is one more thing to manage on top of a school run, a work lunch and a Friday night — for them I strip it right back to a calorie and protein target so they can build their own day around it. Neither one is the 'proper' way to do it. The right one is whichever you are still doing in a month.",
     date: "2026-08-08",
     likes: 221,
     comments: 34,

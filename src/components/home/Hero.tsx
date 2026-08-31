@@ -43,7 +43,7 @@ export function Hero() {
       <Reveal delay={120}>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
           A plan built by a personal trainer around your goals, with meals and workouts that are
-          simple to log. If you want someone keeping you accountable and results that last, book a
+          simple to log. If you want someone in your corner and results that last, book a
           free consult.
         </p>
       </Reveal>

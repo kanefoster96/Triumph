@@ -37,6 +37,12 @@ export interface Coach {
   specialties: string[];
   /** Optional photo path under /public. Falls back to a generated visual. */
   photo?: string;
+  /**
+   * The wide action shot on /about. Separate from `photo` because it is a
+   * different crop entirely — a close portrait works as a circle, this does
+   * not.
+   */
+  photoLarge?: string;
   since: number;
 }
 

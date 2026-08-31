@@ -52,7 +52,7 @@ export default async function AboutPage() {
           <Reveal>
             <MediaFrame
               visual="strength"
-              src={coach.photo}
+              src={coach.photoLarge}
               alt={coach.name}
               caption="Photo of Dean goes here"
               className="aspect-[4/5] w-full"
