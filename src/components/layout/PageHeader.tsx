@@ -4,15 +4,18 @@ import { Reveal } from "@/components/ui/Reveal";
 
 interface PageHeaderProps {
   eyebrow?: string;
+  /** A small identity marker above the eyebrow — Dean's avatar on /about. */
+  avatar?: ReactNode;
   title: string;
   description?: string;
   children?: ReactNode;
 }
 
-export function PageHeader({ eyebrow, title, description, children }: PageHeaderProps) {
+export function PageHeader({ eyebrow, avatar, title, description, children }: PageHeaderProps) {
   return (
     <Container className="pt-14 pb-14 text-center sm:pt-20 sm:pb-20">
       <Reveal>
+        {avatar ? <div className="mb-5 flex justify-center">{avatar}</div> : null}
         {eyebrow ? (
           <p className="mb-4 text-xs font-semibold text-accent">{eyebrow}</p>
         ) : null}
