@@ -42,7 +42,7 @@ export const goals: Goal[] = [
     name: "Dieted before, it came back",
     tagline: "Lose it once, and keep it off",
     summary:
-      "A calorie target you can actually live on, built from the food you already eat, with training that protects the muscle underneath. No shakes, no banned foods, no starting again on Monday.",
+      "Whether that means a full meal plan to start or just a number to hit, it is built from food you already eat, with training that protects the muscle underneath. No shakes, no banned foods, no starting again on Monday.",
     whoFor: [
       "You have lost weight before and watched it come back",
       "You eat out, travel, or cook for other people",
@@ -50,7 +50,7 @@ export const goals: Goal[] = [
     ],
     howIHelp: [
       "Calorie and protein targets set from your body, not a chart",
-      "Meals built from the food you already like eating",
+      "A full meal plan if you want one, or just the targets if you do not",
       "Three or four lifting sessions to hold onto muscle",
       "A daily step target instead of punishment cardio",
     ],

@@ -32,7 +32,7 @@ export const included: Feature[] = [
     id: "inc-checkin",
     icon: "checkin",
     title: "Dean checks in weekly",
-    body: "He reads your week and tells you what to change.",
+    body: "He reads your week and helps you figure out what is next.",
   },
   {
     id: "inc-adjust",

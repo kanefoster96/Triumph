@@ -15,9 +15,9 @@ export const faqs: FaqItem[] = [
   },
   {
     id: "f-3",
-    question: "Do I have to eat specific foods?",
+    question: "Do you write meal plans, or just give me targets?",
     answer:
-      "No. Your plan is built around what you already eat and cook. You get targets and a structure that fits your life — including takeaways, eating out and family meals. Meal plans full of food you would never buy have terrible adherence, so I do not write them.",
+      "Whichever gets you eating well. Most people start with a full meal plan — built entirely from food you already eat and cook, including takeaways, eating out and family meals, never something you would never actually buy. If the plan itself becomes the hard part, I will happily strip it back to just your calorie and protein targets so you have the freedom to build your own day around them. Neither one is the 'proper' way to do it — the right one is whichever you will still be doing in a month.",
   },
   {
     id: "f-4",

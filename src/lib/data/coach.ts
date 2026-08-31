@@ -7,9 +7,10 @@ export const coach: Coach = {
   location: "Newcastle upon Tyne",
   headline: "I got in shape around a full-time job and two kids. Now I do it for people like you.",
   intro:
-    "I got in shape around a full-time job and two kids — no secrets, just tracking what I did and adjusting every week. I have coached people across the UK the same way ever since. Whatever your goal, you get a plan built for your life and a coach who changes it when your life changes.",
+    "I got in shape around a full-time job and two kids — no secrets, just tracking what I did and adjusting every week when life got in the way, which it always does. I have coached people across the UK the same way ever since, and I care about how your week actually went, not just the number on the scale. Whatever your goal, you get a plan built for your life, a coach who changes it when your life changes, and someone in your corner on the weeks that do not go to plan.",
   bio: [
     "No secrets, no hacks. I tracked what I did, checked in weekly, and adjusted as life happened. That’s the exact system every client gets — and it’s why they get results whether their goal is fat loss, strength, or just feeling good again.",
+    "An off week does not undo anything with me — it is just what we adjust around next. I ask how your week actually went because I want to know, not to catch you out, and the clients who stick around longest are usually the ones who had a rough patch early on and found out I meant it.",
   ],
   highlights: [
     "80+ clients coached across the UK",
