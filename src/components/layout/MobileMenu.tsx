@@ -245,18 +245,16 @@ export function MobileMenu({ demoSlot }: { demoSlot?: ReactNode }) {
                 </div>
               ) : null}
 
-              {/* Three ways in, named for what they do. "Create account" is
-                  the quick one and leads; applying for training is a different
-                  decision and says so. */}
+              {/* Two ways in. Applying for training is the one thing this
+                  site is asking for, so it leads and carries the accent;
+                  logging in is for people already coming back. Creating a
+                  bare account lives on the login page instead. */}
               <div className="space-y-2">
-                <Button href="/signup" fullWidth>
-                  Create account
+                <Button href="/join" fullWidth>
+                  Apply for training
                 </Button>
                 <Button href="/login" variant="secondary" fullWidth>
                   Log in
-                </Button>
-                <Button href="/join" variant="secondary" fullWidth>
-                  Apply for training
                 </Button>
               </div>
               <a

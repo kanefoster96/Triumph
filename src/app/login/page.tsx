@@ -109,6 +109,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <DemoSignIn />
           </div>
         ) : null}
+
+        {/* The other door, said plainly — mirrors the note on /signup. */}
+        <p className="mt-6 text-sm leading-relaxed text-muted">
+          Just want quick access, no application?{" "}
+          <Link href="/signup" className="font-semibold text-accent hover:underline">
+            Create an account
+          </Link>
+          .
+        </p>
       </div>
 
       <p className="mt-6 text-center text-sm">
